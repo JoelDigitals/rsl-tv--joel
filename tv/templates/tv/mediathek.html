@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+
+{% block title %}Mediathek – RSL{% endblock %}
+
+{% block extra_css %}
+<style>
+    .video-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .video-card {
+        background: var(--rsl-gray);
+        border: 1px solid var(--rsl-light-gray);
+        border-radius: 8px;
+        overflow: hidden;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    
+    .video-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(33, 150, 243, 0.3);
+        border-color: var(--rsl-secondary);
+    }
+    
+    .video-thumbnail {
+        position: relative;
+        padding-bottom: 56.25%;
+        background: var(--rsl-darker);
+        overflow: hidden;
+    }
+    
+    .video-thumbnail img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s;
+    }
+    
+    .video-card:hover .video-thumbnail img {
+        transform: scale(1.1);
+    }
+    
+    .video-duration {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .category-filter {
+        background: var(--rsl-gray);
+        border: 1px solid var(--rsl-light-gray);
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        color: var(--rsl-text);
+        transition: all 0.2s;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .category-filter:hover {
+        background: var(--rsl-light-gray);
+        color: white;
+    }
+    
+    .category-filter.active {
+        background: var(--rsl-primary);
+        border-color: var(--rsl-primary);
+        color: white;
+    }
+    
+    .play-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0,0,0,0);
+        transition: background 0.3s;
+    }
+    
+    .video-card:hover .play-overlay {
+        background: rgba(0,0,0,0.5);
+    }
+    
+    .play-button {
+        width: 60px;
+        height: 60px;
+        background: var(--rsl-primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+        opacity: 0;
+        transform: scale(0.8);
+        transition: all 0.3s;
+    }
+    
+    .video-card:hover .play-button {
+        opacity: 1;
+        transform: scale(1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div class="container">
+        <h1><i class="bi bi-collection-play me-3"></i>Mediathek</h1>
+        <p class="text-muted mb-0">Alle Videos und Sendungen auf Abruf</p>
+    </div>
+</div>
+
+<section class="py-4">
+    <div class="container">
+        
+        <!-- Filter & Suche -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-8">
+                <!-- Kategorien -->
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="/mediathek/" class="category-filter {% if not current_category %}active{% endif %}">
+                        <i class="bi bi-grid-3x3 me-1"></i>Alle
+                    </a>
+                    {% for cat in categories %}
+                    <a href="?kategorie={{ cat.slug }}" 
+                       class="category-filter {% if current_category == cat.slug %}active{% endif %}"
+                       style="{% if current_category == cat.slug %}background:{{ cat.color }};border-color:{{ cat.color }};{% endif %}">
+                        {{ cat.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <!-- Suche -->
+                <form method="get" class="d-flex gap-2">
+                    <input type="search" 
+                           name="q" 
+                           class="form-control" 
+                           placeholder="Video suchen..." 
+                           value="{{ search }}">
+                    <button type="submit" class="btn btn-rsl">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Video Grid -->
+        {% if videos %}
+        <div class="video-grid">
+            {% for video in videos %}
+            <div class="video-card" onclick="playVideo('{{ video.id }}', '{{ video.get_stream_url }}')">
+                <div class="video-thumbnail">
+                    {% if video.thumbnail_url %}
+                    <img src="{{ video.thumbnail_url }}" alt="{{ video.title }}" loading="lazy">
+                    {% else %}
+                    <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--rsl-gray),var(--rsl-darker));">
+                        <i class="bi bi-film" style="font-size:3rem;color:var(--rsl-muted);"></i>
+                    </div>
+                    {% endif %}
+                    
+                    {% if video.duration %}
+                    <div class="video-duration">{{ video.duration_display }}</div>
+                    {% endif %}
+                    
+                    <div class="play-overlay">
+                        <div class="play-button">
+                            <i class="bi bi-play-fill"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-3">
+                    <h6 class="mb-2 fw-bold">{{ video.title }}</h6>
+                    
+                    {% if video.category %}
+                    <span class="badge mb-2" style="background:{{ video.category.color }};">
+                        {{ video.category.name }}
+                    </span>
+                    {% endif %}
+                    
+                    {% if video.description %}
+                    <p class="text-muted mb-0" style="font-size:0.85rem;">
+                        {{ video.description|truncatewords:15 }}
+                    </p>
+                    {% endif %}
+                    
+                    <div class="mt-2 d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="bi bi-clock me-1"></i>{{ video.duration_display }}
+                        </small>
+                        <small class="text-muted">
+                            <i class="bi bi-calendar me-1"></i>{{ video.created_at|date:"d.m.Y" }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-5">
+            <i class="bi bi-collection-play d-block mb-3" style="font-size:3rem;"></i>
+            <p>Keine Videos gefunden.</p>
+            {% if search or current_category %}
+            <a href="/mediathek/" class="btn btn-rsl">Filter zurücksetzen</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+    </div>
+</section>
+
+<!-- Video Player Modal -->
+<div class="modal fade" id="videoModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content" style="background:var(--rsl-dark);border:2px solid var(--rsl-primary);">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="videoTitle">Video</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div style="position:relative;padding-bottom:56.25%;height:0;background:#000;">
+                    <iframe id="videoPlayer" 
+                            style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+                            allowfullscreen>
+                    </iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function playVideo(videoId, videoUrl) {
+    const modal = new bootstrap.Modal(document.getElementById('videoModal'));
+    const player = document.getElementById('videoPlayer');
+    
+    // Prüfe Video-Typ und setze entsprechende URL
+    if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
+        // YouTube
+        const videoIdMatch = videoUrl.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu.be\/)([^"&?\/\s]{11})/);
+        if (videoIdMatch) {
+            player.src = `https://www.youtube.com/embed/${videoIdMatch[1]}?autoplay=1&modestbranding=1&rel=0`;
+        }
+    } else if (videoUrl.includes('twitch.tv')) {
+        // Twitch
+        const channel = videoUrl.split('twitch.tv/')[1];
+        player.src = `https://player.twitch.tv/?video=${channel}&parent=${window.location.hostname}&autoplay=true`;
+    } else {
+        // Direkte URL
+        player.src = videoUrl;
+    }
+    
+    modal.show();
+}
+
+// Player beim Schließen stoppen
+document.getElementById('videoModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('videoPlayer').src = '';
+});
+</script>
+{% endblock %}

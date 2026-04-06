@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% block title %}Werbung auf RSL schalten – Joel Digitals{% endblock %}
+
+{% block content %}
+<div class="page-header text-center">
+    <div class="container">
+        <h1>Werbung auf <span style="color:var(--rsl-red)">RSL</span></h1>
+        <p class="text-muted mt-2 mb-0 fs-5">Erreichen Sie tausende Zuschauer täglich – werbefinanziertes TV neu gedacht</p>
+    </div>
+</div>
+
+<div class="container py-5">
+
+    <!-- WHY RSL -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="rsl-card p-4 h-100">
+                <div style="font-size:2rem;margin-bottom:0.8rem;">👁️</div>
+                <h5 class="fw-bold">Große Reichweite</h5>
+                <p class="text-muted small">RSL streamt 24/7 auf YouTube, Twitch und via IPTV direkt in Wohnzimmer.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="rsl-card p-4 h-100">
+                <div style="font-size:2rem;margin-bottom:0.8rem;">🎯</div>
+                <h5 class="fw-bold">Gezielte Zeitslots</h5>
+                <p class="text-muted small">Wählen Sie Morgen, Mittag, Abend oder Nacht – sprechen Sie genau Ihre Zielgruppe an.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="rsl-card p-4 h-100">
+                <div style="font-size:2rem;margin-bottom:0.8rem;">⚡</div>
+                <h5 class="fw-bold">Automatisch ausgestrahlt</h5>
+                <p class="text-muted small">Buchen Sie online – Ihr Spot läuft automatisch im RSL-Programm ohne weiteren Aufwand.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- PREISTABELLE -->
+    <h2 class="section-title text-center mb-2">Unsere <span>Pakete</span></h2>
+    <div class="section-divider mx-auto mb-5"></div>
+
+    <div class="row g-4 align-items-stretch">
+        {% for pkg in packages %}
+        <div class="col-md-{% if pkg.id == 'exclusive' %}12{% else %}6 col-lg-{% if forloop.last %}12{% else %}3{% endif %}{% endif %}">
+            <div class="rsl-card p-4 h-100 position-relative {% if pkg.popular %}border-danger{% endif %}"
+                 style="{% if pkg.popular %}border-color:var(--rsl-red) !important;border-width:2px !important;{% endif %}">
+
+                {% if pkg.popular %}
+                <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--rsl-red);color:white;font-size:0.7rem;font-weight:700;padding:3px 12px;border-radius:20px;letter-spacing:2px;text-transform:uppercase;">Beliebt</div>
+                {% endif %}
+
+                <h4 class="fw-bold mb-1">{{ pkg.name }}</h4>
+
+                {% if pkg.price %}
+                <div style="font-size:2.5rem;font-weight:900;color:var(--rsl-red);line-height:1;">
+                    {{ pkg.price }}€
+                </div>
+                <small class="text-muted">einmalig</small>
+                {% else %}
+                <div style="font-size:2rem;font-weight:900;color:var(--rsl-red);line-height:1;">
+                    Auf Anfrage
+                </div>
+                {% endif %}
+
+                <hr style="border-color:var(--rsl-light-gray);margin:1rem 0;">
+
+                <ul class="list-unstyled mb-4">
+                    {% for feature in pkg.features %}
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill me-2" style="color:var(--rsl-red);"></i>
+                        {{ feature }}
+                    </li>
+                    {% endfor %}
+                    <li class="text-muted">
+                        <i class="bi bi-clock me-2"></i>Spot: {{ pkg.duration }}
+                    </li>
+                </ul>
+
+                <a href="/werbung/buchen/{{ pkg.id }}/"
+                   class="btn {% if pkg.popular %}btn-rsl{% else %}btn-outline-rsl{% endif %} w-100">
+                    {% if pkg.price %}Jetzt buchen{% else %}Anfrage senden{% endif %}
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- WIE ES FUNKTIONIERT -->
+    <div class="mt-6 py-5">
+        <h2 class="section-title text-center">So <span>einfach</span> geht's</h2>
+        <div class="section-divider mx-auto mb-5"></div>
+
+        <div class="row g-4">
+            <div class="col-md-3 text-center">
+                <div style="width:60px;height:60px;background:var(--rsl-red);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem;font-weight:700;">1</div>
+                <h6 class="fw-bold">Paket wählen</h6>
+                <p class="text-muted small">Wählen Sie Ihr gewünschtes Werbepaket.</p>
+            </div>
+            <div class="col-md-3 text-center">
+                <div style="width:60px;height:60px;background:var(--rsl-red);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem;font-weight:700;">2</div>
+                <h6 class="fw-bold">Formular ausfüllen</h6>
+                <p class="text-muted small">Geben Sie Ihre Daten und den Link zu Ihrem Werbevideo an.</p>
+            </div>
+            <div class="col-md-3 text-center">
+                <div style="width:60px;height:60px;background:var(--rsl-red);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem;font-weight:700;">3</div>
+                <h6 class="fw-bold">Genehmigung</h6>
+                <p class="text-muted small">Wir prüfen Ihren Spot innerhalb von 24 Stunden.</p>
+            </div>
+            <div class="col-md-3 text-center">
+                <div style="width:60px;height:60px;background:var(--rsl-red);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem;font-weight:700;">4</div>
+                <h6 class="fw-bold">Live auf RSL</h6>
+                <p class="text-muted small">Ihr Spot läuft automatisch im RSL-Programm.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="mt-4">
+        <h2 class="section-title text-center mb-4">Häufige <span>Fragen</span></h2>
+        <div class="accordion" id="faqAccordion" style="--bs-accordion-bg:var(--rsl-gray);--bs-accordion-border-color:var(--rsl-light-gray);--bs-accordion-color:var(--rsl-text);">
+            <div class="accordion-item border-bottom">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1" style="background:var(--rsl-gray);color:var(--rsl-text);">
+                        In welchem Format brauche ich mein Werbevideo?
+                    </button>
+                </h2>
+                <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body text-muted">
+                        Ihr Video sollte als öffentlicher oder ungelisteter Link bei YouTube, Google Drive oder Dropbox hochgeladen sein. Format: MP4, mindestens 720p, 16:9. Länge: 15–60 Sekunden.
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item border-bottom">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2" style="background:var(--rsl-gray);color:var(--rsl-text);">
+                        Wann geht meine Werbung auf Sendung?
+                    </button>
+                </h2>
+                <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body text-muted">
+                        Nach der Buchung und Genehmigung (in der Regel innerhalb von 24 Stunden) wird Ihr Spot automatisch im gewählten Zeitraum und Slot ausgestrahlt.
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3" style="background:var(--rsl-gray);color:var(--rsl-text);">
+                        Kann ich meinen Spot jederzeit stoppen?
+                    </button>
+                </h2>
+                <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body text-muted">
+                        Ja, kontaktieren Sie uns einfach per E-Mail oder über das Kontaktformular. Wir deaktivieren Ihren Spot innerhalb von 2 Stunden.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="text-center mt-5 p-5 rsl-card">
+        <h3 class="fw-bold mb-2">Bereit, auf RSL zu werben?</h3>
+        <p class="text-muted mb-4">Fragen? Wir beraten Sie gerne persönlich.</p>
+        <div class="d-flex gap-3 justify-content-center flex-wrap">
+            <a href="/werbung/buchen/" class="btn btn-rsl btn-lg">
+                <i class="bi bi-megaphone me-2"></i>Jetzt buchen
+            </a>
+            <a href="/kontakt/" class="btn btn-outline-rsl btn-lg">
+                <i class="bi bi-envelope me-2"></i>Kontakt aufnehmen
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

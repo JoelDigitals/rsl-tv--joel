@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}Live Events – RSL{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1><span style="color:var(--rsl-red)">Live</span> Events</h1>
+        <p class="text-muted mt-2 mb-0">Aktuelle und geplante Live-Übertragungen auf RSL</p>
+    </div>
+</div>
+<div class="container py-5">
+    {% if live_streams %}
+    <h2 class="section-title mb-2">Jetzt <span>Live</span></h2>
+    <div class="section-divider"></div>
+    <div class="row g-4 mb-5">
+        {% for stream in live_streams %}
+        <div class="col-lg-6">
+            <div class="rsl-card overflow-hidden">
+                <div style="position:relative;padding-bottom:56.25%;height:0;background:#000;">
+                    <iframe src="{{ stream.get_embed_url }}"
+                        style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+                        allowfullscreen allow="autoplay; encrypted-media"></iframe>
+                    <div style="position:absolute;top:10px;left:10px;"><span class="live-badge">🔴 LIVE</span></div>
+                </div>
+                <div class="p-3">
+                    <h5 class="fw-bold mb-1">{{ stream.title }}</h5>
+                    {% if stream.location %}<small class="text-muted"><i class="bi bi-geo-alt me-1"></i>{{ stream.location }}</small>{% endif %}
+                    {% if stream.description %}<p class="text-muted small mt-2 mb-0">{{ stream.description }}</p>{% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <h2 class="section-title mb-2">Geplante <span>Events</span></h2>
+    <div class="section-divider"></div>
+    {% if upcoming_live %}
+    <div class="row g-3 mt-2">
+        {% for stream in upcoming_live %}
+        <div class="col-md-6 col-lg-4">
+            <div class="rsl-card p-3">
+                {% if stream.thumbnail_url %}<img src="{{ stream.thumbnail_url }}" class="w-100 mb-3" style="border-radius:4px;height:150px;object-fit:cover;" alt="">{% endif %}
+                <h6 class="fw-bold">{{ stream.title }}</h6>
+                {% if stream.scheduled_start %}<p class="text-danger small mb-1"><i class="bi bi-clock me-1"></i>{{ stream.scheduled_start|date:"d.m.Y H:i" }} Uhr</p>{% endif %}
+                {% if stream.location %}<p class="text-muted small mb-0"><i class="bi bi-geo-alt me-1"></i>{{ stream.location }}</p>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+        <i class="bi bi-calendar-event d-block fs-1 mb-3"></i>
+        <h5>Keine Live-Events geplant</h5>
+        <p>Schauen Sie regelmäßig vorbei – neue Events werden hier angekündigt.</p>
+    </div>
+    {% endif %}
+
+    <!-- Live-Schaltung Info für Streamer -->
+    <div class="mt-5 rsl-card p-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h5 class="fw-bold mb-1">📡 Live auf RSL streamen</h5>
+                <p class="text-muted mb-0">Sie möchten eine Live-Sendung auf RSL machen? Kontaktieren Sie uns – wir schalten Ihren Stream ins RSL-Programm ein.</p>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <a href="/kontakt/" class="btn btn-rsl">Jetzt anfragen</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

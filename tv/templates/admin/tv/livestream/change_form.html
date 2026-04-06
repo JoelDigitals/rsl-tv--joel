@@ -1,0 +1,46 @@
+{% extends "admin/change_form.html" %}
+
+{% block submit_buttons_bottom %}
+{{ block.super }}
+
+{% if original %}
+<div style="margin:20px 0;padding:20px;background:#1a1a2e;border-radius:8px;border:2px solid #e63946;">
+    <h3 style="color:#e63946;margin:0 0 15px;font-family:sans-serif;">🔴 RSL Live-Steuerung</h3>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:15px;">
+        {% if original.is_live %}
+        <a href="/admin/tv/livestream/{{ original.pk }}/stop-live/"
+           style="background:#6c757d;color:white;padding:10px 20px;text-decoration:none;border-radius:6px;font-weight:bold;font-family:sans-serif;">
+            ⬛ Live beenden
+        </a>
+        {% else %}
+        <a href="/admin/tv/livestream/{{ original.pk }}/go-live/"
+           style="background:#e63946;color:white;padding:10px 20px;text-decoration:none;border-radius:6px;font-weight:bold;font-family:sans-serif;">
+            🔴 LIVE schalten
+        </a>
+        {% endif %}
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        {% if has_active_ad %}
+        <a href="/admin/tv/livestream/{{ original.pk }}/stop-ad/"
+           style="background:#28a745;color:white;padding:10px 20px;text-decoration:none;border-radius:6px;font-weight:bold;font-family:sans-serif;">
+            ✅ Werbepause BEENDEN
+        </a>
+        <span style="background:#e63946;color:white;padding:10px 20px;border-radius:6px;font-weight:bold;font-family:sans-serif;">
+            🎯 WERBEPAUSE LÄUFT...
+        </span>
+        {% else %}
+        <a href="/admin/tv/livestream/{{ original.pk }}/start-ad/"
+           style="background:#f4a261;color:#333;padding:10px 20px;text-decoration:none;border-radius:6px;font-weight:bold;font-family:sans-serif;">
+            🎯 Werbepause STARTEN
+        </a>
+        {% endif %}
+    </div>
+
+    <p style="color:#888;font-size:0.82rem;margin:12px 0 0;font-family:sans-serif;">
+        ℹ️ Werbepause pausiert den Live-Stream und spielt automatisch Trailer + Spots + Outro ein.
+    </p>
+</div>
+{% endif %}
+{% endblock %}

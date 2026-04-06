@@ -1,0 +1,437 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ room.name }} – TV-Regie – RSL{% endblock %}
+
+{% block extra_css %}
+<style>
+    .camera-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1rem;
+    }
+    
+    .camera-preview {
+        position: relative;
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.3s;
+        border: 3px solid transparent;
+        height: 200px;
+    }
+    
+    .camera-preview:hover {
+        border-color: var(--rsl-accent);
+        transform: scale(1.02);
+    }
+    
+    .camera-preview.selected {
+        border-color: #4ade80;
+        box-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
+    }
+    
+    .camera-label {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(transparent, rgba(0,0,0,0.9));
+        padding: 0.8rem;
+        color: white;
+        font-weight: 600;
+        text-align: center;
+    }
+    
+    .main-preview {
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 3px solid var(--rsl-blue);
+    }
+    
+    .control-btn {
+        padding: 1rem;
+        font-weight: 700;
+        font-size: 1.1rem;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+    
+    .btn-go-live {
+        background: #4ade80;
+        color: #000;
+        border: none;
+    }
+    
+    .btn-go-live:hover {
+        background: #22c55e;
+        transform: scale(1.05);
+    }
+    
+    .btn-cut-out {
+        background: #ef4444;
+        color: white;
+        border: none;
+    }
+    
+    .btn-standby {
+        background: #fbbf24;
+        color: #000;
+        border: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div class="container">
+        <h1><i class="bi bi-door-open me-3"></i>{{ room.name }}</h1>
+        <p class="text-muted mb-0">{{ room.description|default:"Regieraum-Steuerung" }}</p>
+        <a href="{% url 'tv_admin_dashboard' %}" class="btn btn-outline-light mt-3">
+            <i class="bi bi-arrow-left me-2"></i>Zurück zur Übersicht
+        </a>
+    </div>
+</div>
+
+<section class="py-4">
+    <div class="container-fluid">
+        <div class="row g-4">
+            
+            <!-- Hauptbereich -->
+            <div class="col-lg-9">
+                <!-- Haupt-Preview -->
+                <div class="main-preview mb-4">
+                    <div style="position:relative;padding-bottom:56.25%;height:0;">
+                        <div id="main-output" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
+                            <div class="text-center">
+                                <i class="bi bi-camera-video-off d-block mb-3" style="font-size:4rem;color:var(--rsl-muted);"></i>
+                                <p style="color:var(--rsl-text);">Keine Kamera ausgewählt</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Logo Overlay -->
+                        <div style="position:absolute;bottom:15px;right:15px;opacity:0.8;pointer-events:none;">
+                            {% load static %}
+                            <img src="{% static 'tv/img/logo-nobg.png' %}" alt="RSL" style="height:40px;">
+                        </div>
+                    </div>
+                    
+                    <div style="background:var(--rsl-panel);padding:1rem;color:white;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>PROGRAMM-OUTPUT</strong>
+                                <span class="text-muted ms-2" id="current-source">Kein Signal</span>
+                            </div>
+                            <div>
+                                <span class="badge bg-success" id="streaming-status" style="display:none;">
+                                    <i class="bi bi-broadcast me-1"></i>STREAMING
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Kamera-Auswahl -->
+                <h5 class="mb-3" style="color:white;"><i class="bi bi-camera-video me-2"></i>Verfügbare Kameras</h5>
+                {% if room_cameras %}
+                <div class="camera-grid">
+                    {% for rc in room_cameras %}
+                    <div class="camera-preview" onclick="selectCamera({{ rc.camera.id }}, '{{ rc.camera.name }}', '{{ rc.camera.stream_url }}', this)" data-camera-id="{{ rc.camera.id }}">
+                        <div style="position:relative;height:100%;">
+                            {% if rc.camera.preview_url %}
+                            <iframe 
+                                src="{{ rc.camera.preview_url }}" 
+                                style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+                                loading="lazy">
+                            </iframe>
+                            {% elif rc.camera.stream_url %}
+                            <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#1a1a2e;">
+                                <i class="bi bi-camera-video" style="font-size:3rem;color:var(--rsl-muted);"></i>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="camera-label">
+                                <i class="bi bi-camera-video me-2"></i>{{ rc.camera.name }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Keine Kameras für diesen Regieraum konfiguriert. Bitte fügen Sie Kameras im Admin-Bereich hinzu.
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Kontrollbereich -->
+            <div class="col-lg-3">
+                <!-- Hauptsteuerung -->
+                <div class="rsl-card p-3 mb-3">
+                    <h6 class="mb-3" style="color:white;"><i class="bi bi-sliders me-2"></i>Hauptsteuerung</h6>
+                    <div class="d-grid gap-2">
+                        <button class="control-btn btn-go-live" onclick="goLive()">
+                            <i class="bi bi-broadcast me-2"></i>GO LIVE
+                        </button>
+                        <button class="control-btn btn-cut-out" onclick="cutOut()">
+                            <i class="bi bi-x-circle me-2"></i>CUT OUT
+                        </button>
+                        <button class="control-btn btn-standby" onclick="showStandby()">
+                            <i class="bi bi-pause-circle me-2"></i>PAUSENBILD
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Streaming-Kontrolle -->
+                <div class="rsl-card p-3 mb-3">
+                    <h6 class="mb-3" style="color:white;"><i class="bi bi-broadcast me-2"></i>Streaming</h6>
+                    <div class="d-grid gap-2">
+                        {% if room.youtube_stream_key %}
+                        <button class="btn btn-outline-danger" onclick="startStreamPlatform('youtube')">
+                            <i class="bi bi-youtube me-2"></i>YouTube starten
+                        </button>
+                        {% endif %}
+                        
+                        {% if room.twitch_stream_key %}
+                        <button class="btn btn-outline-light" style="background:#9147ff;" onclick="startStreamPlatform('twitch')">
+                            <i class="bi bi-twitch me-2"></i>Twitch starten
+                        </button>
+                        {% endif %}
+                        
+                        {% if room.youtube_stream_key or room.twitch_stream_key %}
+                        <button class="btn btn-danger" onclick="stopStreamPlatform()">
+                            <i class="bi bi-stop-circle me-2"></i>Stream stoppen
+                        </button>
+                        {% else %}
+                        <div class="alert alert-info mb-0" style="font-size:0.85rem;">
+                            Keine Stream-Keys konfiguriert
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Pausenbilder -->
+                {% if standby_images %}
+                <div class="rsl-card p-3">
+                    <h6 class="mb-3" style="color:white;"><i class="bi bi-image me-2"></i>Pausenbilder</h6>
+                    <div class="d-grid gap-2">
+                        {% for img in standby_images %}
+                        <button class="btn btn-sm btn-outline-light" onclick="loadStandbyImage('{{ img.image.url }}', '{{ img.title }}')">
+                            <i class="bi bi-image me-1"></i>{{ img.title }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedCameraId = null;
+let selectedCameraUrl = null;
+let selectedCameraName = null;
+
+// Kamera auswählen
+function selectCamera(cameraId, cameraName, cameraUrl, element) {
+    // Alle Kameras deselektieren
+    document.querySelectorAll('.camera-preview').forEach(el => {
+        el.classList.remove('selected');
+    });
+    
+    // Diese Kamera selektieren
+    element.classList.add('selected');
+    
+    // Werte speichern
+    selectedCameraId = cameraId;
+    selectedCameraName = cameraName;
+    selectedCameraUrl = cameraUrl;
+    
+    // Vorschau aktualisieren
+    const mainOutput = document.getElementById('main-output');
+    mainOutput.innerHTML = `
+        <iframe 
+            src="${cameraUrl}" 
+            style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+            allowfullscreen>
+        </iframe>
+    `;
+    
+    document.getElementById('current-source').textContent = cameraName;
+    
+    showNotification(`Kamera gewechselt: ${cameraName}`, 'success');
+}
+
+// Go Live
+function goLive() {
+    if (!selectedCameraId) {
+        showNotification('Bitte erst eine Kamera auswählen', 'warning');
+        return;
+    }
+    
+    if (!confirm(`Live-Übertragung mit ${selectedCameraName} starten?`)) return;
+    
+    fetch(`/tv-admin/room/{{ room.id }}/go-live/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `camera_id=${selectedCameraId}`
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showNotification('Live-Übertragung gestartet!', 'success');
+            document.getElementById('streaming-status').style.display = 'inline-block';
+        } else {
+            showNotification(data.message || 'Fehler beim Starten', 'error');
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        showNotification('Fehler beim Starten der Live-Übertragung', 'error');
+    });
+}
+
+// Cut Out
+function cutOut() {
+    if (!confirm('Live-Übertragung wirklich beenden?')) return;
+    
+    fetch(`/tv-admin/room/{{ room.id }}/cut-out/`, {
+        method: 'POST',
+    })
+    .then(r => r.json())
+    .then(data => {
+        showNotification('Live-Übertragung beendet', 'success');
+        document.getElementById('streaming-status').style.display = 'none';
+    })
+    .catch(err => {
+        showNotification('Fehler beim Beenden', 'error');
+    });
+}
+
+// Pausenbild anzeigen
+function showStandby() {
+    fetch(`/tv-admin/room/{{ room.id }}/standby/`, {
+        method: 'POST',
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showNotification('Pausenbild aktiviert', 'success');
+            const mainOutput = document.getElementById('main-output');
+            mainOutput.innerHTML = `
+                <img src="${data.image_url}" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;">
+            `;
+            document.getElementById('current-source').textContent = 'Pausenbild';
+        }
+    })
+    .catch(err => {
+        showNotification('Fehler beim Laden des Pausenbilds', 'error');
+    });
+}
+
+// Pausenbild laden
+function loadStandbyImage(imageUrl, title) {
+    const mainOutput = document.getElementById('main-output');
+    mainOutput.innerHTML = `
+        <img src="${imageUrl}" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;">
+    `;
+    document.getElementById('current-source').textContent = title;
+    showNotification(`Pausenbild geladen: ${title}`, 'info');
+}
+
+// Stream zu Plattform starten
+function startStreamPlatform(platform) {
+    if (!confirm(`Stream zu ${platform.toUpperCase()} wirklich starten?`)) return;
+    
+    fetch(`/tv-admin/room/{{ room.id }}/start-stream/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `platform=${platform}`
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showNotification(`Stream zu ${platform.toUpperCase()} gestartet`, 'success');
+            document.getElementById('streaming-status').style.display = 'inline-block';
+        } else {
+            showNotification(data.message || 'Fehler', 'error');
+        }
+    })
+    .catch(err => {
+        showNotification('Fehler beim Starten des Streams', 'error');
+    });
+}
+
+// Stream stoppen
+function stopStreamPlatform() {
+    if (!confirm('Stream wirklich stoppen?')) return;
+    
+    fetch(`/tv-admin/room/{{ room.id }}/stop-stream/`, {
+        method: 'POST',
+    })
+    .then(r => r.json())
+    .then(data => {
+        showNotification('Stream gestoppt', 'success');
+        document.getElementById('streaming-status').style.display = 'none';
+    })
+    .catch(err => {
+        showNotification('Fehler beim Stoppen', 'error');
+    });
+}
+
+// Notification Helper
+function showNotification(message, type = 'info') {
+    const colors = {
+        success: '#4ade80',
+        error: '#ef4444',
+        info: '#3b82f6',
+        warning: '#fbbf24'
+    };
+    
+    const notif = document.createElement('div');
+    notif.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${colors[type]};
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 9999;
+        font-weight: 600;
+        animation: slideIn 0.3s;
+    `;
+    notif.textContent = message;
+    document.body.appendChild(notif);
+    
+    setTimeout(() => {
+        notif.style.animation = 'slideOut 0.3s';
+        setTimeout(() => notif.remove(), 300);
+    }, 3000);
+}
+</script>
+
+<style>
+@keyframes slideIn {
+    from { transform: translateX(400px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(400px); opacity: 0; }
+}
+</style>
+{% endblock %}

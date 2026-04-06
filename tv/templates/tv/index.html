@@ -1,0 +1,379 @@
+{% extends 'base.html' %}
+
+{% block title %}RSL – Live TV | Dein Sender. Deine Welt.{% endblock %}
+
+{% block content %}
+
+<!-- HERO / PLAYER BEREICH -->
+<section style="background: var(--rsl-darker); padding: 2rem 0;">
+    <div class="container-fluid px-lg-4">
+        <div class="row g-3">
+
+            <!-- HAUPTPLAYER -->
+            <div class="col-lg-8">
+                <div style="position:relative;background:#000;border-radius:8px;overflow:hidden;border:2px solid var(--rsl-border);">
+
+                    <!-- Custom Video Player (NICHT ANKLINKBAR / NICHT SPULBAR) -->
+                    <div style="position:relative;padding-bottom:56.25%;height:0;">
+                        {% if live_stream %}
+                            <!-- Live Stream Player -->
+                            <div id="live-player" style="position:absolute;top:0;left:0;width:100%;height:100%;background:#000;">
+                                {% if live_stream.source_type == 'youtube' %}
+                                <!-- YouTube als eingebetteter HLS-Stream ohne Kontrollen -->
+                                <video id="video-player" 
+                                       style="width:100%;height:100%;object-fit:contain;background:#000;"
+                                       autoplay 
+                                       muted
+                                       playsinline>
+                                </video>
+                                <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+                                <script>
+                                    // Extrahiere YouTube Video ID
+                                    var youtubeUrl = '{{ live_stream.stream_url }}';
+                                    var videoId = youtubeUrl.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+                                    
+                                    if (videoId && videoId[1]) {
+                                        // Verwende einen HLS-Proxy oder direkte Einbettung
+                                        var video = document.getElementById('video-player');
+                                        
+                                        // Alternative: YouTube IFrame API ohne Kontrollen
+                                        var iframe = document.createElement('iframe');
+                                        iframe.src = `https://www.youtube.com/embed/${videoId[1]}?autoplay=1&controls=0&disablekb=1&fs=0&modestbranding=1&rel=0&showinfo=0`;
+                                        iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:0;pointer-events:none;';
+                                        iframe.setAttribute('allowfullscreen', '');
+                                        document.getElementById('live-player').appendChild(iframe);
+                                        video.remove();
+                                    }
+                                </script>
+                                {% elif live_stream.source_type == 'twitch' %}
+                                <!-- Twitch Embed ohne Kontrollen -->
+                                <iframe 
+                                    src="{{ live_stream.get_embed_url }}&parent={{ request.get_host }}&controls=false"
+                                    style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;pointer-events:none;"
+                                    allowfullscreen>
+                                </iframe>
+                                {% else %}
+                                <!-- Custom Video Player für direkte URLs -->
+                                <video id="video-player" 
+                                       style="width:100%;height:100%;object-fit:contain;background:#000;"
+                                       autoplay 
+                                       muted
+                                       playsinline>
+                                    <source src="{{ live_stream.stream_url }}" type="application/x-mpegURL">
+                                </video>
+                                <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+                                <script>
+                                    var video = document.getElementById('video-player');
+                                    var videoSrc = '{{ live_stream.stream_url }}';
+                                    
+                                    if (Hls.isSupported()) {
+                                        var hls = new Hls({
+                                            enableWorker: true,
+                                            lowLatencyMode: true,
+                                        });
+                                        hls.loadSource(videoSrc);
+                                        hls.attachMedia(video);
+                                        hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                                            video.play();
+                                        });
+                                    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                                        video.src = videoSrc;
+                                        video.addEventListener('loadedmetadata', function() {
+                                            video.play();
+                                        });
+                                    }
+                                    
+                                    // Verhindere Kontrollen
+                                    video.controls = false;
+                                    video.addEventListener('contextmenu', e => e.preventDefault());
+                                </script>
+                                {% endif %}
+                            </div>
+                        {% elif youtube_channel %}
+                        <!-- YouTube Kanal Stream -->
+                        <div id="ytplayer-channel" style="position:absolute;top:0;left:0;width:100%;height:100%;"></div>
+                        <script>
+                            var tag = document.createElement('script');
+                            tag.src = "https://www.youtube.com/iframe_api";
+                            var firstScriptTag = document.getElementsByTagName('script')[0];
+                            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+                            
+                            var player;
+                            function onYouTubeIframeAPIReady() {
+                                var channelUrl = '{{ youtube_channel }}';
+                                var videoId = channelUrl.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+                                if (videoId) {
+                                    player = new YT.Player('ytplayer-channel', {
+                                        videoId: videoId[1],
+                                        playerVars: {
+                                            'autoplay': 1,
+                                            'controls': 0,
+                                            'disablekb': 1,
+                                            'fs': 0,
+                                            'modestbranding': 1,
+                                            'rel': 0,
+                                            'showinfo': 0,
+                                            'iv_load_policy': 3
+                                        },
+                                        events: {
+                                            'onReady': function(event) {
+                                                event.target.playVideo();
+                                                // Verhindere Interaktion
+                                                var iframe = document.getElementById('ytplayer-channel');
+                                                iframe.style.pointerEvents = 'none';
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        </script>
+                        {% else %}
+                        <!-- Placeholder wenn kein Stream -->
+                        <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;background:linear-gradient(135deg,#0a0a0f,#1a1a2e);">
+                            {% load static %}
+                            <img src="{% static 'tv/img/logo-nobg.png' %}" alt="RSL Logo" style="max-width:300px;margin-bottom:2rem;opacity:0.8;">
+                            <p style="color:#FFFFFF;letter-spacing:4px;font-size:0.9rem;text-transform:uppercase;">Sender startet gleich</p>
+                            <div class="mt-3">
+                                <span class="live-badge">🔴 LIVE</span>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Werbeunterbrechung Overlay -->
+                        <div id="ad-overlay" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:10;align-items:center;justify-content:center;flex-direction:column;">
+                            <div style="font-family:'Barlow Condensed',sans-serif;font-size:3rem;color:var(--rsl-accent);letter-spacing:4px;">WERBEPAUSE</div>
+                            <p style="color:#FFFFFF;">Gleich geht es weiter mit RSL</p>
+                            <div id="ad-container"></div>
+                            <div class="mt-3" style="color:#FFFFFF;font-size:0.85rem;">Weiter in <span id="ad-countdown">30</span> Sekunden</div>
+                        </div>
+
+                        <!-- Logo Wasserzeichen im Player (IMMER WEISS) -->
+                        <div style="position:absolute;top:15px;right:15px;pointer-events:none;z-index:5;opacity:0.85;">
+                            {% load static %}
+                            <img src="{% static 'tv/img/logo-nobg.png' %}" alt="RSL" style="height:50px;filter:brightness(0) invert(1);">
+                        </div>
+                        
+                        <!-- Live Badge im Player -->
+                        {% if live_stream %}
+                        <div style="position:absolute;top:15px;left:15px;z-index:5;">
+                            <span class="live-badge">🔴 LIVE</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Player Infobar (WEISSE SCHRIFT) -->
+                    <div style="background:var(--rsl-panel);padding:0.8rem 1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+                        <div>
+                            {% if live_stream %}
+                            <span class="live-badge me-2">🔴 LIVE</span>
+                            <strong style="color:#FFFFFF;">{{ live_stream.title }}</strong>
+                            {% elif current_show %}
+                            <i class="bi bi-play-circle-fill me-2" style="color:var(--rsl-accent);"></i>
+                            <strong style="color:#FFFFFF;">{{ current_show.title }}</strong>
+                            {% else %}
+                            <i class="bi bi-tv me-2" style="color:var(--rsl-accent);"></i>
+                            <strong style="color:#FFFFFF;">RSL 24/7</strong>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex gap-2">
+                            {% if youtube_channel %}
+                            <a href="{{ youtube_channel }}" target="_blank" class="btn btn-sm btn-outline-light">
+                                <i class="bi bi-youtube me-1"></i>YouTube öffnen
+                            </a>
+                            {% endif %}
+                            {% if twitch_channel %}
+                            <a href="https://twitch.tv/{{ twitch_channel }}" target="_blank" class="btn btn-sm" style="background:#9147ff;color:white;">
+                                <i class="bi bi-twitch me-1"></i>Twitch
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEITENLEISTE: PROGRAMM (WEISSE SCHRIFT) -->
+            <div class="col-lg-4">
+                <div style="background:var(--rsl-panel);border-radius:8px;border:1px solid var(--rsl-border);height:100%;max-height:500px;display:flex;flex-direction:column;">
+                    <div style="background:var(--rsl-blue);padding:0.8rem 1rem;">
+                        <h6 class="mb-0" style="color:#FFFFFF;font-weight:700;letter-spacing:1px;"><i class="bi bi-calendar3 me-2"></i>JETZT IM PROGRAMM</h6>
+                    </div>
+                    <div style="overflow-y:auto;flex:1;">
+                        {% if current_show %}
+                        <div class="program-row current">
+                            <div class="program-time" style="color:#FFFFFF;">{{ current_show.start_time|time:"H:i" }}</div>
+                            <div class="ms-3 flex-grow-1">
+                                <span class="live-badge mb-1">JETZT</span>
+                                <div class="fw-bold" style="color:#FFFFFF;">{{ current_show.title }}</div>
+                                {% if current_show.category %}
+                                <small class="badge" style="background:{{ current_show.category.color }};">{{ current_show.category.name }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% for show in upcoming %}
+                        <div class="program-row">
+                            <div class="program-time" style="color:#FFFFFF;">{{ show.start_time|time:"H:i" }}</div>
+                            <div class="ms-3 flex-grow-1">
+                                <div class="fw-semibold" style="font-size:0.95rem;color:#FFFFFF;">{{ show.title }}</div>
+                                {% if show.category %}
+                                <small class="badge" style="background:{{ show.category.color }};">{{ show.category.name }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="p-3 text-center" style="color:#FFFFFF;">
+                            <i class="bi bi-calendar-x d-block fs-3 mb-2"></i>
+                            Kein Programm eingetragen
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div style="padding:0.8rem;border-top:1px solid var(--rsl-border);">
+                        <a href="/programm/" class="btn btn-rsl w-100 btn-sm">
+                            <i class="bi bi-calendar-week me-2"></i>Vollständiges Programm
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- INFO STREIFEN -->
+<section style="background:linear-gradient(135deg, var(--rsl-blue), var(--rsl-steel));padding:0.8rem 0;">
+    <div class="container">
+        <div class="row text-center g-3" style="color:#FFFFFF;">
+            <div class="col-md-4">
+                <i class="bi bi-broadcast me-2"></i><strong>24/7 Live TV</strong>
+            </div>
+            <div class="col-md-4">
+                <i class="bi bi-globe me-2"></i><strong>Überall verfügbar</strong>
+            </div>
+            <div class="col-md-4">
+                <i class="bi bi-camera-video me-2"></i><strong>Live-Events &amp; Sendungen</strong>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- HIGHLIGHTS / FEATURES -->
+<section class="py-5">
+    <div class="container">
+        <div class="section-title text-center" style="color:#FFFFFF;">Was ist <span style="color:var(--rsl-accent);">RSL</span>?</div>
+        <div class="section-divider mx-auto"></div>
+
+        <div class="row g-4 mt-2">
+            <div class="col-md-3">
+                <div class="rsl-card p-4 text-center h-100">
+                    <div style="font-size:2.5rem;margin-bottom:1rem;">📺</div>
+                    <h5 class="fw-bold" style="color:#FFFFFF;">24/7 Live TV</h5>
+                    <p class="text-muted small mb-0">RSL läuft rund um die Uhr mit automatischem Programm und Live-Events.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="rsl-card p-4 text-center h-100">
+                    <div style="font-size:2.5rem;margin-bottom:1rem;">🔴</div>
+                    <h5 class="fw-bold" style="color:#FFFFFF;">Live-Sendungen</h5>
+                    <p class="text-muted small mb-0">Live-Events und Übertragungen direkt auf RSL.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="rsl-card p-4 text-center h-100">
+                    <div style="font-size:2.5rem;margin-bottom:1rem;">📱</div>
+                    <h5 class="fw-bold" style="color:#FFFFFF;">Überall schauen</h5>
+                    <p class="text-muted small mb-0">Auf Handy, Tablet, PC oder Smart TV per IPTV.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="rsl-card p-4 text-center h-100">
+                    <div style="font-size:2.5rem;margin-bottom:1rem;">💰</div>
+                    <h5 class="fw-bold" style="color:#FFFFFF;">Werbung schalten</h5>
+                    <p class="text-muted small mb-0">Ihre Werbung auf RSL – einfach online buchen.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- WERBUNG CTA -->
+<section style="background:linear-gradient(135deg,var(--rsl-panel),var(--rsl-blue-dark));padding:4rem 0;">
+    <div class="container text-center">
+        <h2 class="section-title" style="color:#FFFFFF;">Werbung auf <span style="color:var(--rsl-accent);">RSL</span> schalten</h2>
+        <div class="section-divider mx-auto"></div>
+        <p class="text-muted mb-4">Erreichen Sie tausende Zuschauer mit Ihrer Werbung auf RSL.</p>
+        <div class="d-flex gap-3 justify-content-center flex-wrap">
+            <a href="/werbung/" class="btn btn-rsl btn-lg">
+                <i class="bi bi-megaphone me-2"></i>Werbemöglichkeiten ansehen
+            </a>
+            <a href="/werbung/buchen/" class="btn btn-outline-rsl btn-lg">
+                Jetzt buchen
+            </a>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Werbepause System mit Video-Pause
+let mainVideo = document.getElementById('video-player');
+let adOverlay = document.getElementById('ad-overlay');
+let adCountdown = document.getElementById('ad-countdown');
+
+function checkStreamStatus() {
+    fetch('/api/current/')
+        .then(r => r.json())
+        .then(data => {
+            // Wenn Werbepause aktiv ist
+            if (data.ad_break_active) {
+                showAdBreak(data.ad_duration || 30);
+            }
+        })
+        .catch(err => console.error('Stream status check failed:', err));
+}
+
+function showAdBreak(duration) {
+    // Pausiere Hauptvideo
+    if (mainVideo && !mainVideo.paused) {
+        mainVideo.pause();
+    }
+    
+    // Zeige Werbepausen-Overlay
+    adOverlay.style.display = 'flex';
+    
+    // Countdown
+    let countdown = duration;
+    adCountdown.textContent = countdown;
+    
+    const interval = setInterval(() => {
+        countdown--;
+        adCountdown.textContent = countdown;
+        
+        if (countdown <= 0) {
+            clearInterval(interval);
+            hideAdBreak();
+        }
+    }, 1000);
+}
+
+function hideAdBreak() {
+    // Verstecke Overlay
+    adOverlay.style.display = 'none';
+    
+    // Setze Hauptvideo fort
+    if (mainVideo) {
+        mainVideo.play();
+    }
+}
+
+// Prüfe alle 5 Sekunden
+setInterval(checkStreamStatus, 5000);
+checkStreamStatus();
+
+// Verhindere Rechtsklick auf Video
+if (mainVideo) {
+    mainVideo.addEventListener('contextmenu', e => e.preventDefault());
+}
+</script>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}Kontakt – RSL{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1><span style="color:var(--rsl-red)">Kontakt</span></h1>
+        <p class="text-muted mt-2 mb-0">Wir freuen uns von Ihnen zu hören</p>
+    </div>
+</div>
+<div class="container py-5">
+    <div class="row g-5">
+        <div class="col-lg-7">
+            <div class="rsl-card p-4">
+                <h4 class="fw-bold mb-4">Nachricht senden</h4>
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Name *</label>
+                            <input type="text" name="name" class="form-control" required value="{{ form.name.value|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">E-Mail *</label>
+                            <input type="email" name="email" class="form-control" required value="{{ form.email.value|default:'' }}">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Betreff *</label>
+                        <input type="text" name="subject" class="form-control" required value="{{ form.subject.value|default:'' }}">
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Nachricht *</label>
+                        <textarea name="message" class="form-control" rows="6" required>{{ form.message.value|default:'' }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-rsl btn-lg w-100">
+                        <i class="bi bi-send me-2"></i>Nachricht senden
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <h4 class="fw-bold mb-4">Kontaktinformationen</h4>
+            <div class="rsl-card p-4 mb-3">
+                <div class="d-flex gap-3 align-items-start">
+                    <i class="bi bi-building fs-4" style="color:var(--rsl-red);flex-shrink:0;"></i>
+                    <div>
+                        <strong>Joel Digitals</strong><br>
+                        <span class="text-muted small">Betreiber von RSL</span>
+                    </div>
+                </div>
+            </div>
+            <div class="rsl-card p-4 mb-3">
+                <div class="d-flex gap-3 align-items-start">
+                    <i class="bi bi-envelope fs-4" style="color:var(--rsl-red);flex-shrink:0;"></i>
+                    <div>
+                        <strong>E-Mail</strong><br>
+                        <a href="mailto:rsl@joeldigitals.de" class="text-muted small" style="color:inherit;">rsl@joeldigitals.de</a>
+                    </div>
+                </div>
+            </div>
+            <div class="rsl-card p-4 mb-3">
+                <div class="d-flex gap-3 align-items-start">
+                    <i class="bi bi-megaphone fs-4" style="color:var(--rsl-red);flex-shrink:0;"></i>
+                    <div>
+                        <strong>Werbeanfragen</strong><br>
+                        <a href="/werbung/buchen/" class="small" style="color:var(--rsl-red);">Online buchen →</a>
+                    </div>
+                </div>
+            </div>
+            <div class="rsl-card p-4">
+                <div class="d-flex gap-3 align-items-start">
+                    <i class="bi bi-broadcast fs-4" style="color:var(--rsl-red);flex-shrink:0;"></i>
+                    <div>
+                        <strong>Live-Kooperationen</strong><br>
+                        <span class="text-muted small">Möchten Sie live auf RSL senden? Schreiben Sie uns!</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% block title %}Programm – RSL{% endblock %}
+
+{% block extra_css %}
+<style>
+    .day-tab {
+        background: var(--rsl-gray);
+        border: 1px solid var(--rsl-light-gray);
+        border-radius: 8px 8px 0 0;
+        padding: 1rem 1.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+    }
+    
+    .day-tab:hover {
+        background: var(--rsl-light-gray);
+    }
+    
+    .day-tab.active {
+        background: var(--rsl-primary);
+        border-bottom-color: transparent;
+        transform: translateY(2px);
+    }
+    
+    .show-card {
+        background: var(--rsl-gray);
+        border: 1px solid var(--rsl-light-gray);
+        border-radius: 8px;
+        overflow: hidden;
+        transition: all 0.3s;
+        display: flex;
+        margin-bottom: 1rem;
+    }
+    
+    .show-card:hover {
+        transform: translateX(5px);
+        border-color: var(--rsl-secondary);
+        box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+    }
+    
+    .show-card.current {
+        border-left: 4px solid var(--rsl-accent);
+        background: rgba(0, 172, 193, 0.05);
+    }
+    
+    .show-thumbnail {
+        width: 200px;
+        min-width: 200px;
+        height: 120px;
+        background: var(--rsl-darker);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .show-thumbnail img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .show-time {
+        background: var(--rsl-primary);
+        color: white;
+        padding: 0.3rem 0.8rem;
+        border-radius: 4px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        display: inline-block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div class="container">
+        <h1><i class="bi bi-calendar-week me-3"></i>Programm</h1>
+        <p class="text-muted mb-0">Dein TV-Guide für RSL – 7 Tage im Überblick</p>
+    </div>
+</div>
+
+<section class="py-4">
+    <div class="container">
+        
+        <!-- Tages-Tabs -->
+        <div class="row g-2 mb-4" id="day-tabs">
+            {% for day_data in days %}
+            <div class="col">
+                <div class="day-tab {% if day_data.date == today %}active{% endif %}" 
+                     onclick="showDay({{ forloop.counter0 }})"
+                     data-day="{{ forloop.counter0 }}">
+                    <div class="fw-bold">{{ day_data.date|date:"D" }}</div>
+                    <div style="font-size:1.5rem;font-weight:700;color:var(--rsl-secondary);">{{ day_data.date|date:"d" }}</div>
+                    <div class="text-muted" style="font-size:0.75rem;">{{ day_data.date|date:"M" }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Programm-Inhalte -->
+        <div id="program-content">
+            {% for day_data in days %}
+            <div class="day-content" data-day="{{ forloop.counter0 }}" style="{% if day_data.date != today %}display:none;{% endif %}">
+                
+                {% if day_data.shows %}
+                    {% for show in day_data.shows %}
+                    <div class="show-card">
+                        <!-- Thumbnail -->
+                        <div class="show-thumbnail">
+                            {% if show.video and show.video.thumbnail_url %}
+                            <img src="{{ show.video.thumbnail_url }}" alt="{{ show.title }}" loading="lazy">
+                            {% else %}
+                            <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--rsl-muted);">
+                                <i class="bi bi-film" style="font-size:2rem;"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Info -->
+                        <div class="flex-grow-1 p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <span class="show-time">{{ show.start_time|time:"H:i" }}</span>
+                                    <span class="text-muted ms-2" style="font-size:0.85rem;">
+                                        <i class="bi bi-clock me-1"></i>
+                                        {{ show.duration }} Min.
+                                    </span>
+                                </div>
+                                {% if show.category %}
+                                <span class="badge" style="background:{{ show.category.color }};">
+                                    {{ show.category.name }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            
+                            <h5 class="mb-2">{{ show.title }}</h5>
+                            
+                            {% if show.description %}
+                            <p class="text-muted mb-0" style="font-size:0.9rem;">{{ show.description|truncatewords:20 }}</p>
+                            {% endif %}
+                            
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <i class="bi bi-clock me-1"></i>{{ show.start_time|time:"H:i" }} – {{ show.end_time|time:"H:i" }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-calendar-x d-block mb-3" style="font-size:3rem;"></i>
+                    <p>Für diesen Tag ist noch kein Programm geplant.</p>
+                </div>
+                {% endif %}
+                
+            </div>
+            {% endfor %}
+        </div>
+        
+    </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showDay(dayIndex) {
+    document.querySelectorAll('.day-tab').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.day-content').forEach(content => content.style.display = 'none');
+    document.querySelector(`.day-tab[data-day="${dayIndex}"]`).classList.add('active');
+    document.querySelector(`.day-content[data-day="${dayIndex}"]`).style.display = 'block';
+}
+</script>
+{% endblock %}

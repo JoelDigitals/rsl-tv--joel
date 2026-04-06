@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}RSL – Dein Sender. Deine Welt.{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}RSL – Der Fernsehsender von Joel Digitals. 24/7 Programm, Live-Streams und mehr.{% endblock %}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --rsl-blue:       #0a6eb4;
+            --rsl-blue-dark:  #073e6e;
+            --rsl-blue-deep:  #041c36;
+            --rsl-blue-light: #1a8fd1;
+            --rsl-steel:      #1d5a82;
+            --rsl-sky:        #5baed4;
+            --rsl-dark:       #070d14;
+            --rsl-darker:     #040810;
+            --rsl-panel:      #0d1a27;
+            --rsl-border:     #162842;
+            --rsl-border2:    #1e3a56;
+            --rsl-text:       #ddeaf5;
+            --rsl-muted:      #6a90b0;
+            --rsl-bright:     #f0f8ff;
+            --rsl-accent:     #00c4ff;
+            --rsl-live:       #e63946;
+        }
+        * { box-sizing: border-box; }
+        body {
+            background: var(--rsl-dark);
+            color: var(--rsl-text);
+            font-family: 'Barlow', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* NAVBAR */
+        .rsl-navbar {
+            background: linear-gradient(180deg, var(--rsl-darker) 0%, rgba(4,8,16,0.98) 100%);
+            border-bottom: 2px solid var(--rsl-blue);
+            padding: 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 24px rgba(10,110,180,0.35);
+        }
+        .rsl-logo-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            padding: 6px 0;
+        }
+        .rsl-logo-img {
+            height: 46px;
+            width: auto;
+            filter: drop-shadow(0 0 10px rgba(0,196,255,0.5));
+        }
+        .rsl-logo-text .name {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 900;
+            font-size: 1.9rem;
+            color: var(--rsl-bright);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            display: block;
+            line-height: 1;
+        }
+        .rsl-logo-text .tagline {
+            font-size: 0.58rem;
+            color: var(--rsl-muted);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+        .navbar-nav .nav-link {
+            color: var(--rsl-text) !important;
+            font-weight: 600;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1rem;
+            padding: 1.25rem 0.85rem !important;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            transition: color 0.2s, border-bottom 0.2s;
+            border-bottom: 3px solid transparent;
+        }
+        .navbar-nav .nav-link:hover,
+        .navbar-nav .nav-link.active {
+            color: var(--rsl-accent) !important;
+            border-bottom-color: var(--rsl-blue);
+        }
+
+        /* LIVE BADGE */
+        .live-badge {
+            background: var(--rsl-live);
+            color: white;
+            font-size: 0.62rem;
+            font-weight: 800;
+            padding: 3px 7px;
+            border-radius: 3px;
+            letter-spacing: 1.5px;
+            animation: livePulse 1.5s infinite;
+            display: inline-block;
+            font-family: 'Barlow Condensed', sans-serif;
+        }
+        @keyframes livePulse {
+            0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(230,57,70,0.5); }
+            50% { opacity:0.85; box-shadow:0 0 0 5px rgba(230,57,70,0); }
+        }
+
+        /* TICKER */
+        .rsl-ticker {
+            background: linear-gradient(90deg, var(--rsl-blue-dark), var(--rsl-steel), var(--rsl-blue-dark));
+            overflow: hidden;
+            white-space: nowrap;
+            padding: 7px 0;
+            border-bottom: 1px solid var(--rsl-border);
+        }
+        .ticker-label {
+            background: var(--rsl-accent);
+            color: var(--rsl-darker);
+            font-weight: 800;
+            font-size: 0.68rem;
+            padding: 0 14px;
+            letter-spacing: 2px;
+            display: inline-block;
+            vertical-align: middle;
+            font-family: 'Barlow Condensed', sans-serif;
+            text-transform: uppercase;
+        }
+        .ticker-content {
+            display: inline-block;
+            animation: tickerScroll 40s linear infinite;
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--rsl-bright);
+        }
+        @keyframes tickerScroll {
+            0% { transform: translateX(100vw); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* FOOTER */
+        .rsl-footer {
+            background: var(--rsl-darker);
+            border-top: 2px solid var(--rsl-border);
+            margin-top: 4rem;
+            padding: 3rem 0 1.5rem;
+        }
+        .footer-logo-img {
+            height: 48px;
+            width: auto;
+            filter: drop-shadow(0 0 6px rgba(0,196,255,0.3));
+        }
+        .footer-link {
+            color: var(--rsl-muted);
+            text-decoration: none;
+            font-size: 0.88rem;
+            display: block;
+            margin-bottom: 0.5rem;
+            transition: color 0.2s;
+        }
+        .footer-link:hover { color: var(--rsl-accent); }
+        .footer-head {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 700;
+            color: var(--rsl-accent);
+            letter-spacing: 2px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            margin-bottom: 0.9rem;
+        }
+
+        /* CARDS */
+        .rsl-card {
+            background: var(--rsl-panel);
+            border: 1px solid var(--rsl-border);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+        }
+        .rsl-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--rsl-blue);
+            box-shadow: 0 8px 24px rgba(10,110,180,0.2);
+        }
+
+        /* BUTTONS */
+        .btn-rsl {
+            background: linear-gradient(135deg, var(--rsl-blue-dark), var(--rsl-blue-light));
+            color: white;
+            border: none;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            padding: 0.6rem 1.5rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 0.95rem;
+        }
+        .btn-rsl:hover {
+            background: linear-gradient(135deg, var(--rsl-blue-light), var(--rsl-accent));
+            color: white;
+            box-shadow: 0 4px 16px rgba(10,110,180,0.4);
+            transform: translateY(-1px);
+        }
+        .btn-outline-rsl {
+            border: 2px solid var(--rsl-blue);
+            color: var(--rsl-accent);
+            background: transparent;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            padding: 0.6rem 1.5rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 0.95rem;
+        }
+        .btn-outline-rsl:hover {
+            background: var(--rsl-blue);
+            color: white;
+            box-shadow: 0 4px 16px rgba(10,110,180,0.4);
+        }
+
+        /* SECTION HEADERS */
+        .section-title {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 900;
+            letter-spacing: 3px;
+            color: var(--rsl-bright);
+            text-transform: uppercase;
+        }
+        .section-title span { color: var(--rsl-accent); }
+        .section-divider {
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--rsl-blue), var(--rsl-accent));
+            margin: 0.5rem 0 2rem;
+        }
+
+        /* PROGRAM */
+        .program-row {
+            background: var(--rsl-panel);
+            border-bottom: 1px solid var(--rsl-border);
+            padding: 0.8rem 1rem;
+            display: flex;
+            align-items: center;
+            transition: background 0.2s;
+        }
+        .program-row:hover { background: rgba(10,110,180,0.08); }
+        .program-row.current {
+            border-left: 4px solid var(--rsl-blue);
+            background: rgba(10,110,180,0.12);
+        }
+        .program-time {
+            font-weight: 700;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.1rem;
+            color: var(--rsl-accent);
+            min-width: 70px;
+        }
+
+        /* FORMS */
+        .form-control, .form-select {
+            background: var(--rsl-panel) !important;
+            border-color: var(--rsl-border2) !important;
+            color: var(--rsl-text) !important;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--rsl-blue) !important;
+            box-shadow: 0 0 0 0.2rem rgba(10,110,180,0.25) !important;
+        }
+        .form-label { color: var(--rsl-text); font-weight: 500; }
+
+        /* PAGE HEADER */
+        .page-header {
+            background: linear-gradient(135deg, var(--rsl-darker) 0%, var(--rsl-panel) 100%);
+            border-bottom: 2px solid var(--rsl-border);
+            padding: 3rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+        .page-header::after {
+            content: '';
+            position: absolute;
+            right: 0; top: 0; width: 40%; height: 100%;
+            background: radial-gradient(ellipse at right, rgba(10,110,180,0.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .page-header h1 {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 3.2rem;
+            font-weight: 900;
+            letter-spacing: 4px;
+            margin: 0;
+            text-transform: uppercase;
+        }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--rsl-darker); }
+        ::-webkit-scrollbar-thumb { background: var(--rsl-blue); border-radius: 3px; }
+
+        .alert { border-radius: 6px; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<nav class="rsl-navbar navbar navbar-expand-lg">
+    <div class="container">
+        {% load static %}
+        <a class="rsl-logo-wrap navbar-brand me-4" href="/">
+            <img src="{% static 'tv/img/logo-nobg.png' %}" alt="RSL Logo" class="rsl-logo-img"
+                 onerror="this.style.display='none';document.getElementById('rsl-text-logo').style.display='block'">
+            <div class="rsl-logo-text" id="rsl-text-logo" style="display:block;">
+                <span class="name">RSL</span>
+                <span class="tagline">von Joel Digitals</span>
+            </div>
+        </a>
+
+        {% if RSL_IS_LIVE %}
+        <span class="live-badge me-3">🔴 LIVE</span>
+        {% endif %}
+
+        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+            <i class="bi bi-list" style="color:white;font-size:1.5rem;"></i>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navMenu">
+            <ul class="navbar-nav ms-auto align-items-lg-center">
+                <li class="nav-item"><a class="nav-link {% if page == 'home' %}active{% endif %}" href="/"><i class="bi bi-tv me-1"></i>Live</a></li>
+                <li class="nav-item"><a class="nav-link {% if page == 'program' %}active{% endif %}" href="/programm/"><i class="bi bi-calendar3 me-1"></i>Programm</a></li>
+                <li class="nav-item"><a class="nav-link {% if page == 'live' %}active{% endif %}" href="/live/"><i class="bi bi-broadcast me-1"></i>Live Events</a></li>
+                <li class="nav-item"><a class="nav-link {% if page == 'mediathek' %}active{% endif %}" href="/mediathek/"><i class="bi bi-collection-play me-1"></i>Mediathek</a></li>
+                <li class="nav-item"><a class="nav-link {% if page == 'werbung' %}active{% endif %}" href="/werbung/"><i class="bi bi-megaphone me-1"></i>Werbung</a></li>
+                <li class="nav-item ms-lg-3"><a class="btn btn-rsl btn-sm" href="/werbung/buchen/">Werbung buchen</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- TICKER -->
+<div class="rsl-ticker">
+    <span class="ticker-label">RSL News</span>
+    <span class="ticker-content" id="ticker-text">
+        {% for item in news_items %}{{ item.text }} &nbsp;&nbsp;&nbsp;●&nbsp;&nbsp;&nbsp;{% empty %}Willkommen bei RSL – Dein Sender. Deine Welt. &nbsp;&nbsp;&nbsp;●&nbsp;&nbsp;&nbsp; 24/7 Programm &nbsp;&nbsp;&nbsp;●&nbsp;&nbsp;&nbsp; Joel Digitals{% endfor %}
+    </span>
+</div>
+
+{% if messages %}
+<div class="container mt-3">
+    {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% block content %}{% endblock %}
+
+<footer class="rsl-footer">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    {% load static %}
+                    <img src="{% static 'tv/img/logo-nobg.png' %}" alt="RSL" class="footer-logo-img" onerror="this.style.display='none'">
+                    <div>
+                        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:2rem;color:var(--rsl-bright);letter-spacing:3px;">RSL</div>
+                        <div style="font-size:0.72rem;color:var(--rsl-muted);">Dein Sender. Deine Welt.</div>
+                    </div>
+                </div>
+                <p style="font-size:0.85rem;color:var(--rsl-muted);">Ein Sender von <strong style="color:var(--rsl-text)">Joel Digitals</strong></p>
+                <div class="mt-3 d-flex gap-3" style="font-size:1.4rem;">
+                    <a href="#" style="color:var(--rsl-muted);transition:color 0.2s;" onmouseover="this.style.color='#ff0000'" onmouseout="this.style.color='var(--rsl-muted)'"><i class="bi bi-youtube"></i></a>
+                    <a href="#" style="color:var(--rsl-muted);transition:color 0.2s;" onmouseover="this.style.color='#9147ff'" onmouseout="this.style.color='var(--rsl-muted)'"><i class="bi bi-twitch"></i></a>
+                    <a href="#" style="color:var(--rsl-muted);transition:color 0.2s;" onmouseover="this.style.color='var(--rsl-accent)'" onmouseout="this.style.color='var(--rsl-muted)'"><i class="bi bi-instagram"></i></a>
+                    <a href="#" style="color:var(--rsl-muted);transition:color 0.2s;" onmouseover="this.style.color='var(--rsl-accent)'" onmouseout="this.style.color='var(--rsl-muted)'"><i class="bi bi-tiktok"></i></a>
+                </div>
+            </div>
+            <div class="col-lg-2">
+                <div class="footer-head">Sender</div>
+                <a href="/" class="footer-link">Live TV</a>
+                <a href="/programm/" class="footer-link">Programm</a>
+                <a href="/live/" class="footer-link">Live Events</a>
+                <a href="/mediathek/" class="footer-link">Mediathek</a>
+            </div>
+            <div class="col-lg-2">
+                <div class="footer-head">Werbung</div>
+                <a href="/werbung/" class="footer-link">Werbemöglichkeiten</a>
+                <a href="/werbung/buchen/" class="footer-link">Werbung buchen</a>
+                <a href="/kontakt/" class="footer-link">Mediadaten</a>
+            </div>
+            <div class="col-lg-2">
+                <div class="footer-head">Über uns</div>
+                <a href="/ueber-uns/" class="footer-link">Über RSL</a>
+                <a href="/kontakt/" class="footer-link">Kontakt</a>
+                <a href="/iptv/rsl.m3u" class="footer-link">IPTV / Smart TV</a>
+            </div>
+            <div class="col-lg-2">
+                <div class="footer-head">Rechtliches</div>
+                <a href="/impressum/" class="footer-link">Impressum</a>
+                <a href="/datenschutz/" class="footer-link">Datenschutz</a>
+            </div>
+        </div>
+        <hr style="border-color:var(--rsl-border);margin:2rem 0 1rem;">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <p class="mb-0" style="font-size:0.8rem;color:var(--rsl-muted);">© 2024–2025 RSL – Joel Digitals. Alle Rechte vorbehalten.</p>
+            <p class="mb-0" style="font-size:0.75rem;color:var(--rsl-muted);"><i class="bi bi-broadcast me-1" style="color:var(--rsl-blue);"></i>24/7 Live auf YouTube &amp; Twitch</p>
+        </div>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function checkLiveStatus() {
+    fetch('/api/current/').then(r=>r.json()).then(data=>{
+        const badge = document.querySelector('.live-badge');
+        if (data.is_live && !badge) location.reload();
+    }).catch(()=>{});
+}
+setInterval(checkLiveStatus, 30000);
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}Werbung buchen – RSL{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>Werbung <span style="color:var(--rsl-red)">buchen</span></h1>
+        <p class="text-muted mt-2 mb-0">Füllen Sie das Formular aus – wir melden uns innerhalb von 24 Stunden</p>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="rsl-card p-4 p-lg-5">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Paket auswählen *</label>
+                        <select name="package" class="form-select" required>
+                            <option value="">Bitte wählen...</option>
+                            <option value="starter" {% if package == 'starter' %}selected{% endif %}>Starter – 49€ (50 Einblendungen)</option>
+                            <option value="basic" {% if package == 'basic' %}selected{% endif %}>Basic – 99€ (150 Einblendungen)</option>
+                            <option value="standard" {% if package == 'standard' %}selected{% endif %}>Standard – 199€ (400 Einblendungen)</option>
+                            <option value="premium" {% if package == 'premium' %}selected{% endif %}>Premium – 399€ (1000 Einblendungen)</option>
+                            <option value="exclusive" {% if package == 'exclusive' %}selected{% endif %}>Exklusiv – Auf Anfrage</option>
+                        </select>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Ihr Name *</label>
+                            <input type="text" name="customer_name" class="form-control" required
+                                   value="{{ form.customer_name.value|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Unternehmen *</label>
+                            <input type="text" name="company_name" class="form-control" required
+                                   value="{{ form.company_name.value|default:'' }}">
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">E-Mail *</label>
+                            <input type="email" name="email" class="form-control" required
+                                   value="{{ form.email.value|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Telefon</label>
+                            <input type="text" name="phone" class="form-control"
+                                   value="{{ form.phone.value|default:'' }}">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Link zu Ihrem Werbevideo</label>
+                        <input type="url" name="video_url" class="form-control"
+                               placeholder="z.B. https://drive.google.com/... oder https://youtu.be/..."
+                               value="{{ form.video_url.value|default:'' }}">
+                        <div class="form-text text-muted">YouTube, Google Drive, Dropbox – öffentlich oder ungelistet. Sie können das Video auch nach der Buchung zusenden.</div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Startdatum *</label>
+                            <input type="date" name="start_date" class="form-control" required
+                                   value="{{ form.start_date.value|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Enddatum *</label>
+                            <input type="date" name="end_date" class="form-control" required
+                                   value="{{ form.end_date.value|default:'' }}">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Bevorzugter Zeitslot</label>
+                        <select name="timeslot" class="form-select">
+                            <option value="all">Ganztägig</option>
+                            <option value="morning">Morgen (06–12 Uhr)</option>
+                            <option value="midday">Mittag (12–18 Uhr)</option>
+                            <option value="evening">Abend (18–23 Uhr) – Prime Time</option>
+                            <option value="night">Nacht (23–06 Uhr)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Nachricht / Besondere Wünsche</label>
+                        <textarea name="message" class="form-control" rows="4"
+                                  placeholder="z.B. bevorzugte Sendungen, spezielle Anforderungen...">{{ form.message.value|default:'' }}</textarea>
+                    </div>
+
+                    <!-- Datenschutz -->
+                    <div class="form-check mb-4">
+                        <input type="checkbox" class="form-check-input" id="privacy" required>
+                        <label class="form-check-label text-muted small" for="privacy">
+                            Ich habe die <a href="/datenschutz/" target="_blank" style="color:var(--rsl-red)">Datenschutzerklärung</a> gelesen und stimme der Verarbeitung meiner Daten zu. *
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-rsl btn-lg w-100">
+                        <i class="bi bi-send me-2"></i>Buchungsanfrage absenden
+                    </button>
+                </form>
+            </div>
+
+            <!-- Hinweis -->
+            <div class="mt-4 p-3 rsl-card">
+                <div class="d-flex gap-3 align-items-start">
+                    <i class="bi bi-info-circle-fill fs-4" style="color:var(--rsl-red);flex-shrink:0;"></i>
+                    <div>
+                        <strong>Wie geht es weiter?</strong>
+                        <p class="text-muted small mb-0 mt-1">
+                            Nach Eingang Ihrer Anfrage melden wir uns innerhalb von 24 Stunden per E-Mail mit einer Buchungsbestätigung und Zahlungsinformationen.
+                            Ihr Spot wird nach erfolgreicher Zahlung automatisch im RSL-Programm ausgestrahlt.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
