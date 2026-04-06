@@ -19,6 +19,8 @@ urlpatterns = [
     path('api/current/', views.api_current_show, name='api_current'),
     path('api/news/', views.api_news, name='api_news'),
     path('api/logo/', views.api_logo, name='api_logo'),
+    path('api/standby/', views.api_standby_image, name='api_standby_image'),
+    path('api/standby/', views.api_standby_image, name='api_standby'),
     # Live Admin (AJAX)
     path('api/live/<int:stream_id>/start-ad/', views.live_start_ad, name='live_start_ad'),
     path('api/live/<int:stream_id>/stop-ad/', views.live_stop_ad, name='live_stop_ad'),

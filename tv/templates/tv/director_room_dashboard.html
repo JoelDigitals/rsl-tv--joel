@@ -4,6 +4,11 @@
 
 {% block extra_css %}
 <style>
+    body {
+        background: #0a0a0a;
+        color: #ffffff !important;
+    }
+    
     .camera-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -17,12 +22,12 @@
         overflow: hidden;
         cursor: pointer;
         transition: all 0.3s;
-        border: 3px solid transparent;
+        border: 3px solid #333;
         height: 200px;
     }
     
     .camera-preview:hover {
-        border-color: var(--rsl-accent);
+        border-color: #00c4ff;
         transform: scale(1.02);
     }
     
@@ -31,14 +36,20 @@
         box-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
     }
     
+    .camera-preview video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
     .camera-label {
         position: absolute;
         bottom: 0;
         left: 0;
         right: 0;
-        background: linear-gradient(transparent, rgba(0,0,0,0.9));
+        background: linear-gradient(transparent, rgba(0,0,0,0.95));
         padding: 0.8rem;
-        color: white;
+        color: #ffffff !important;
         font-weight: 600;
         text-align: center;
     }
@@ -47,7 +58,7 @@
         background: #000;
         border-radius: 8px;
         overflow: hidden;
-        border: 3px solid var(--rsl-blue);
+        border: 3px solid #00c4ff;
     }
     
     .control-btn {
@@ -56,11 +67,12 @@
         font-size: 1.1rem;
         border-radius: 8px;
         transition: all 0.2s;
+        color: #ffffff !important;
     }
     
     .btn-go-live {
         background: #4ade80;
-        color: #000;
+        color: #000 !important;
         border: none;
     }
     
@@ -71,15 +83,41 @@
     
     .btn-cut-out {
         background: #ef4444;
-        color: white;
+        color: white !important;
         border: none;
     }
     
     .btn-standby {
         background: #fbbf24;
-        color: #000;
+        color: #000 !important;
         border: none;
     }
+    
+    .rsl-card {
+        background: #1a1a2e;
+        border: 1px solid #333;
+        border-radius: 8px;
+        color: #ffffff !important;
+    }
+    
+    .rsl-card h6, .rsl-card p, .rsl-card span, .rsl-card label {
+        color: #ffffff !important;
+    }
+    
+    .page-header {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        padding: 2rem 0;
+        color: #ffffff !important;
+    }
+    
+    .page-header h1, .page-header p, .page-header a {
+        color: #ffffff !important;
+    }
+    
+    h5 {
+        color: #ffffff !important;
+    }
+
 </style>
 {% endblock %}
 
@@ -254,16 +292,42 @@ function selectCamera(cameraId, cameraName, cameraUrl, element) {
     selectedCameraName = cameraName;
     selectedCameraUrl = cameraUrl;
     
-    // Vorschau aktualisieren
+    // Vorschau aktualisieren - zeige Live-Stream
     const mainOutput = document.getElementById('main-output');
-    mainOutput.innerHTML = `
-        <iframe 
-            src="${cameraUrl}" 
-            style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
-            allowfullscreen>
-        </iframe>
-    `;
     
+    // Wenn es eine Video-Stream-URL ist (HLS, RTSP via Web-Proxy)
+    if (cameraUrl.includes('.m3u8') || cameraUrl.includes('stream')) {
+        mainOutput.innerHTML = `
+            <video 
+                id="live-preview"
+                style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;background:#000;"
+                autoplay 
+                muted
+                playsinline>
+                <source src="${cameraUrl}" type="application/x-mpegURL">
+                Ihr Browser unterstützt kein Video.
+            </video>
+        `;
+        
+        // HLS.js für bessere Kompatibilität
+        const video = document.getElementById('live-preview');
+        if (window.Hls && window.Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(cameraUrl);
+            hls.attachMedia(video);
+        }
+    } else {
+        // Fallback: iframe
+        mainOutput.innerHTML = `
+            <iframe 
+                src="${cameraUrl}" 
+                style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+                allowfullscreen>
+            </iframe>
+        `;
+    }
+    
+    // Status aktualisieren
     document.getElementById('current-source').textContent = cameraName;
     
     showNotification(`Kamera gewechselt: ${cameraName}`, 'success');

@@ -253,6 +253,20 @@ def api_logo(request):
     return Response({'error': 'no logo'}, status=404)
 
 
+@api_view(['GET'])
+def api_standby_image(request):
+    """Gibt aktives Pausenbild zurück"""
+    from .models import StandbyImage
+    standby = StandbyImage.objects.filter(is_active=True).first()
+    if standby and standby.image:
+        return Response({
+            'image_path': standby.image.path,
+            'image_url': standby.image.url,
+            'title': standby.title
+        })
+    return Response({'error': 'No standby image'}, status=404)
+
+
 @require_GET
 def iptv_playlist(request):
     from django.conf import settings
@@ -293,8 +307,8 @@ def live_stop_ad(request, stream_id):
 from django.contrib.auth.decorators import login_required, user_passes_test
 
 def is_director(user):
-    """Prüft ob User Regie-Rechte hat"""
-    return user.is_staff or user.groups.filter(name='TV-Regie').exists()
+    """Prüft ob User Regie-Rechte hat - NUR SUPERUSER"""
+    return user.is_superuser
 
 @login_required
 @user_passes_test(is_director)

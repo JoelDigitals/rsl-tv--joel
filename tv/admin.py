@@ -16,9 +16,70 @@ from .models import (
 )
 from .mail import send_booking_confirmation, send_invoice, send_booking_approved, send_new_booking_admin
 
-admin.site.register(DirectorRoom)
-admin.site.register(StandbyImage)
-admin.site.register(DirectorRoomCamera)
+class DirectorRoomCameraInline(admin.TabularInline):
+    model = DirectorRoomCamera
+    extra = 1
+    autocomplete_fields = ['camera']
+    ordering = ['order']
+
+
+@admin.register(DirectorRoom)
+class DirectorRoomAdmin(admin.ModelAdmin):
+    list_display = ['name', 'is_active', 'is_streaming', 'stream_status_badge', 'camera_count', 'created_at']
+    list_editable = ['is_active']
+    list_filter = ['is_active', 'is_streaming', 'created_at']
+    search_fields = ['name', 'description']
+    inlines = [DirectorRoomCameraInline]
+    
+    fieldsets = (
+        ('Allgemein', {
+            'fields': ('name', 'description', 'is_active')
+        }),
+        ('Streaming-Konfiguration', {
+            'fields': ('youtube_stream_key', 'twitch_stream_key'),
+            'description': 'Stream-Keys für automatisches Streaming zu YouTube/Twitch'
+        }),
+        ('Status (wird automatisch aktualisiert)', {
+            'fields': ('is_streaming', 'current_output'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def stream_status_badge(self, obj):
+        if obj.is_streaming:
+            return format_html('<span style="color:#28a745;font-weight:bold;">🔴 STREAMING</span>')
+        return format_html('<span style="color:#6c757d;">⚫ Offline</span>')
+    stream_status_badge.short_description = "Stream-Status"
+    
+    def camera_count(self, obj):
+        count = obj.room_cameras.count()
+        if count == 0:
+            return format_html('<span style="color:#dc3545;">Keine Kameras</span>')
+        return format_html('<span style="color:#28a745;">{} Kamera{}</span>', count, 's' if count != 1 else '')
+    camera_count.short_description = "Kameras"
+
+
+@admin.register(DirectorRoomCamera)
+class DirectorRoomCameraAdmin(admin.ModelAdmin):
+    list_display = ['room', 'camera', 'order']
+    list_editable = ['order']
+    list_filter = ['room']
+    ordering = ['room', 'order']
+    
+    autocomplete_fields = ['camera']
+
+
+@admin.register(StandbyImage)
+class StandbyImageAdmin(admin.ModelAdmin):
+    list_display = ['title', 'image_preview', 'is_active', 'created_at']
+    list_editable = ['is_active']
+    list_filter = ['is_active']
+    
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" style="max-height:60px;border-radius:4px;">', obj.image.url)
+        return "–"
+    image_preview.short_description = "Vorschau"
 
 
 # ── Logo ──────────────────────────────────────────────────────────────────
@@ -251,10 +312,42 @@ class ContactMessageAdmin(admin.ModelAdmin):
 # ── Kameras & Regie ───────────────────────────────────────────────────────
 @admin.register(Camera)
 class CameraAdmin(admin.ModelAdmin):
-    list_display = ['name', 'stream_url', 'is_active', 'order']
+    list_display = ['name', 'stream_url_short', 'preview_available', 'is_active', 'order', 'assigned_rooms']
     list_editable = ['is_active', 'order']
     list_filter = ['is_active']
+    search_fields = ['name', 'stream_url']
     ordering = ['order', 'name']
+    
+    fieldsets = (
+        ('Kamera-Informationen', {
+            'fields': ('name', 'is_active', 'order')
+        }),
+        ('Stream-URLs', {
+            'fields': ('stream_url', 'preview_url'),
+            'description': 'stream_url: Haupt-Stream-URL (RTMP/RTSP/HLS) | preview_url: Optional - URL für Vorschau im Browser'
+        }),
+    )
+    
+    def stream_url_short(self, obj):
+        url = obj.stream_url
+        if len(url) > 50:
+            return url[:47] + '...'
+        return url
+    stream_url_short.short_description = "Stream URL"
+    
+    def preview_available(self, obj):
+        if obj.preview_url:
+            return format_html('<span style="color:#28a745;">✅</span>')
+        return format_html('<span style="color:#6c757d;">–</span>')
+    preview_available.short_description = "Vorschau"
+    
+    def assigned_rooms(self, obj):
+        rooms = DirectorRoomCamera.objects.filter(camera=obj).select_related('room')
+        if not rooms:
+            return format_html('<span style="color:#6c757d;">Nicht zugeordnet</span>')
+        room_names = ', '.join([r.room.name for r in rooms])
+        return format_html('<span style="color:#28a745;">{}</span>', room_names)
+    assigned_rooms.short_description = "Zugeordnete Räume"
 
 
 @admin.register(LiveDirector)
