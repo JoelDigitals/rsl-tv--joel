@@ -16,7 +16,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-rsl-tv-change-this-jo
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    'localhost', '127.0.0.1', '.render.com', '.onrender.com',
+    'localhost', '127.0.0.1', '.render.com', '.onrender.com', 'rsl-tv.onrender.com',
     os.environ.get('RENDER_EXTERNAL_HOSTNAME', ''),
 ]
 
