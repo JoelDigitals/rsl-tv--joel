@@ -1,0 +1,654 @@
+{% extends 'base_admin.html' %}
+
+{% block title %}Replay Studio | RSL TV{% endblock %}
+
+{% block extra_css %}
+<style>
+    .replay-studio {
+        background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+        min-height: 100vh;
+        padding: 20px;
+    }
+
+    .studio-header {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .studio-header h1 {
+        font-size: 2rem;
+        background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0;
+    }
+
+    .filter-bar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .filter-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #e0e0e0;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
+
+    .filter-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .filter-btn.active {
+        background: #00d4ff;
+        color: #0f0f23;
+        border-color: #00d4ff;
+    }
+
+    .studio-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+
+    .clips-section {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .clips-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .clips-header h2 {
+        color: #fff;
+        margin: 0;
+        font-size: 1.3rem;
+    }
+
+    .btn-primary {
+        background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+        border: none;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+    }
+
+    .clips-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 16px;
+    }
+
+    .clip-card {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 12px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: transform 0.3s, box-shadow 0.3s;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        position: relative;
+    }
+
+    .clip-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0, 212, 255, 0.2);
+        border-color: rgba(0, 212, 255, 0.3);
+    }
+
+    .clip-thumbnail {
+        aspect-ratio: 16/9;
+        background: linear-gradient(45deg, #1a1a2e, #0f0f23);
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .clip-thumbnail img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .clip-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .clip-card:hover .clip-overlay {
+        opacity: 1;
+    }
+
+    .play-btn {
+        width: 50px;
+        height: 50px;
+        background: #00d4ff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.2rem;
+        border: none;
+        cursor: pointer;
+    }
+
+    .clip-duration {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-family: 'Courier New', monospace;
+    }
+
+    .clip-badge {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .clip-badge.favorite {
+        background: #ffd700;
+        color: #000;
+    }
+
+    .clip-badge.recent {
+        background: #00d4ff;
+        color: #0f0f23;
+    }
+
+    .clip-info {
+        padding: 16px;
+    }
+
+    .clip-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .clip-meta {
+        font-size: 0.85rem;
+        color: #888;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .clip-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .clip-actions button {
+        flex: 1;
+        padding: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.05);
+        color: #e0e0e0;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: all 0.3s;
+    }
+
+    .clip-actions button:hover {
+        background: rgba(0, 212, 255, 0.2);
+        border-color: #00d4ff;
+    }
+
+    .clip-actions .btn-favorite {
+        color: #ffd700;
+    }
+
+    .clip-actions .btn-delete {
+        color: #ff4444;
+    }
+
+    .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .panel {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .panel h3 {
+        color: #fff;
+        margin: 0 0 16px 0;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .playlist-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .playlist-item {
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 8px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+        border-left: 3px solid transparent;
+    }
+
+    .playlist-item:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-left-color: #00d4ff;
+    }
+
+    .playlist-name {
+        font-weight: 600;
+        color: #e0e0e0;
+        margin-bottom: 4px;
+    }
+
+    .playlist-meta {
+        font-size: 0.85rem;
+        color: #888;
+    }
+
+    .tag-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .tag {
+        background: rgba(255, 255, 255, 0.1);
+        color: #e0e0e0;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+
+    .tag:hover {
+        background: rgba(0, 212, 255, 0.3);
+        color: #00d4ff;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #666;
+    }
+
+    .empty-state svg {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 20px;
+        opacity: 0.3;
+    }
+
+    .empty-state h3 {
+        color: #888;
+        margin-bottom: 8px;
+    }
+
+    .preview-player {
+        background: rgba(0, 0, 0, 0.4);
+        border-radius: 12px;
+        aspect-ratio: 16/9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .preview-placeholder {
+        text-align: center;
+        color: #666;
+    }
+
+    .player-controls {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+    }
+
+    .player-controls button {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.05);
+        color: #e0e0e0;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .player-controls button:hover {
+        background: rgba(0, 212, 255, 0.2);
+        border-color: #00d4ff;
+    }
+
+    .player-controls button.primary {
+        background: #00d4ff;
+        border-color: #00d4ff;
+        color: #0f0f23;
+        width: 48px;
+        height: 48px;
+    }
+
+    @media (max-width: 1024px) {
+        .studio-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .clips-grid {
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        }
+    }
+
+    .toast {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(0, 212, 255, 0.9);
+        color: #0f0f23;
+        padding: 16px 24px;
+        border-radius: 12px;
+        font-weight: 600;
+        transform: translateY(100px);
+        opacity: 0;
+        transition: all 0.3s;
+        z-index: 1000;
+    }
+
+    .toast.show {
+        transform: translateY(0);
+        opacity: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="replay-studio">
+    <header class="studio-header">
+        <div>
+            <h1>🎬 Replay Studio</h1>
+            <p style="color: #888; margin: 8px 0 0 0;">Verwalten und abspielen von Replay-Clips</p>
+        </div>
+        <div class="filter-bar">
+            <a href="{% url 'replay_studio' %}" class="filter-btn {% if not request.GET.favorites and not request.GET.tag %}active{% endif %}">Alle</a>
+            <a href="?favorites=1" class="filter-btn {% if request.GET.favorites == '1' %}active{% endif %}">⭐ Favoriten</a>
+            {% if all_tags %}
+            <select class="filter-btn" onchange="if(this.value) window.location.href='?tag=' + encodeURIComponent(this.value); else window.location.href='{% url 'replay_studio' %}';" style="cursor: pointer;">
+                <option value="">🏷 Tags...</option>
+                {% for tag in all_tags %}
+                <option value="{{ tag }}" {% if request.GET.tag == tag %}selected{% endif %}>{{ tag }}</option>
+                {% endfor %}
+            </select>
+            {% endif %}
+        </div>
+    </header>
+
+    <div class="studio-grid">
+        <div class="clips-section">
+            <div class="clips-header">
+                <h2>
+                    {% if request.GET.favorites == '1' %}
+                        ⭐ Favoriten
+                    {% elif request.GET.tag %}
+                        🏷 {{ request.GET.tag }}
+                    {% else %}
+                        📁 Alle Clips
+                    {% endif %}
+                    <span style="color: #888; font-size: 0.9rem; margin-left: 8px;">({{ clips|length }})</span>
+                </h2>
+                <form method="post" action="{% url 'replay_create_clip' %}" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="title" value="Live Replay {% now 'H:i' %}">
+                    <input type="hidden" name="duration" value="30">
+                    <button type="submit" class="btn-primary">⏺ Schnellaufnahme (30s)</button>
+                </form>
+            </div>
+
+            {% if clips %}
+            <div class="clips-grid">
+                {% for clip in clips %}
+                <div class="clip-card" data-clip-id="{{ clip.id }}">
+                    <div class="clip-thumbnail">
+                        {% if clip.thumbnail %}
+                        <img src="{{ clip.thumbnail.url }}" alt="{{ clip.title }}">
+                        {% else %}
+                        <div style="font-size: 3rem;">🎬</div>
+                        {% endif %}
+                        
+                        <div class="clip-overlay">
+                            <form method="post" action="{% url 'replay_play_clip' %}" style="margin: 0;">
+                                {% csrf_token %}
+                                <input type="hidden" name="clip_id" value="{{ clip.id }}">
+                                <button type="submit" class="play-btn">▶</button>
+                            </form>
+                        </div>
+                        
+                        <span class="clip-duration">{{ clip.duration }}s</span>
+                        
+                        {% if clip.is_favorite %}
+                        <span class="clip-badge favorite">⭐</span>
+                        {% endif %}
+                        
+                        {% if clip.recorded_at|date:"Y-m-d" == now|date:"Y-m-d" %}
+                        <span class="clip-badge recent">HEUTE</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="clip-info">
+                        <div class="clip-title" title="{{ clip.title }}">{{ clip.title }}</div>
+                        <div class="clip-meta">
+                            <span>{{ clip.recorded_at|date:"d.m.Y H:i" }}</span>
+                            <span>▶ {{ clip.times_played }}x</span>
+                        </div>
+                        
+                        {% if clip.tags %}
+                        <div style="margin-top: 8px; font-size: 0.8rem; color: #00d4ff;">
+                            {% for tag in clip.tags|slice:":3" %}
+                            <span style="margin-right: 4px;">#{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="clip-actions">
+                            <form method="post" action="{% url 'replay_toggle_favorite' %}" style="margin: 0; flex: 1;">
+                                {% csrf_token %}
+                                <input type="hidden" name="clip_id" value="{{ clip.id }}">
+                                <button type="submit" class="btn-favorite" title="Favorit umschalten">
+                                    {% if clip.is_favorite %}⭐{% else %}☆{% endif %} Favorit
+                                </button>
+                            </form>
+                            
+                            <form method="post" action="{% url 'replay_delete_clip' %}" style="margin: 0;" onsubmit="return confirm('Clip wirklich löschen?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="clip_id" value="{{ clip.id }}">
+                                <button type="submit" class="btn-delete" title="Löschen">🗑</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="2" y="2" width="20" height="20" rx="2.18"></rect>
+                    <path d="M10 8l6 4-6 4V8z"></path>
+                </svg>
+                <h3>Keine Clips gefunden</h3>
+                <p>Erstellen Sie Ihren ersten Replay-Clip mit der Schnellaufnahme-Funktion.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="sidebar">
+            <div class="panel">
+                <h3>▶ Vorschau</h3>
+                <div class="preview-player">
+                    <div class="preview-placeholder">
+                        <div style="font-size: 4rem; margin-bottom: 12px;">📺</div>
+                        <p>Wählen Sie einen Clip zum Abspielen</p>
+                    </div>
+                </div>
+                <div class="player-controls">
+                    <button title="Zurück">⏮</button>
+                    <button class="primary" title="Abspielen">▶</button>
+                    <button title="Vor">⏭</button>
+                    <button title="Langsam">⏱</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>📋 Playlists</h3>
+                {% if playlists %}
+                <ul class="playlist-list">
+                    {% for playlist in playlists %}
+                    <li class="playlist-item">
+                        <div class="playlist-name">{{ playlist.name }}</div>
+                        <div class="playlist-meta">{{ playlist.clips.count }} Clips • {{ playlist.created_at|date:"d.m.Y" }}</div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p style="color: #888; text-align: center; padding: 20px;">Noch keine Playlists</p>
+                {% endif %}
+            </div>
+
+            {% if all_tags %}
+            <div class="panel">
+                <h3>🏷 Tags</h3>
+                <div class="tag-cloud">
+                    {% for tag in all_tags %}
+                    <a href="?tag={{ tag|urlencode }}" class="tag">{{ tag }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="panel">
+                <h3>📊 Statistik</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; text-align: center;">
+                    <div>
+                        <div style="font-size: 2rem; font-weight: 700; color: #00d4ff;">{{ clips|length }}</div>
+                        <div style="color: #888; font-size: 0.9rem;">Clips</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 2rem; font-weight: 700; color: #ffd700;">
+                            {% with fav_count=clips|dictsort:"is_favorite" %}
+                            {{ clips|length }}
+                            {% endwith %}
+                        </div>
+                        <div style="color: #888; font-size: 0.9rem;">Favoriten</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Toast-Benachrichtigungen
+    function showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // AJAX-Handler für Formulare
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', async function(e) {
+            if (this.action.includes('play_clip')) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                try {
+                    const response = await fetch(this.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        showToast('▶ ' + data.clip.title + ' wird abgespielt');
+                    }
+                } catch (err) {
+                    console.error('Fehler:', err);
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

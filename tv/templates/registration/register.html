@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}Anmelden – RSL TV{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow-lg border-0" style="background: linear-gradient(135deg, #0d0d1a 0%, #1a1a3a 100%); border-radius: 20px;">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h2 class="text-white mb-2"><i class="fas fa-tv"></i> RSL TV</h2>
+                        <p class="text-muted">Admin Login</p>
+                    </div>
+
+                    {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i> Ungültige Anmeldedaten. Bitte versuchen Sie es erneut.
+                    </div>
+                    {% endif %}
+
+                    <form method="post" action="{% url 'login' %}">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="id_username" class="form-label text-white">
+                                <i class="fas fa-user"></i> Benutzername
+                            </label>
+                            <input type="text" name="username" class="form-control form-control-lg" id="id_username" 
+                                   placeholder="Benutzername eingeben" required autofocus
+                                   style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white;">
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="id_password" class="form-label text-white">
+                                <i class="fas fa-lock"></i> Passwort
+                            </label>
+                            <input type="password" name="password" class="form-control form-control-lg" id="id_password" 
+                                   placeholder="Passwort eingeben" required
+                                   style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white;">
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                            <label class="form-check-label text-white" for="remember">
+                                Angemeldet bleiben
+                            </label>
+                        </div>
+
+                        <input type="hidden" name="next" value="{{ next }}">
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-lg" style="background: #00c4ff; color: #000; font-weight: 700; border-radius: 10px;">
+                                <i class="fas fa-sign-in-alt"></i> Anmelden
+                            </button>
+                        </div>
+                    </form>
+
+                    <hr class="my-4" style="border-color: rgba(255,255,255,0.2);">
+
+                    <div class="text-center">
+                        <p class="text-muted mb-2">Noch kein Account?</p>
+                        <a href="{% url 'register' %}" class="btn btn-outline-light">
+                            <i class="fas fa-user-plus"></i> Registrieren
+                        </a>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <a href="{% url 'home' %}" class="text-muted">
+                            <i class="fas fa-arrow-left"></i> Zurück zur Website
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    body {
+        background: linear-gradient(135deg, #070710 0%, #0d0d1a 100%);
+        min-height: 100vh;
+    }
+
+    .form-control:focus {
+        background: rgba(255,255,255,0.15) !important;
+        border-color: #00c4ff !important;
+        box-shadow: 0 0 0 0.2rem rgba(0, 196, 255, 0.25) !important;
+        color: white !important;
+    }
+
+    .btn-outline-light:hover {
+        background: rgba(255,255,255,0.1);
+    }
+</style>
+{% endblock %}

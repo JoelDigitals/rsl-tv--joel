@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin{% endblock %} – RSL TV</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        :root {
+            --admin-bg: #0a0a0f;
+            --admin-sidebar: #0f0f1a;
+            --admin-card: #1a1a2e;
+            --admin-border: #2a2a3e;
+            --admin-accent: #00d4ff;
+            --admin-text: #e0e0e0;
+            --admin-success: #4ade80;
+            --admin-warning: #fbbf24;
+            --admin-danger: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--admin-bg);
+            color: var(--admin-text);
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .admin-sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 260px;
+            background: var(--admin-sidebar);
+            border-right: 1px solid var(--admin-border);
+            padding: 1.5rem 0;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .admin-logo {
+            padding: 0 1.5rem 1.5rem;
+            border-bottom: 1px solid var(--admin-border);
+            margin-bottom: 1.5rem;
+        }
+
+        .admin-logo h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--admin-accent);
+            margin: 0;
+        }
+
+        .admin-logo small {
+            color: #888;
+            font-size: 0.8rem;
+        }
+
+        .admin-nav-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .admin-nav-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #666;
+            padding: 0 1.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .admin-nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem 1.5rem;
+            color: var(--admin-text);
+            text-decoration: none;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .admin-nav-item:hover {
+            background: rgba(0, 212, 255, 0.08);
+            color: var(--admin-accent);
+            border-left-color: var(--admin-accent);
+        }
+
+        .admin-nav-item.active {
+            background: rgba(0, 212, 255, 0.12);
+            color: var(--admin-accent);
+            border-left-color: var(--admin-accent);
+            font-weight: 600;
+        }
+
+        .admin-nav-item i {
+            width: 24px;
+            margin-right: 0.8rem;
+            font-size: 1.1rem;
+        }
+
+        /* Main Content */
+        .admin-main {
+            margin-left: 260px;
+            min-height: 100vh;
+        }
+
+        /* Top Bar */
+        .admin-topbar {
+            background: var(--admin-sidebar);
+            border-bottom: 1px solid var(--admin-border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+
+        .admin-topbar-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .admin-user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .admin-user-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--admin-accent), #0088ff);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #000;
+        }
+
+        /* Content Area */
+        .admin-content {
+            padding: 2rem;
+        }
+
+        /* Cards */
+        .admin-card {
+            background: var(--admin-card);
+            border: 1px solid var(--admin-border);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .admin-card-header {
+            background: rgba(0, 212, 255, 0.08);
+            border-bottom: 1px solid var(--admin-border);
+            padding: 1rem 1.5rem;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--admin-accent);
+        }
+
+        .admin-card-body {
+            padding: 1.5rem;
+        }
+
+        /* Buttons */
+        .btn-admin-primary {
+            background: var(--admin-accent);
+            color: #000;
+            border: none;
+            padding: 0.7rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-admin-primary:hover {
+            background: #00b8e6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+        }
+
+        .btn-admin-danger {
+            background: var(--admin-danger);
+            color: #fff;
+            border: none;
+            padding: 0.7rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-admin-danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+
+        .btn-admin-success {
+            background: var(--admin-success);
+            color: #000;
+            border: none;
+            padding: 0.7rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-admin-success:hover {
+            background: #22c55e;
+            transform: translateY(-2px);
+        }
+
+        /* Status Badges */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-badge-live {
+            background: rgba(74, 222, 128, 0.2);
+            color: var(--admin-success);
+        }
+
+        .status-badge-offline {
+            background: rgba(107, 114, 128, 0.2);
+            color: #9ca3af;
+        }
+
+        .status-badge-error {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--admin-danger);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Forms */
+        .form-control, .form-select {
+            background: var(--admin-bg);
+            border: 1px solid var(--admin-border);
+            color: var(--admin-text);
+            border-radius: 8px;
+            padding: 0.7rem 1rem;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background: var(--admin-bg);
+            border-color: var(--admin-accent);
+            color: var(--admin-text);
+            box-shadow: 0 0 0 0.2rem rgba(0, 212, 255, 0.15);
+        }
+
+        .form-label {
+            color: var(--admin-text);
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Alerts */
+        .alert {
+            border-radius: 10px;
+            border: none;
+            padding: 1rem 1.2rem;
+        }
+
+        .alert-success {
+            background: rgba(74, 222, 128, 0.15);
+            color: var(--admin-success);
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--admin-danger);
+        }
+
+        .alert-warning {
+            background: rgba(251, 191, 36, 0.15);
+            color: var(--admin-warning);
+        }
+
+        .alert-info {
+            background: rgba(0, 212, 255, 0.15);
+            color: var(--admin-accent);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .admin-sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+
+            .admin-sidebar.show {
+                transform: translateX(0);
+            }
+
+            .admin-main {
+                margin-left: 0;
+            }
+
+            .mobile-menu-toggle {
+                display: block !important;
+            }
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--admin-accent);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="admin-sidebar" id="adminSidebar">
+        <div class="admin-logo">
+            <h2><i class="fas fa-tv"></i> RSL TV</h2>
+            <small>Admin Dashboard</small>
+        </div>
+
+        <div class="admin-nav-section">
+            <div class="admin-nav-title">Hauptmenü</div>
+            <a href="{% url 'home' %}" class="admin-nav-item">
+                <i class="fas fa-home"></i>
+                <span>Zur Website</span>
+            </a>
+            <a href="{% url 'program_room_dashboard' %}" class="admin-nav-item {% if request.resolver_match.url_name == 'program_room_dashboard' %}active{% endif %}">
+                <i class="fas fa-broadcast-tower"></i>
+                <span>Programm-Regie</span>
+            </a>
+            <a href="/admin/" class="admin-nav-item">
+                <i class="fas fa-cog"></i>
+                <span>Django Admin</span>
+            </a>
+        </div>
+
+        <div class="admin-nav-section">
+            <div class="admin-nav-title">Regie-Funktionen</div>
+            <a href="{% url 'tv_admin_dashboard' %}" class="admin-nav-item {% if request.resolver_match.url_name == 'tv_admin_dashboard' %}active{% endif %}">
+                <i class="fas fa-camera"></i>
+                <span>TV Admin</span>
+            </a>
+            <a href="{% url 'replay_studio' %}" class="admin-nav-item {% if request.resolver_match.url_name == 'replay_studio' %}active{% endif %}">
+                <i class="fas fa-redo"></i>
+                <span>Replay Studio</span>
+            </a>
+            <a href="{% url 'rundown_planner' %}" class="admin-nav-item {% if request.resolver_match.url_name == 'rundown_planner' %}active{% endif %}">
+                <i class="fas fa-list-check"></i>
+                <span>Rundown Planer</span>
+            </a>
+            <a href="{% url 'scenes' %}" class="admin-nav-item {% if request.resolver_match.url_name == 'scenes' %}active{% endif %}">
+                <i class="fas fa-palette"></i>
+                <span>Szenen</span>
+            </a>
+        </div>
+
+        <div class="admin-nav-section">
+            <div class="admin-nav-title">Account</div>
+            {% if user.is_authenticated %}
+            <a href="{% url 'logout' %}" class="admin-nav-item">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Abmelden</span>
+            </a>
+            {% else %}
+            <a href="{% url 'login' %}" class="admin-nav-item">
+                <i class="fas fa-sign-in-alt"></i>
+                <span>Anmelden</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="admin-main">
+        <!-- Top Bar -->
+        <div class="admin-topbar">
+            <button class="mobile-menu-toggle" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="admin-topbar-title">
+                {% block page_title %}Admin Dashboard{% endblock %}
+            </div>
+            <div class="admin-user-info">
+                {% if user.is_authenticated %}
+                <div class="admin-user-avatar">
+                    {{ user.username|slice:":1"|upper }}
+                </div>
+                <div>
+                    <div style="font-weight: 600;">{{ user.username }}</div>
+                    <small style="color: #888;">{{ user.email }}</small>
+                </div>
+                {% else %}
+                <a href="{% url 'login' %}" class="btn btn-admin-primary btn-sm">Anmelden</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="admin-content">
+            {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function toggleSidebar() {
+            document.getElementById('adminSidebar').classList.toggle('show');
+        }
+
+        // Auto-hide alerts after 5 seconds
+        setTimeout(() => {
+            document.querySelectorAll('.alert').forEach(alert => {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,560 @@
+{% extends 'base_admin.html' %}
+
+{% block title %}Rundown Planung | RSL TV{% endblock %}
+
+{% block extra_css %}
+<style>
+    .rundown-planner {
+        background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+        min-height: 100vh;
+        padding: 20px;
+    }
+
+    .planner-header {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .planner-header h1 {
+        font-size: 2rem;
+        background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0 0 12px 0;
+    }
+
+    .status-bar {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .status-badge.live {
+        background: rgba(255, 0, 0, 0.2);
+        color: #ff4444;
+        animation: pulse 2s infinite;
+    }
+
+    .status-badge.upcoming {
+        background: rgba(0, 212, 255, 0.2);
+        color: #00d4ff;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+
+    .action-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .btn-primary {
+        background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+        border: none;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: transform 0.3s, box-shadow 0.3s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+    }
+
+    .btn-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #e0e0e0;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .rundowns-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 20px;
+    }
+
+    .rundown-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: transform 0.3s, box-shadow 0.3s;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .rundown-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0, 212, 255, 0.15);
+        border-color: rgba(0, 212, 255, 0.3);
+    }
+
+    .rundown-card.live {
+        border-color: #ff4444;
+        background: rgba(255, 0, 0, 0.05);
+    }
+
+    .rundown-card.upcoming {
+        border-color: #00d4ff;
+        background: rgba(0, 212, 255, 0.05);
+    }
+
+    .rundown-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 16px;
+    }
+
+    .rundown-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #fff;
+        margin: 0 0 4px 0;
+    }
+
+    .rundown-date {
+        color: #888;
+        font-size: 0.9rem;
+    }
+
+    .rundown-status {
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .rundown-status.live {
+        background: #ff4444;
+        color: white;
+    }
+
+    .rundown-status.upcoming {
+        background: #00d4ff;
+        color: #0f0f23;
+    }
+
+    .rundown-status.past {
+        background: rgba(255, 255, 255, 0.2);
+        color: #888;
+    }
+
+    .rundown-meta {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin: 16px 0;
+        padding: 16px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+    }
+
+    .meta-item {
+        text-align: center;
+    }
+
+    .meta-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #00d4ff;
+    }
+
+    .meta-label {
+        font-size: 0.8rem;
+        color: #888;
+        margin-top: 4px;
+    }
+
+    .rundown-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .rundown-actions a, .rundown-actions button {
+        flex: 1;
+        padding: 10px;
+        border-radius: 8px;
+        text-align: center;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        border: none;
+    }
+
+    .btn-edit {
+        background: rgba(0, 212, 255, 0.2);
+        color: #00d4ff;
+    }
+
+    .btn-edit:hover {
+        background: rgba(0, 212, 255, 0.3);
+    }
+
+    .btn-control {
+        background: rgba(255, 0, 0, 0.2);
+        color: #ff4444;
+    }
+
+    .btn-control:hover {
+        background: rgba(255, 0, 0, 0.3);
+    }
+
+    .current-show-panel {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .current-show-panel h2 {
+        color: #fff;
+        margin: 0 0 20px 0;
+        font-size: 1.3rem;
+    }
+
+    .show-info {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .show-card {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 12px;
+        padding: 20px;
+        border-left: 4px solid;
+    }
+
+    .show-card.live {
+        border-left-color: #ff4444;
+    }
+
+    .show-card.upcoming {
+        border-left-color: #00d4ff;
+    }
+
+    .show-label {
+        font-size: 0.85rem;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+    }
+
+    .show-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 8px;
+    }
+
+    .show-time {
+        color: #00d4ff;
+        font-family: 'Courier New', monospace;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #666;
+    }
+
+    .empty-state svg {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 20px;
+        opacity: 0.3;
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 16px;
+        padding: 32px;
+        width: 90%;
+        max-width: 500px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .modal-content h2 {
+        color: #fff;
+        margin: 0 0 20px 0;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        color: #888;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+    }
+
+    .form-group input, .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        color: #e0e0e0;
+        font-size: 1rem;
+    }
+
+    .form-group input:focus, .form-group textarea:focus {
+        outline: none;
+        border-color: #00d4ff;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        margin-top: 24px;
+    }
+
+    @media (max-width: 768px) {
+        .rundowns-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .show-info {
+            grid-template-columns: 1fr;
+        }
+        
+        .rundown-meta {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rundown-planner">
+    <header class="planner-header">
+        <h1>📋 Rundown Planung</h1>
+        <div class="status-bar">
+            {% if active_rundown %}
+            <span class="status-badge live">🔴 LIVE: {{ active_rundown.title }}</span>
+            {% endif %}
+            {% if upcoming_rundown %}
+            <span class="status-badge upcoming">⏳ NÄCHSTE: {{ upcoming_rundown.title }} ({{ upcoming_rundown.show_date|date:"H:i" }})</span>
+            {% endif %}
+            <span style="color: #888; font-size: 0.9rem;">{{ rundowns|length }} Sendungen geplant</span>
+        </div>
+    </header>
+
+    {% if active_rundown or upcoming_rundown %}
+    <div class="current-show-panel">
+        <h2>🎯 Aktuelle Sendungen</h2>
+        <div class="show-info">
+            {% if active_rundown %}
+            <div class="show-card live">
+                <div class="show-label">🔴 Jetzt Live</div>
+                <div class="show-title">{{ active_rundown.title }}</div>
+                <div class="show-time">{{ active_rundown.show_date|date:"d.m.Y H:i" }}</div>
+                <div style="margin-top: 12px;">
+                    <a href="{% url 'rundown_detail' active_rundown.id %}" class="btn-primary">Zur Live-Steuerung →</a>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if upcoming_rundown %}
+            <div class="show-card upcoming">
+                <div class="show-label">⏳ Als Nächstes</div>
+                <div class="show-title">{{ upcoming_rundown.title }}</div>
+                <div class="show-time">{{ upcoming_rundown.show_date|date:"d.m.Y H:i" }}</div>
+                <div style="margin-top: 12px;">
+                    <a href="{% url 'rundown_detail' upcoming_rundown.id %}" class="btn-secondary">Details anzeigen</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="action-bar">
+        <div>
+            <button class="btn-primary" onclick="document.getElementById('createModal').classList.add('active')">
+                + Neue Sendung planen
+            </button>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <a href="{% url 'replay_studio' %}" class="btn-secondary">🎬 Replay Studio</a>
+            <a href="{% url 'director_room' %}" class="btn-secondary">🎥 Regieraum</a>
+        </div>
+    </div>
+
+    {% if rundowns %}
+    <div class="rundowns-grid">
+        {% for rundown in rundowns %}
+        <div class="rundown-card {% if rundown.is_live %}live{% endif %} {% if rundown == upcoming_rundown %}upcoming{% endif %}">
+            <div class="rundown-header">
+                <div>
+                    <h3 class="rundown-title">{{ rundown.title }}</h3>
+                    <div class="rundown-date">{{ rundown.show_date|date:"l, d.m.Y H:i" }}</div>
+                </div>
+                {% if rundown.is_live %}
+                <span class="rundown-status live">Live</span>
+                {% elif rundown.show_date > now %}
+                <span class="rundown-status upcoming">Geplant</span>
+                {% else %}
+                <span class="rundown-status past">Abgeschlossen</span>
+                {% endif %}
+            </div>
+
+            <div class="rundown-meta">
+                <div class="meta-item">
+                    <div class="meta-value">{{ rundown.segments.count }}</div>
+                    <div class="meta-label">Segmente</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-value">{{ rundown.total_planned_duration|default:"0" }}</div>
+                    <div class="meta-label">Minuten</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-value">{{ rundown.created_by.get_full_name|default:rundown.created_by.username|default:"-" }}</div>
+                    <div class="meta-label">Erstellt von</div>
+                </div>
+            </div>
+
+            <div class="rundown-actions">
+                <a href="{% url 'rundown_detail' rundown.id %}" class="btn-edit">
+                    {% if rundown.is_live %}🔴 Steuern{% else %}✏️ Bearbeiten{% endif %}
+                </a>
+                
+                {% if rundown.is_live %}
+                <form method="post" action="{% url 'rundown_stop' %}" style="margin: 0; flex: 1;">
+                    {% csrf_token %}
+                    <input type="hidden" name="rundown_id" value="{{ rundown.id }}">
+                    <button type="submit" class="btn-control">⏹ Stoppen</button>
+                </form>
+                {% else %}
+                <form method="post" action="{% url 'rundown_start' %}" style="margin: 0; flex: 1;">
+                    {% csrf_token %}
+                    <input type="hidden" name="rundown_id" value="{{ rundown.id }}">
+                    <button type="submit" class="btn-control" {% if rundown.show_date > now %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
+                        ▶ Starten
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+        <h3>Keine Sendungen geplant</h3>
+        <p>Erstellen Sie Ihren ersten Rundown mit dem Button oben.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal: Neue Sendung erstellen -->
+<div id="createModal" class="modal" onclick="if(event.target === this) this.classList.remove('active')">
+    <div class="modal-content">
+        <h2>📅 Neue Sendung planen</h2>
+        <form method="post" action="{% url 'rundown_create' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="rundown-title">Titel der Sendung</label>
+                <input type="text" id="rundown-title" name="title" required placeholder="z.B. RSL Nachrichten, Live-Spiel...">
+            </div>
+            
+            <div class="form-group">
+                <label for="rundown-date">Sendezeit</label>
+                <input type="datetime-local" id="rundown-date" name="show_date" required>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="document.getElementById('createModal').classList.remove('active')">Abbrechen</button>
+                <button type="submit" class="btn-primary">Erstellen</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Setze aktuelles Datum im Datetime-Local Input
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById('rundown-date').value = now.toISOString().slice(0, 16);
+    
+    // Auto-Refresh wenn Live-Sendung aktiv
+    {% if active_rundown %}
+    setInterval(function() {
+        location.reload();
+    }, 30000); // Alle 30 Sekunden aktualisieren
+    {% endif %}
+</script>
+{% endblock %}

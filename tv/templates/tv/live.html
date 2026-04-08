@@ -1,71 +1,163 @@
 {% extends 'base.html' %}
-{% block title %}Live Events – RSL{% endblock %}
+{% load static %}
+
+{% block title %}Live-Stream - RSL TV{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* DUNKLES, LESBARES DESIGN */
+    body {
+        background: #0a0a0a;
+        color: #f0f0f0;
+        font-size: 18px;
+    }
+
+    .hero-section {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        padding: 60px 0;
+        margin-bottom: 40px;
+        border-bottom: 3px solid #e94560;
+    }
+
+    .hero-section h1 {
+        font-size: 48px;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 16px;
+    }
+
+    .live-badge {
+        display: inline-block;
+        background: #ff0000;
+        color: white;
+        padding: 8px 20px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 16px;
+        margin-bottom: 20px;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+
+    .stream-container {
+        background: #1a1a1a;
+        border-radius: 12px;
+        padding: 30px;
+        margin-bottom: 30px;
+        border: 2px solid #333;
+    }
+
+    .stream-selector {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .stream-button {
+        flex: 1;
+        padding: 16px 24px;
+        border-radius: 8px;
+        border: 2px solid #333;
+        background: #1a1a1a;
+        color: #f0f0f0;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .stream-button:hover {
+        border-color: #e94560;
+        background: #2a2a2a;
+    }
+
+    .stream-button.active {
+        background: #e94560;
+        border-color: #e94560;
+        color: white;
+    }
+
+    .stream-embed {
+        position: relative;
+        padding-bottom: 56.25%;
+        height: 0;
+        overflow: hidden;
+        background: #000;
+        border-radius: 8px;
+    }
+
+    .stream-embed iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-    <div class="container">
-        <h1><span style="color:var(--rsl-red)">Live</span> Events</h1>
-        <p class="text-muted mt-2 mb-0">Aktuelle und geplante Live-Übertragungen auf RSL</p>
+<div class="hero-section">
+    <div class="container text-center">
+        {% if live_streams %}
+            <div class="live-badge">🔴 LIVE</div>
+        {% endif %}
+        <h1>📺 Live-Stream</h1>
     </div>
 </div>
-<div class="container py-5">
-    {% if live_streams %}
-    <h2 class="section-title mb-2">Jetzt <span>Live</span></h2>
-    <div class="section-divider"></div>
-    <div class="row g-4 mb-5">
-        {% for stream in live_streams %}
-        <div class="col-lg-6">
-            <div class="rsl-card overflow-hidden">
-                <div style="position:relative;padding-bottom:56.25%;height:0;background:#000;">
-                    <iframe src="{{ stream.get_embed_url }}"
-                        style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
-                        allowfullscreen allow="autoplay; encrypted-media"></iframe>
-                    <div style="position:absolute;top:10px;left:10px;"><span class="live-badge">🔴 LIVE</span></div>
-                </div>
-                <div class="p-3">
-                    <h5 class="fw-bold mb-1">{{ stream.title }}</h5>
-                    {% if stream.location %}<small class="text-muted"><i class="bi bi-geo-alt me-1"></i>{{ stream.location }}</small>{% endif %}
-                    {% if stream.description %}<p class="text-muted small mt-2 mb-0">{{ stream.description }}</p>{% endif %}
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
 
-    <h2 class="section-title mb-2">Geplante <span>Events</span></h2>
-    <div class="section-divider"></div>
-    {% if upcoming_live %}
-    <div class="row g-3 mt-2">
-        {% for stream in upcoming_live %}
-        <div class="col-md-6 col-lg-4">
-            <div class="rsl-card p-3">
-                {% if stream.thumbnail_url %}<img src="{{ stream.thumbnail_url }}" class="w-100 mb-3" style="border-radius:4px;height:150px;object-fit:cover;" alt="">{% endif %}
-                <h6 class="fw-bold">{{ stream.title }}</h6>
-                {% if stream.scheduled_start %}<p class="text-danger small mb-1"><i class="bi bi-clock me-1"></i>{{ stream.scheduled_start|date:"d.m.Y H:i" }} Uhr</p>{% endif %}
-                {% if stream.location %}<p class="text-muted small mb-0"><i class="bi bi-geo-alt me-1"></i>{{ stream.location }}</p>{% endif %}
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="text-center py-5 text-muted">
-        <i class="bi bi-calendar-event d-block fs-1 mb-3"></i>
-        <h5>Keine Live-Events geplant</h5>
-        <p>Schauen Sie regelmäßig vorbei – neue Events werden hier angekündigt.</p>
-    </div>
-    {% endif %}
-
-    <!-- Live-Schaltung Info für Streamer -->
-    <div class="mt-5 rsl-card p-4">
-        <div class="row align-items-center">
-            <div class="col-md-8">
-                <h5 class="fw-bold mb-1">📡 Live auf RSL streamen</h5>
-                <p class="text-muted mb-0">Sie möchten eine Live-Sendung auf RSL machen? Kontaktieren Sie uns – wir schalten Ihren Stream ins RSL-Programm ein.</p>
-            </div>
-            <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                <a href="/kontakt/" class="btn btn-rsl">Jetzt anfragen</a>
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="stream-container">
+                <div class="stream-selector">
+                    <button class="stream-button active" onclick="showYouTube(this)">
+                        📺 YouTube
+                    </button>
+                    <button class="stream-button" onclick="showTwitch(this)">
+                        🎮 Twitch
+                    </button>
+                </div>
+                
+                <!-- YouTube Stream -->
+                <div id="youtube-stream" class="stream-embed">
+                    <iframe 
+                        src="https://www.youtube.com/embed/live_stream?channel={{ youtube_channel }}" 
+                        allowfullscreen
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
+                    </iframe>
+                </div>
+                
+                <!-- Twitch Stream -->
+                <div id="twitch-stream" class="stream-embed" style="display: none;">
+                    <iframe 
+                        src="https://player.twitch.tv/?channel={{ twitch_channel }}&parent={{ request.get_host }}&autoplay=true" 
+                        allowfullscreen>
+                    </iframe>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+function showYouTube(btn) {
+    document.getElementById('youtube-stream').style.display = 'block';
+    document.getElementById('twitch-stream').style.display = 'none';
+    document.querySelectorAll('.stream-button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+function showTwitch(btn) {
+    document.getElementById('youtube-stream').style.display = 'none';
+    document.getElementById('twitch-stream').style.display = 'block';
+    document.querySelectorAll('.stream-button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+</script>
 {% endblock %}

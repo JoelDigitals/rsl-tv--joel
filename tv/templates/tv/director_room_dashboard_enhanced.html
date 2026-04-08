@@ -1,0 +1,637 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+
+{% block title %}Regieraum {{ room.name }} - RSL TV{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: #0a0a0f;
+        color: #fff;
+    }
+
+    .director-container {
+        max-width: 100%;
+        padding: 20px;
+    }
+
+    .director-header {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .director-header h1 {
+        font-size: 2rem;
+        background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0;
+    }
+
+    .stream-status {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .status-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .status-badge.live {
+        background: #dc2626;
+        animation: pulse 2s infinite;
+    }
+
+    .status-badge.offline {
+        background: rgba(255, 255, 255, 0.1);
+        color: #888;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+
+    .main-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+
+    .program-monitor {
+        background: rgba(0, 0, 0, 0.6);
+        border-radius: 16px;
+        padding: 20px;
+        border: 2px solid rgba(220, 38, 38, 0.5);
+    }
+
+    .program-monitor h2 {
+        color: #dc2626;
+        font-size: 1.2rem;
+        margin: 0 0 16px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .monitor-screen {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 2px solid rgba(220, 38, 38, 0.3);
+    }
+
+    .monitor-screen canvas {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    .monitor-info {
+        margin-top: 12px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.9rem;
+        color: #888;
+    }
+
+    .controls-panel {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .controls-panel h3 {
+        margin: 0 0 16px 0;
+        font-size: 1.1rem;
+        color: #fff;
+    }
+
+    .stream-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .btn-stream {
+        padding: 14px;
+        border-radius: 10px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 1rem;
+    }
+
+    .btn-stream.start {
+        background: linear-gradient(135deg, #dc2626, #991b1b);
+        color: white;
+    }
+
+    .btn-stream.start:hover {
+        background: linear-gradient(135deg, #991b1b, #7f1d1d);
+        transform: translateY(-2px);
+    }
+
+    .btn-stream.stop {
+        background: rgba(255, 255, 255, 0.1);
+        color: #dc2626;
+        border: 2px solid #dc2626;
+    }
+
+    .btn-stream.stop:hover {
+        background: rgba(220, 38, 38, 0.2);
+    }
+
+    .camera-grid-section {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .camera-grid-section h2 {
+        margin: 0 0 20px 0;
+        font-size: 1.3rem;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .cameras-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+    }
+
+    .camera-preview {
+        background: rgba(0, 0, 0, 0.6);
+        border-radius: 12px;
+        padding: 12px;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        cursor: pointer;
+        transition: all 0.3s;
+        position: relative;
+    }
+
+    .camera-preview:hover {
+        border-color: #3b82f6;
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(59, 130, 246, 0.2);
+    }
+
+    .camera-preview.active {
+        border-color: #dc2626;
+        background: rgba(220, 38, 38, 0.1);
+    }
+
+    .camera-preview.active::after {
+        content: 'LIVE';
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: #dc2626;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        animation: pulse 2s infinite;
+    }
+
+    .camera-screen {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        background: #000;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .camera-screen img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .camera-screen .loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #888;
+        font-size: 0.9rem;
+    }
+
+    .camera-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .camera-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #fff;
+    }
+
+    .camera-type {
+        font-size: 0.8rem;
+        color: #888;
+        text-transform: uppercase;
+    }
+
+    .audio-mixer {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-top: 24px;
+    }
+
+    .audio-mixer h3 {
+        margin: 0 0 16px 0;
+        font-size: 1.1rem;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .audio-tracks {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .audio-track {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+        padding: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .audio-track-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .audio-track-name {
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .btn-mute {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-mute:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-mute.muted {
+        background: rgba(220, 38, 38, 0.3);
+        border-color: #dc2626;
+        color: #dc2626;
+    }
+
+    .volume-slider {
+        width: 100%;
+        height: 6px;
+        border-radius: 3px;
+        background: rgba(255, 255, 255, 0.1);
+        appearance: none;
+    }
+
+    .volume-slider::-webkit-slider-thumb {
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #3b82f6;
+        cursor: pointer;
+    }
+
+    .stream-log {
+        background: rgba(0, 0, 0, 0.6);
+        border-radius: 12px;
+        padding: 16px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.85rem;
+        max-height: 300px;
+        overflow-y: auto;
+        color: #888;
+        line-height: 1.6;
+    }
+
+    .stream-log .log-entry {
+        margin-bottom: 4px;
+    }
+
+    .stream-log .log-entry.error {
+        color: #dc2626;
+    }
+
+    .stream-log .log-entry.success {
+        color: #22c55e;
+    }
+
+    .stream-log .log-entry.warning {
+        color: #f59e0b;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="director-container">
+    <!-- Header -->
+    <div class="director-header">
+        <div>
+            <h1>🎬 {{ room.name }}</h1>
+            <p style="color: #888; margin: 8px 0 0 0;">Studio {{ room.id }} - Regieraum</p>
+        </div>
+        <div class="stream-status">
+            {% if room.is_streaming_youtube or room.is_streaming_twitch %}
+                <div class="status-badge live">🔴 LIVE</div>
+            {% else %}
+                <div class="status-badge offline">⚫ OFFLINE</div>
+            {% endif %}
+            
+            {% if room.is_streaming_youtube %}
+                <div class="status-badge" style="background: #dc2626;">📺 YouTube</div>
+            {% endif %}
+            
+            {% if room.is_streaming_twitch %}
+                <div class="status-badge" style="background: #9146ff;">🎮 Twitch</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Main Grid: Program + Controls -->
+    <div class="main-grid">
+        <!-- Program Monitor -->
+        <div class="program-monitor">
+            <h2>📡 PROGRAM (Ausgabe)</h2>
+            <div class="monitor-screen" id="programMonitor">
+                <canvas id="programCanvas"></canvas>
+            </div>
+            <div class="monitor-info">
+                <span id="activeCamera">
+                    {% if active_camera %}
+                        📹 {{ active_camera.camera.name }}
+                    {% else %}
+                        ⚫ Keine Kamera aktiv
+                    {% endif %}
+                </span>
+                <span id="streamTime">00:00:00</span>
+            </div>
+        </div>
+
+        <!-- Stream Controls -->
+        <div class="controls-panel">
+            <h3>🎚️ Stream-Steuerung</h3>
+            <div class="stream-controls">
+                <button class="btn-stream start" onclick="startStream()">
+                    ▶️ Stream starten
+                </button>
+                <button class="btn-stream stop" onclick="stopStream()">
+                    ⏹️ Stream stoppen
+                </button>
+            </div>
+
+            <div style="margin-top: 24px;">
+                <h4 style="margin: 0 0 12px 0; color: #888; font-size: 0.9rem;">Stream-Ziele</h4>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; color: #ddd;">
+                        <input type="checkbox" id="streamYoutube" {% if room.is_streaming_youtube %}checked{% endif %}>
+                        📺 YouTube
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; color: #ddd;">
+                        <input type="checkbox" id="streamTwitch" {% if room.is_streaming_twitch %}checked{% endif %}>
+                        🎮 Twitch
+                    </label>
+                </div>
+            </div>
+
+            <!-- Stream Log (klein) -->
+            <div style="margin-top: 24px;">
+                <h4 style="margin: 0 0 12px 0; color: #888; font-size: 0.9rem;">Log</h4>
+                <div class="stream-log" id="streamLog" style="max-height: 150px;">
+                    <div class="log-entry">System bereit...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Camera Grid -->
+    <div class="camera-grid-section">
+        <h2>📹 Kameras ({{ room_cameras.count }})</h2>
+        <div class="cameras-container" id="camerasContainer">
+            {% for room_camera in room_cameras %}
+            <div class="camera-preview {% if room_camera.is_active %}active{% endif %}" 
+                 data-camera-id="{{ room_camera.camera.id }}"
+                 onclick="switchCamera({{ room_camera.camera.id }})">
+                <div class="camera-screen">
+                    <img src="" alt="{{ room_camera.camera.name }}" 
+                         id="camera-{{ room_camera.camera.id }}"
+                         class="camera-image">
+                    <div class="loading">Lade...</div>
+                </div>
+                <div class="camera-info">
+                    <div>
+                        <div class="camera-name">{{ room_camera.camera.name }}</div>
+                        <div class="camera-type">{{ room_camera.camera.get_camera_type_display }}</div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div style="grid-column: 1/-1; text-align: center; color: #888; padding: 40px;">
+                Keine Kameras konfiguriert
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Audio Mixer -->
+    <div class="audio-mixer">
+        <h3>🎙️ Audio-Mixer</h3>
+        <div class="audio-tracks">
+            <div class="audio-track">
+                <div class="audio-track-header">
+                    <span class="audio-track-name">Kamera-Audio</span>
+                    <button class="btn-mute">🔇 Mute</button>
+                </div>
+                <input type="range" class="volume-slider" min="0" max="100" value="80">
+            </div>
+            <div class="audio-track">
+                <div class="audio-track-header">
+                    <span class="audio-track-name">Mikrofon</span>
+                    <button class="btn-mute">🔇 Mute</button>
+                </div>
+                <input type="range" class="volume-slider" min="0" max="100" value="100">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const ROOM_ID = {{ room.id }};
+    const REFRESH_INTERVAL = 2000; // 2 Sekunden
+
+    // Kamera-Vorschauen laden
+    function loadCameraPreviews() {
+        const cameras = document.querySelectorAll('.camera-preview');
+        
+        cameras.forEach(preview => {
+            const cameraId = preview.dataset.cameraId;
+            const img = preview.querySelector('.camera-image');
+            const loading = preview.querySelector('.loading');
+            
+            fetch(`/regie/camera-preview/${ROOM_ID}/${cameraId}/`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.image) {
+                        img.src = data.image;
+                        img.style.display = 'block';
+                        loading.style.display = 'none';
+                    } else {
+                        loading.textContent = 'Fehler';
+                    }
+                })
+                .catch(err => {
+                    loading.textContent = 'Offline';
+                    console.error('Preview-Fehler:', err);
+                });
+        });
+    }
+
+    // Kamera wechseln
+    function switchCamera(cameraId) {
+        fetch('/regie/switch-camera/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: `camera_id=${cameraId}&transition=cut`
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // Update aktive Kamera UI
+                document.querySelectorAll('.camera-preview').forEach(p => {
+                    p.classList.remove('active');
+                });
+                document.querySelector(`[data-camera-id="${cameraId}"]`).classList.add('active');
+                
+                document.getElementById('activeCamera').textContent = `📹 ${data.camera.name}`;
+                addLog(`Kamera gewechselt: ${data.camera.name}`, 'success');
+            } else {
+                addLog(`Fehler: ${data.error}`, 'error');
+            }
+        })
+        .catch(err => {
+            addLog(`Netzwerkfehler: ${err}`, 'error');
+        });
+    }
+
+    // Stream starten
+    function startStream() {
+        const youtubeKey = prompt('YouTube Stream-Key (leer lassen um zu überspringen):');
+        const twitchKey = prompt('Twitch Stream-Key (leer lassen um zu überspringen):');
+        
+        const formData = new FormData();
+        if (youtubeKey) formData.append('youtube_key', youtubeKey);
+        if (twitchKey) formData.append('twitch_key', twitchKey);
+        
+        fetch('/regie/start-stream/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                addLog('✅ Stream gestartet!', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                addLog(`❌ Fehler: ${data.error}`, 'error');
+            }
+        })
+        .catch(err => {
+            addLog(`❌ Netzwerkfehler: ${err}`, 'error');
+        });
+    }
+
+    // Stream stoppen
+    function stopStream() {
+        if (!confirm('Stream wirklich stoppen?')) return;
+        
+        fetch('/regie/stop-stream/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                addLog('⏹️ Stream gestoppt', 'warning');
+                setTimeout(() => location.reload(), 1000);
+            }
+        });
+    }
+
+    // Log-Eintrag hinzufügen
+    function addLog(message, type = 'info') {
+        const log = document.getElementById('streamLog');
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        log.insertBefore(entry, log.firstChild);
+        
+        // Limitiere auf 50 Einträge
+        while (log.children.length > 50) {
+            log.removeChild(log.lastChild);
+        }
+    }
+
+    // Initialisierung
+    document.addEventListener('DOMContentLoaded', () => {
+        addLog('Director Dashboard geladen', 'success');
+        
+        // Lade Kamera-Vorschauen
+        loadCameraPreviews();
+        
+        // Auto-Refresh Kamera-Vorschauen
+        setInterval(loadCameraPreviews, REFRESH_INTERVAL);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,1191 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Live Studio - RSL TV{% endblock %}
+
+{% block extra_css %}
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+        background: #1a1a1a;
+        color: #fff;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        overflow: hidden;
+    }
+
+    .studio-container {
+        display: grid;
+        grid-template-columns: 280px 1fr 320px;
+        grid-template-rows: 60px 1fr 180px;
+        height: 100vh;
+        gap: 1px;
+        background: #0a0a0a;
+    }
+
+    /* Top Bar */
+    .top-bar {
+        grid-column: 1 / -1;
+        background: linear-gradient(135deg, #e63946 0%, #c1121f 100%);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        box-shadow: 0 2px 10px rgba(230, 57, 70, 0.3);
+    }
+
+    .studio-title {
+        font-size: 22px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .live-indicator {
+        background: #fff;
+        color: #e63946;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+
+    .stream-controls {
+        display: flex;
+        gap: 10px;
+    }
+
+    .stream-btn {
+        padding: 10px 24px;
+        border: none;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 14px;
+    }
+
+    .stream-btn.youtube {
+        background: #ff0000;
+        color: white;
+    }
+
+    .stream-btn.twitch {
+        background: #9146ff;
+        color: white;
+    }
+
+    .stream-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .stream-btn.active {
+        box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+    }
+
+    /* Scenes Panel */
+    .scenes-panel {
+        background: #262626;
+        padding: 15px;
+        overflow-y: auto;
+    }
+
+    .panel-header {
+        font-size: 13px;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #999;
+        margin-bottom: 12px;
+        letter-spacing: 0.5px;
+    }
+
+    .scene-item {
+        background: #1a1a1a;
+        padding: 12px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 2px solid transparent;
+    }
+
+    .scene-item:hover {
+        background: #2a2a2a;
+        border-color: #444;
+    }
+
+    .scene-item.active {
+        background: #e63946;
+        border-color: #e63946;
+        box-shadow: 0 0 20px rgba(230, 57, 70, 0.3);
+    }
+
+    .scene-name {
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .scene-meta {
+        font-size: 11px;
+        color: #999;
+    }
+
+    /* Main Canvas */
+    .main-canvas {
+        background: #000;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .program-output {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        background: #000;
+    }
+
+    #previewCanvas {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: #000;
+    }
+
+    .canvas-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+    }
+
+    /* Camera Preview */
+    .camera-preview {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        width: 280px;
+        height: 160px;
+        background: #1a1a1a;
+        border: 3px solid #e63946;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+
+    .camera-preview video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .camera-label {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: rgba(230, 57, 70, 0.9);
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    /* Sources Panel */
+    .sources-panel {
+        background: #262626;
+        padding: 15px;
+        overflow-y: auto;
+    }
+
+    .source-item {
+        background: #1a1a1a;
+        padding: 10px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .source-item:hover {
+        background: #2a2a2a;
+    }
+
+    .source-icon {
+        width: 40px;
+        height: 40px;
+        background: #333;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+    }
+
+    .source-info {
+        flex: 1;
+    }
+
+    .source-name {
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    .source-type {
+        font-size: 11px;
+        color: #999;
+    }
+
+    .source-toggle {
+        width: 40px;
+        height: 24px;
+        background: #444;
+        border-radius: 12px;
+        position: relative;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .source-toggle.active {
+        background: #e63946;
+    }
+
+    .source-toggle::after {
+        content: '';
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        background: white;
+        border-radius: 50%;
+        top: 3px;
+        left: 3px;
+        transition: transform 0.2s;
+    }
+
+    .source-toggle.active::after {
+        transform: translateX(16px);
+    }
+
+    /* Control Bar */
+    .control-bar {
+        grid-column: 1 / -1;
+        background: #1a1a1a;
+        padding: 15px 20px;
+        display: grid;
+        grid-template-columns: 1fr 2fr 1fr;
+        gap: 20px;
+        border-top: 1px solid #333;
+    }
+
+    .control-section {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .control-section.center {
+        justify-content: center;
+    }
+
+    .control-section.right {
+        justify-content: flex-end;
+    }
+
+    .control-btn {
+        background: #2a2a2a;
+        border: 2px solid #444;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 13px;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .control-btn:hover {
+        background: #333;
+        border-color: #555;
+    }
+
+    .control-btn.primary {
+        background: #e63946;
+        border-color: #e63946;
+    }
+
+    .control-btn.primary:hover {
+        background: #d62839;
+    }
+
+    .control-btn.success {
+        background: #2a9d8f;
+        border-color: #2a9d8f;
+    }
+
+    .timer {
+        font-family: 'Courier New', monospace;
+        font-size: 28px;
+        font-weight: 700;
+        color: #e63946;
+        letter-spacing: 2px;
+    }
+
+    .volume-slider {
+        width: 150px;
+        height: 4px;
+        background: #444;
+        border-radius: 2px;
+        position: relative;
+        cursor: pointer;
+    }
+
+    .volume-fill {
+        height: 100%;
+        background: #e63946;
+        border-radius: 2px;
+        width: 75%;
+    }
+
+    /* Camera Grid */
+    .camera-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .camera-card {
+        background: #1a1a1a;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .camera-card:hover {
+        border-color: #444;
+    }
+
+    .camera-card.active {
+        border-color: #e63946;
+        box-shadow: 0 0 20px rgba(230, 57, 70, 0.3);
+    }
+
+    .camera-video {
+        width: 100%;
+        aspect-ratio: 16/9;
+        background: #000;
+        object-fit: cover;
+    }
+
+    .camera-info {
+        padding: 8px;
+    }
+
+    .camera-name {
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    .camera-status {
+        font-size: 11px;
+        color: #2a9d8f;
+    }
+
+    /* Rundown */
+    .rundown-item {
+        background: #1a1a1a;
+        padding: 12px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+        border-left: 4px solid #666;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .rundown-item:hover {
+        background: #2a2a2a;
+    }
+
+    .rundown-item.active {
+        border-left-color: #e63946;
+        background: rgba(230, 57, 70, 0.1);
+    }
+
+    .rundown-item.video { border-left-color: #2a9d8f; }
+    .rundown-item.ad_break { border-left-color: #f77f00; }
+
+    .rundown-title {
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .rundown-meta {
+        font-size: 11px;
+        color: #999;
+        display: flex;
+        gap: 15px;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 600;
+    }
+
+    .status-badge.ready { background: #2a9d8f; color: white; }
+    .status-badge.live { background: #e63946; color: white; }
+    .status-badge.played { background: #666; color: white; }
+
+    /* Ad Break Overlay */
+    .ad-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.95);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+
+    .ad-overlay.active {
+        display: flex;
+    }
+
+    .ad-content {
+        max-width: 800px;
+        max-height: 600px;
+    }
+
+    .ad-content video {
+        width: 100%;
+        height: 100%;
+        border-radius: 10px;
+    }
+
+    .ad-timer {
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(230, 57, 70, 0.9);
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    /* Pause Screen */
+    .pause-screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .pause-screen.active {
+        display: flex;
+    }
+
+    .pause-logo {
+        width: 200px;
+        height: 200px;
+        background: url('/static/img/rsl_logo.png') center/contain no-repeat;
+    }
+
+    .pause-text {
+        font-size: 32px;
+        font-weight: 700;
+        color: #e63946;
+    }
+
+    .pause-subtext {
+        font-size: 18px;
+        color: #999;
+    }
+
+    /* Media Player */
+    .media-player {
+        width: 100%;
+        height: 100%;
+        position: relative;
+    }
+
+    .media-player video,
+    .media-player iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #1a1a1a;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #444;
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="studio-container">
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div class="studio-title">
+            <span>🎬</span>
+            <span>RSL Live Studio</span>
+            <span class="live-indicator" id="liveIndicator" style="display: none;">● LIVE</span>
+        </div>
+        
+        <div class="stream-controls">
+            <button class="stream-btn youtube" id="youtubeStreamBtn">
+                <span>▶</span> YouTube Stream
+            </button>
+            <button class="stream-btn twitch" id="twitchStreamBtn">
+                <span>▶</span> Twitch Stream
+            </button>
+        </div>
+    </div>
+
+    <!-- Scenes Panel -->
+    <div class="scenes-panel">
+        <div class="panel-header">Szenen</div>
+        <div id="scenesList">
+            <!-- Dynamisch geladen -->
+        </div>
+
+        <div class="panel-header" style="margin-top: 20px;">Kameras</div>
+        <div class="camera-grid" id="cameraGrid">
+            <!-- Dynamisch geladen -->
+        </div>
+    </div>
+
+    <!-- Main Canvas -->
+    <div class="main-canvas">
+        <div class="program-output">
+            <canvas id="previewCanvas"></canvas>
+            
+            <!-- Media Player für Videos/Streams -->
+            <div class="media-player" id="mediaPlayer" style="display: none;">
+                <video id="mediaVideo" playsinline></video>
+                <iframe id="mediaIframe" allow="autoplay; encrypted-media"></iframe>
+            </div>
+
+            <!-- Pause Screen -->
+            <div class="pause-screen" id="pauseScreen">
+                <div class="pause-logo"></div>
+                <div class="pause-text">Kurze Pause</div>
+                <div class="pause-subtext">Wir sind gleich zurück</div>
+            </div>
+
+            <!-- Camera Preview (PiP) -->
+            <div class="camera-preview" id="cameraPreview" style="display: none;">
+                <video id="previewVideo" autoplay playsinline muted></video>
+                <div class="camera-label">Kamera 1</div>
+            </div>
+        </div>
+
+        <!-- Ad Break Overlay -->
+        <div class="ad-overlay" id="adOverlay">
+            <div class="ad-content">
+                <video id="adVideo" autoplay></video>
+            </div>
+            <div class="ad-timer" id="adTimer">Werbung: 00:30</div>
+        </div>
+    </div>
+
+    <!-- Sources & Rundown Panel -->
+    <div class="sources-panel">
+        <div class="panel-header">Rundown</div>
+        <div id="rundownList">
+            <!-- Dynamisch geladen -->
+        </div>
+
+        <div class="panel-header" style="margin-top: 20px;">Quellen</div>
+        <div id="sourcesList">
+            <!-- Dynamisch geladen -->
+        </div>
+    </div>
+
+    <!-- Control Bar -->
+    <div class="control-bar">
+        <div class="control-section">
+            <button class="control-btn" id="pauseBtn">
+                <span>⏸</span> Pause
+            </button>
+            <button class="control-btn" id="adBreakBtn">
+                <span>📺</span> Werbepause
+            </button>
+        </div>
+
+        <div class="control-section center">
+            <div class="timer" id="streamTimer">00:00:00</div>
+        </div>
+
+        <div class="control-section right">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 13px;">🔊</span>
+                <div class="volume-slider">
+                    <div class="volume-fill" id="volumeFill"></div>
+                </div>
+            </div>
+            <button class="control-btn success" id="goLiveBtn">
+                <span>●</span> GO LIVE
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+class LiveStudio {
+    constructor() {
+        this.canvas = document.getElementById('previewCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.isLive = false;
+        this.isStreaming = { youtube: false, twitch: false };
+        this.isPaused = false;
+        this.currentScene = null;
+        this.cameras = new Map();
+        this.activeCamera = null;
+        this.mediaStreams = new Map();
+        this.rundownItems = [];
+        this.currentRundownIndex = -1;
+        this.adQueue = [];
+        this.streamStartTime = null;
+        
+        // WebRTC Connections
+        this.youtubeConnection = null;
+        this.twitchConnection = null;
+        
+        this.init();
+    }
+
+    init() {
+        this.setupCanvas();
+        this.loadScenes();
+        this.loadCameras();
+        this.loadRundown();
+        this.setupEventListeners();
+        this.startRenderLoop();
+        this.updateTimer();
+    }
+
+    setupCanvas() {
+        const container = this.canvas.parentElement;
+        this.canvas.width = 1920;
+        this.canvas.height = 1080;
+    }
+
+    setupEventListeners() {
+        // Stream Controls
+        document.getElementById('youtubeStreamBtn').addEventListener('click', () => {
+            this.toggleStream('youtube');
+        });
+
+        document.getElementById('twitchStreamBtn').addEventListener('click', () => {
+            this.toggleStream('twitch');
+        });
+
+        // Go Live
+        document.getElementById('goLiveBtn').addEventListener('click', () => {
+            this.goLive();
+        });
+
+        // Pause
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            this.togglePause();
+        });
+
+        // Ad Break
+        document.getElementById('adBreakBtn').addEventListener('click', () => {
+            this.startAdBreak();
+        });
+    }
+
+    async loadCameras() {
+        try {
+            const response = await fetch('/api/cameras/');
+            const cameras = await response.json();
+            
+            const grid = document.getElementById('cameraGrid');
+            grid.innerHTML = '';
+
+            for (const camera of cameras) {
+                await this.addCamera(camera);
+                
+                const card = document.createElement('div');
+                card.className = 'camera-card';
+                card.dataset.cameraId = camera.id;
+                
+                card.innerHTML = `
+                    <video class="camera-video" id="cam-${camera.id}" autoplay playsinline muted></video>
+                    <div class="camera-info">
+                        <div class="camera-name">${camera.name}</div>
+                        <div class="camera-status">● Aktiv</div>
+                    </div>
+                `;
+                
+                card.addEventListener('click', () => this.selectCamera(camera.id));
+                grid.appendChild(card);
+            }
+        } catch (error) {
+            console.error('Fehler beim Laden der Kameras:', error);
+        }
+    }
+
+    async addCamera(camera) {
+        try {
+            let stream;
+            
+            if (camera.source_type === 'webcam') {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    },
+                    audio: true
+                });
+            } else if (camera.source_type === 'url' && camera.stream_url) {
+                // Für URL-basierte Kameras
+                stream = await this.createStreamFromUrl(camera.stream_url);
+            }
+            
+            if (stream) {
+                this.cameras.set(camera.id, {
+                    ...camera,
+                    stream: stream
+                });
+                
+                // Video Element aktualisieren
+                const video = document.getElementById(`cam-${camera.id}`);
+                if (video) {
+                    video.srcObject = stream;
+                }
+            }
+        } catch (error) {
+            console.error(`Fehler beim Hinzufügen von Kamera ${camera.name}:`, error);
+        }
+    }
+
+    selectCamera(cameraId) {
+        this.activeCamera = cameraId;
+        
+        // Visuelle Aktualisierung
+        document.querySelectorAll('.camera-card').forEach(card => {
+            card.classList.toggle('active', card.dataset.cameraId == cameraId);
+        });
+        
+        // Preview aktualisieren
+        const camera = this.cameras.get(cameraId);
+        if (camera && camera.stream) {
+            const preview = document.getElementById('previewVideo');
+            preview.srcObject = camera.stream;
+            document.getElementById('cameraPreview').style.display = 'block';
+        }
+    }
+
+    async loadScenes() {
+        try {
+            const response = await fetch('/api/scenes/');
+            const scenes = await response.json();
+            
+            const list = document.getElementById('scenesList');
+            list.innerHTML = '';
+
+            scenes.forEach((scene, index) => {
+                const item = document.createElement('div');
+                item.className = 'scene-item';
+                item.dataset.sceneId = scene.id;
+                
+                item.innerHTML = `
+                    <div class="scene-name">${scene.name}</div>
+                    <div class="scene-meta">${scene.sources?.length || 0} Quellen</div>
+                `;
+                
+                item.addEventListener('click', () => this.activateScene(scene.id));
+                list.appendChild(item);
+                
+                if (index === 0) {
+                    this.activateScene(scene.id);
+                }
+            });
+        } catch (error) {
+            console.error('Fehler beim Laden der Szenen:', error);
+        }
+    }
+
+    activateScene(sceneId) {
+        this.currentScene = sceneId;
+        
+        document.querySelectorAll('.scene-item').forEach(item => {
+            item.classList.toggle('active', item.dataset.sceneId == sceneId);
+        });
+    }
+
+    async loadRundown() {
+        try {
+            const response = await fetch('/api/rundown/active/');
+            const data = await response.json();
+            
+            this.rundownItems = data.segments || [];
+            this.renderRundown();
+        } catch (error) {
+            console.error('Fehler beim Laden des Rundowns:', error);
+        }
+    }
+
+    renderRundown() {
+        const list = document.getElementById('rundownList');
+        list.innerHTML = '';
+
+        this.rundownItems.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = `rundown-item ${item.segment_type}`;
+            div.dataset.index = index;
+            
+            if (index === this.currentRundownIndex) {
+                div.classList.add('active');
+            }
+            
+            const duration = Math.floor(item.planned_duration / 60);
+            const status = item.was_played ? 'played' : item.is_ready ? 'ready' : 'pending';
+            
+            div.innerHTML = `
+                <div class="rundown-title">${item.title}</div>
+                <div class="rundown-meta">
+                    <span>⏱ ${duration}min</span>
+                    <span class="status-badge ${status}">${this.getStatusLabel(status)}</span>
+                </div>
+            `;
+            
+            div.addEventListener('click', () => this.playRundownItem(index));
+            list.appendChild(div);
+        });
+    }
+
+    getStatusLabel(status) {
+        const labels = {
+            'played': 'Gespielt',
+            'ready': 'Bereit',
+            'pending': 'Ausstehend'
+        };
+        return labels[status] || status;
+    }
+
+    async playRundownItem(index) {
+        const item = this.rundownItems[index];
+        if (!item) return;
+
+        this.currentRundownIndex = index;
+        this.renderRundown();
+
+        if (item.segment_type === 'ad_break') {
+            await this.startAdBreak();
+        } else if (item.segment_type === 'video') {
+            await this.playVideo(item);
+        } else if (item.scene) {
+            this.activateScene(item.scene.id);
+        }
+    }
+
+    async playVideo(item) {
+        const player = document.getElementById('mediaPlayer');
+        const video = document.getElementById('mediaVideo');
+        const iframe = document.getElementById('mediaIframe');
+        
+        player.style.display = 'block';
+        
+        if (item.video_url) {
+            // YouTube, Vimeo, etc.
+            if (item.video_url.includes('youtube.com') || item.video_url.includes('youtu.be')) {
+                const videoId = this.extractYouTubeId(item.video_url);
+                iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0`;
+                iframe.style.display = 'block';
+                video.style.display = 'none';
+            } else {
+                // Direkter Video-Stream
+                video.src = item.video_url;
+                video.play();
+                video.style.display = 'block';
+                iframe.style.display = 'none';
+            }
+        }
+    }
+
+    extractYouTubeId(url) {
+        const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+        return match ? match[1] : '';
+    }
+
+    async startAdBreak() {
+        try {
+            const response = await fetch('/api/ads/get-break/');
+            const ads = await response.json();
+            
+            if (!ads || ads.length === 0) {
+                alert('Keine Werbespots verfügbar');
+                return;
+            }
+
+            const overlay = document.getElementById('adOverlay');
+            const video = document.getElementById('adVideo');
+            
+            overlay.classList.add('active');
+            
+            for (let i = 0; i < ads.length; i++) {
+                const ad = ads[i];
+                video.src = ad.video_url;
+                
+                await new Promise((resolve) => {
+                    video.onended = resolve;
+                    video.play();
+                    
+                    // Timer aktualisieren
+                    const duration = ad.duration;
+                    let remaining = duration;
+                    
+                    const timer = setInterval(() => {
+                        remaining--;
+                        const mins = Math.floor(remaining / 60);
+                        const secs = remaining % 60;
+                        document.getElementById('adTimer').textContent = 
+                            `Werbung: ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                        
+                        if (remaining <= 0) {
+                            clearInterval(timer);
+                        }
+                    }, 1000);
+                });
+            }
+            
+            overlay.classList.remove('active');
+        } catch (error) {
+            console.error('Fehler beim Starten der Werbepause:', error);
+        }
+    }
+
+    togglePause() {
+        this.isPaused = !this.isPaused;
+        const screen = document.getElementById('pauseScreen');
+        screen.classList.toggle('active', this.isPaused);
+        
+        const btn = document.getElementById('pauseBtn');
+        btn.innerHTML = this.isPaused ? '<span>▶</span> Fortsetzen' : '<span>⏸</span> Pause';
+    }
+
+    async toggleStream(platform) {
+        if (this.isStreaming[platform]) {
+            await this.stopStream(platform);
+        } else {
+            await this.startStream(platform);
+        }
+    }
+
+    async startStream(platform) {
+        try {
+            // Hole Stream Key
+            const response = await fetch(`/api/stream/key/${platform}/`);
+            const data = await response.json();
+            
+            if (!data.key) {
+                alert(`Bitte ${platform} Stream Key in den Einstellungen konfigurieren`);
+                return;
+            }
+
+            // Canvas Stream für WebRTC
+            const stream = this.canvas.captureStream(30);
+            
+            // Füge Audio hinzu falls verfügbar
+            if (this.activeCamera) {
+                const camera = this.cameras.get(this.activeCamera);
+                if (camera && camera.stream) {
+                    const audioTracks = camera.stream.getAudioTracks();
+                    audioTracks.forEach(track => stream.addTrack(track));
+                }
+            }
+
+            // WebRTC Verbindung aufbauen
+            const pc = new RTCPeerConnection({
+                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+            });
+
+            stream.getTracks().forEach(track => {
+                pc.addTrack(track, stream);
+            });
+
+            // Signalisierung an Backend
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+
+            const signalingResponse = await fetch(`/api/stream/start/${platform}/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sdp: offer.sdp,
+                    type: offer.type
+                })
+            });
+
+            const answer = await signalingResponse.json();
+            await pc.setRemoteDescription(new RTCSessionDescription(answer));
+
+            if (platform === 'youtube') {
+                this.youtubeConnection = pc;
+            } else {
+                this.twitchConnection = pc;
+            }
+
+            this.isStreaming[platform] = true;
+            this.updateStreamButtons();
+            
+        } catch (error) {
+            console.error(`Fehler beim Starten des ${platform} Streams:`, error);
+            alert(`Stream konnte nicht gestartet werden: ${error.message}`);
+        }
+    }
+
+    async stopStream(platform) {
+        if (platform === 'youtube' && this.youtubeConnection) {
+            this.youtubeConnection.close();
+            this.youtubeConnection = null;
+        } else if (platform === 'twitch' && this.twitchConnection) {
+            this.twitchConnection.close();
+            this.twitchConnection = null;
+        }
+
+        this.isStreaming[platform] = false;
+        this.updateStreamButtons();
+
+        await fetch(`/api/stream/stop/${platform}/`, { method: 'POST' });
+    }
+
+    updateStreamButtons() {
+        const youtubeBtn = document.getElementById('youtubeStreamBtn');
+        const twitchBtn = document.getElementById('twitchStreamBtn');
+        
+        youtubeBtn.classList.toggle('active', this.isStreaming.youtube);
+        youtubeBtn.innerHTML = this.isStreaming.youtube ? 
+            '<span>⏹</span> YouTube Stop' : '<span>▶</span> YouTube Stream';
+        
+        twitchBtn.classList.toggle('active', this.isStreaming.twitch);
+        twitchBtn.innerHTML = this.isStreaming.twitch ? 
+            '<span>⏹</span> Twitch Stop' : '<span>▶</span> Twitch Stream';
+    }
+
+    goLive() {
+        this.isLive = !this.isLive;
+        
+        const indicator = document.getElementById('liveIndicator');
+        const btn = document.getElementById('goLiveBtn');
+        
+        if (this.isLive) {
+            this.streamStartTime = Date.now();
+            indicator.style.display = 'block';
+            btn.innerHTML = '<span>⏹</span> STOP';
+            btn.style.background = '#d62839';
+        } else {
+            this.streamStartTime = null;
+            indicator.style.display = 'none';
+            btn.innerHTML = '<span>●</span> GO LIVE';
+            btn.style.background = '#2a9d8f';
+        }
+    }
+
+    startRenderLoop() {
+        const render = () => {
+            if (!this.isPaused) {
+                this.renderFrame();
+            }
+            requestAnimationFrame(render);
+        };
+        render();
+    }
+
+    renderFrame() {
+        // Canvas leeren
+        this.ctx.fillStyle = '#000';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Aktive Kamera rendern
+        if (this.activeCamera) {
+            const camera = this.cameras.get(this.activeCamera);
+            if (camera && camera.stream) {
+                const video = document.getElementById(`cam-${this.activeCamera}`);
+                if (video && video.readyState >= 2) {
+                    this.ctx.drawImage(video, 0, 0, this.canvas.width, this.canvas.height);
+                }
+            }
+        }
+
+        // Logo overlay (falls konfiguriert)
+        // TODO: Logo rendern
+    }
+
+    updateTimer() {
+        setInterval(() => {
+            if (this.isLive && this.streamStartTime) {
+                const elapsed = Math.floor((Date.now() - this.streamStartTime) / 1000);
+                const hours = Math.floor(elapsed / 3600);
+                const minutes = Math.floor((elapsed % 3600) / 60);
+                const seconds = elapsed % 60;
+                
+                document.getElementById('streamTimer').textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }, 1000);
+    }
+
+    async createStreamFromUrl(url) {
+        // Für URL-basierte Streams ein MediaStream-Objekt erstellen
+        // Dies würde in einer echten Implementierung komplexer sein
+        return null;
+    }
+}
+
+// Studio initialisieren
+document.addEventListener('DOMContentLoaded', () => {
+    window.studio = new LiveStudio();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,701 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+
+{% block title %}Regieraum - RSL TV{% endblock %}
+
+{% block extra_css %}
+<style>
+    .director-grid {
+        display: grid;
+        grid-template-columns: 3fr 1fr;
+        gap: 1rem;
+        height: calc(100vh - 100px);
+    }
+    
+    .main-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .preview-section {
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+        aspect-ratio: 16/9;
+    }
+    
+    .preview-video {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: #000;
+    }
+    
+    .preview-label {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(220, 38, 38, 0.9);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+    
+    .program-label {
+        background: rgba(34, 197, 94, 0.9);
+    }
+    
+    .camera-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+    
+    .camera-card {
+        background: #1e293b;
+        border-radius: 8px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 3px solid transparent;
+    }
+    
+    .camera-card:hover {
+        border-color: #3b82f6;
+        transform: scale(1.02);
+    }
+    
+    .camera-card.active {
+        border-color: #dc2626;
+        box-shadow: 0 0 20px rgba(220, 38, 38, 0.5);
+    }
+    
+    .camera-card.preview {
+        border-color: #22c55e;
+    }
+    
+    .camera-preview {
+        aspect-ratio: 16/9;
+        background: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #666;
+        font-size: 2rem;
+    }
+    
+    .camera-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .camera-info {
+        padding: 0.75rem;
+    }
+    
+    .camera-name {
+        font-weight: 600;
+        color: white;
+        margin-bottom: 0.25rem;
+    }
+    
+    .camera-type {
+        font-size: 0.875rem;
+        color: #94a3b8;
+    }
+    
+    .audio-mixer {
+        background: #1e293b;
+        padding: 1rem;
+        border-radius: 8px;
+    }
+    
+    .audio-channel {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem;
+        background: #0f172a;
+        border-radius: 6px;
+        margin-bottom: 0.5rem;
+    }
+    
+    .audio-label {
+        flex: 1;
+        color: white;
+        font-weight: 500;
+    }
+    
+    .audio-mute-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    
+    .audio-mute-btn.muted {
+        background: #dc2626;
+        color: white;
+    }
+    
+    .audio-mute-btn.active {
+        background: #22c55e;
+        color: white;
+    }
+    
+    .volume-slider {
+        width: 150px;
+    }
+    
+    .control-panel {
+        background: #1e293b;
+        padding: 1.5rem;
+        border-radius: 8px;
+    }
+    
+    .btn-large {
+        padding: 1rem 2rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+    
+    .btn-start {
+        background: #dc2626;
+        color: white;
+    }
+    
+    .btn-start:hover {
+        background: #b91c1c;
+    }
+    
+    .btn-stop {
+        background: #64748b;
+        color: white;
+    }
+    
+    .btn-stop:hover {
+        background: #475569;
+    }
+    
+    .streaming-indicator {
+        padding: 1rem;
+        background: #dc2626;
+        color: white;
+        border-radius: 8px;
+        text-align: center;
+        font-weight: bold;
+        margin-bottom: 1rem;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    
+    .stream-log {
+        background: #0f172a;
+        color: #22c55e;
+        padding: 1rem;
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.875rem;
+        max-height: 300px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+    }
+    
+    .transition-selector {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    
+    .transition-btn {
+        padding: 0.75rem;
+        background: #334155;
+        color: white;
+        border: 2px solid transparent;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+    
+    .transition-btn:hover {
+        border-color: #3b82f6;
+    }
+    
+    .transition-btn.active {
+        background: #3b82f6;
+        border-color: #3b82f6;
+    }
+    
+    .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        overflow-y: auto;
+    }
+    
+    .scene-card {
+        background: #1e293b;
+        padding: 1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.2s;
+    }
+    
+    .scene-card:hover {
+        border-color: #3b82f6;
+    }
+    
+    .scene-card.active {
+        border-color: #22c55e;
+        background: #166534;
+    }
+    
+    .scene-name {
+        font-weight: 600;
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+    
+    .scene-camera {
+        font-size: 0.875rem;
+        color: #94a3b8;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>🎬 Regieraum</h1>
+        <div class="d-flex gap-2">
+            <a href="{% url 'replay_studio' %}" class="btn btn-info">
+                <i class="fas fa-replay"></i> Replay Studio
+            </a>
+            <a href="{% url 'rundown_planner' %}" class="btn btn-warning">
+                <i class="fas fa-list"></i> Rundown
+            </a>
+            <a href="{% url 'scenes' %}" class="btn btn-secondary">
+                <i class="fas fa-clapperboard"></i> Szenen
+            </a>
+        </div>
+    </div>
+    
+    <div class="director-grid">
+        <!-- Haupt-Panel -->
+        <div class="main-panel">
+            <!-- Program Output (aktive Kamera) -->
+            <div>
+                <h4 class="mb-2">Program</h4>
+                <div class="preview-section">
+                    <div class="preview-video" id="program-preview">
+                        {% if active_camera %}
+                            <div class="text-white text-center p-4">
+                                <i class="fas fa-video fa-3x mb-3"></i>
+                                <p>{{ active_camera.name }}</p>
+                            </div>
+                        {% else %}
+                            <div class="text-white text-center p-4">
+                                <i class="fas fa-video-slash fa-3x mb-3"></i>
+                                <p>Keine Kamera aktiv</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="preview-label program-label">
+                        🔴 LIVE PROGRAM
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Preview Output -->
+            <div>
+                <h4 class="mb-2">Preview</h4>
+                <div class="preview-section">
+                    <div class="preview-video" id="preview-preview">
+                        {% if preview_camera %}
+                            <div class="text-white text-center p-4">
+                                <i class="fas fa-video fa-3x mb-3"></i>
+                                <p>{{ preview_camera.name }}</p>
+                            </div>
+                        {% else %}
+                            <div class="text-white text-center p-4">
+                                <i class="fas fa-eye-slash fa-3x mb-3"></i>
+                                <p>Keine Preview</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="preview-label">
+                        👁️ PREVIEW
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Kamera-Auswahl -->
+            <div>
+                <h4 class="mb-3">Kameras</h4>
+                <div class="camera-grid">
+                    {% for camera in cameras %}
+                    <div class="camera-card {% if camera == active_camera %}active{% elif camera == preview_camera %}preview{% endif %}" 
+                         data-camera-id="{{ camera.id }}"
+                         onclick="selectCamera({{ camera.id }})">
+                        <div class="camera-preview">
+                            {% if camera.preview_image %}
+                                <img src="{{ camera.preview_image.url }}" alt="{{ camera.name }}">
+                            {% else %}
+                                <i class="fas fa-camera"></i>
+                            {% endif %}
+                        </div>
+                        <div class="camera-info">
+                            <div class="camera-name">{{ camera.name }}</div>
+                            <div class="camera-type">{{ camera.get_camera_type_display }}</div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12">
+                        <div class="alert alert-warning">
+                            Keine Kameras konfiguriert. Bitte fügen Sie Kameras in der Admin-Oberfläche hinzu.
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Audio-Mixer -->
+            <div class="audio-mixer">
+                <h4 class="mb-3">🎵 Audio-Mixer</h4>
+                {% for audio in audio_sources %}
+                <div class="audio-channel">
+                    <div class="audio-label">
+                        <i class="fas fa-{% if audio.audio_type == 'camera' %}video{% elif audio.audio_type == 'microphone' %}microphone{% elif audio.audio_type == 'pc' %}desktop{% else %}music{% endif %}"></i>
+                        {{ audio.name }}
+                    </div>
+                    <button class="audio-mute-btn {% if audio.is_muted %}muted{% else %}active{% endif %}"
+                            data-audio-id="{{ audio.id }}"
+                            onclick="toggleAudio({{ audio.id }})">
+                        {% if audio.is_muted %}
+                            <i class="fas fa-volume-mute"></i> MUTED
+                        {% else %}
+                            <i class="fas fa-volume-up"></i> ON
+                        {% endif %}
+                    </button>
+                    <input type="range" 
+                           class="volume-slider" 
+                           min="0" 
+                           max="200" 
+                           value="{{ audio.volume }}"
+                           data-audio-id="{{ audio.id }}"
+                           onchange="setVolume({{ audio.id }}, this.value)">
+                    <span class="text-white" id="volume-{{ audio.id }}">{{ audio.volume }}%</span>
+                </div>
+                {% empty %}
+                <div class="alert alert-info">
+                    Keine Audio-Quellen konfiguriert.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Stream-Controls -->
+            <div class="control-panel">
+                <h5 class="text-white mb-3">📡 Stream-Kontrolle</h5>
+                
+                {% if is_streaming %}
+                <div class="streaming-indicator">
+                    🔴 LIVE STREAMING
+                </div>
+                <button class="btn-large btn-stop" onclick="stopStream()">
+                    <i class="fas fa-stop"></i> Stream Stoppen
+                </button>
+                {% else %}
+                <div class="mb-3">
+                    <label class="text-white mb-2">YouTube Stream Key:</label>
+                    <input type="text" class="form-control" id="youtube-key" 
+                           placeholder="xxxx-xxxx-xxxx-xxxx"
+                           value="{{ director_room.youtube_stream_key }}">
+                </div>
+                <div class="mb-3">
+                    <label class="text-white mb-2">Twitch Stream Key:</label>
+                    <input type="text" class="form-control" id="twitch-key" 
+                           placeholder="live_xxxxxxxxxx_xxxxxxxxxxxxx"
+                           value="{{ director_room.twitch_stream_key }}">
+                </div>
+                <button class="btn-large btn-start" onclick="startStream()">
+                    <i class="fas fa-play"></i> Stream Starten
+                </button>
+                {% endif %}
+            </div>
+            
+            <!-- Übergangs-Auswahl -->
+            <div class="control-panel">
+                <h5 class="text-white mb-3">🎞️ Übergänge</h5>
+                <div class="transition-selector">
+                    <button class="transition-btn active" data-transition="cut">
+                        Schnitt
+                    </button>
+                    {% for transition in transitions %}
+                    <button class="transition-btn" data-transition="{{ transition.id }}">
+                        {{ transition.name }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Szenen -->
+            <div class="control-panel">
+                <h5 class="text-white mb-3">🎬 Szenen</h5>
+                {% for scene in scenes %}
+                <div class="scene-card {% if scene == director_room.active_scene %}active{% endif %}"
+                     onclick="activateScene({{ scene.id }})">
+                    <div class="scene-name">{{ scene.name }}</div>
+                    <div class="scene-camera">
+                        <i class="fas fa-camera"></i> {{ scene.camera.name }}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-white-50">
+                    Keine Szenen konfiguriert
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Stream-Log -->
+            <div class="control-panel">
+                <h5 class="text-white mb-3">📝 Stream-Log</h5>
+                <div class="stream-log" id="stream-log">
+                    {{ director_room.stream_log|default:"Keine Log-Einträge" }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedTransition = 'cut';
+let useTransition = true;
+
+// Kamera auswählen
+function selectCamera(cameraId) {
+    const event = window.event;
+    
+    if (event.shiftKey) {
+        // Shift+Click = Preview setzen
+        setPreview(cameraId);
+    } else {
+        // Normaler Click = Zu Kamera wechseln
+        switchCamera(cameraId);
+    }
+}
+
+// Zur Kamera wechseln
+function switchCamera(cameraId) {
+    fetch('{% url "director_switch_camera" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `camera_id=${cameraId}&use_transition=${useTransition}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // UI aktualisieren
+            document.querySelectorAll('.camera-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            document.querySelector(`[data-camera-id="${cameraId}"]`).classList.add('active');
+            
+            refreshLog();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+// Preview setzen
+function setPreview(cameraId) {
+    fetch('{% url "director_set_preview" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `camera_id=${cameraId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // UI aktualisieren
+            document.querySelectorAll('.camera-card').forEach(card => {
+                card.classList.remove('preview');
+            });
+            document.querySelector(`[data-camera-id="${cameraId}"]`).classList.add('preview');
+        }
+    });
+}
+
+// Audio an/aus
+function toggleAudio(audioId) {
+    fetch('{% url "director_toggle_audio" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `audio_id=${audioId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const btn = document.querySelector(`[data-audio-id="${audioId}"].audio-mute-btn`);
+            if (data.is_muted) {
+                btn.classList.remove('active');
+                btn.classList.add('muted');
+                btn.innerHTML = '<i class="fas fa-volume-mute"></i> MUTED';
+            } else {
+                btn.classList.remove('muted');
+                btn.classList.add('active');
+                btn.innerHTML = '<i class="fas fa-volume-up"></i> ON';
+            }
+        }
+    });
+}
+
+// Lautstärke setzen
+function setVolume(audioId, volume) {
+    fetch('{% url "director_set_audio_volume" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `audio_id=${audioId}&volume=${volume}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById(`volume-${audioId}`).textContent = `${data.volume}%`;
+        }
+    });
+}
+
+// Stream starten
+function startStream() {
+    const youtubeKey = document.getElementById('youtube-key').value;
+    const twitchKey = document.getElementById('twitch-key').value;
+    
+    if (!youtubeKey && !twitchKey) {
+        alert('Bitte mindestens einen Stream-Key eingeben!');
+        return;
+    }
+    
+    fetch('{% url "director_start_stream" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `youtube_key=${youtubeKey}&twitch_key=${twitchKey}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Stream gestartet!');
+            location.reload();
+        } else {
+            alert('Fehler: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Fehler beim Stream-Start');
+    });
+}
+
+// Stream stoppen
+function stopStream() {
+    if (!confirm('Stream wirklich stoppen?')) return;
+    
+    fetch('{% url "director_stop_stream" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Stream gestoppt');
+            location.reload();
+        }
+    });
+}
+
+// Szene aktivieren
+function activateScene(sceneId) {
+    fetch('{% url "scene_activate" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `scene_id=${sceneId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.querySelectorAll('.scene-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            event.target.closest('.scene-card').classList.add('active');
+            refreshLog();
+        }
+    });
+}
+
+// Transition auswählen
+document.querySelectorAll('.transition-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.transition-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        selectedTransition = this.getAttribute('data-transition');
+        useTransition = selectedTransition !== 'cut';
+    });
+});
+
+// Log aktualisieren
+function refreshLog() {
+    fetch('{% url "director_stream_log" %}')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('stream-log').textContent = data.log || 'Keine Log-Einträge';
+            // Auto-scroll to bottom
+            const logEl = document.getElementById('stream-log');
+            logEl.scrollTop = logEl.scrollHeight;
+        });
+}
+
+// Log alle 5 Sekunden aktualisieren
+setInterval(refreshLog, 5000);
+</script>
+{% endblock %}

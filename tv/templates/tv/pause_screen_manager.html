@@ -1,0 +1,647 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Pausenbild Verwaltung - RSL TV{% endblock %}
+
+{% block extra_css %}
+<style>
+    .pause-screen-manager {
+        max-width: 1200px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+
+    .header {
+        background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        border: 1px solid #333;
+    }
+
+    .header h1 {
+        margin: 0 0 10px 0;
+        color: #e63946;
+        font-size: 32px;
+    }
+
+    .header p {
+        margin: 0;
+        color: #999;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .pause-card {
+        background: #1a1a1a;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 2px solid #333;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .pause-card:hover {
+        border-color: #e63946;
+        box-shadow: 0 8px 24px rgba(230, 57, 70, 0.2);
+        transform: translateY(-4px);
+    }
+
+    .pause-card.active {
+        border-color: #e63946;
+        box-shadow: 0 0 30px rgba(230, 57, 70, 0.4);
+    }
+
+    .pause-preview {
+        width: 100%;
+        aspect-ratio: 16/9;
+        background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .pause-preview img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+
+    .pause-preview.type-gradient-1 {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .pause-preview.type-gradient-2 {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .pause-preview.type-gradient-3 {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .pause-preview.type-image {
+        background-size: cover;
+        background-position: center;
+    }
+
+    .pause-text-overlay {
+        position: absolute;
+        text-align: center;
+        color: white;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    .pause-text-overlay .main-text {
+        font-size: 36px;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+
+    .pause-text-overlay .sub-text {
+        font-size: 18px;
+        opacity: 0.9;
+    }
+
+    .pause-logo {
+        width: 120px;
+        height: 120px;
+        margin-bottom: 20px;
+    }
+
+    .card-info {
+        padding: 20px;
+    }
+
+    .card-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #fff;
+    }
+
+    .card-meta {
+        font-size: 13px;
+        color: #999;
+        margin-bottom: 15px;
+    }
+
+    .card-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 13px;
+    }
+
+    .btn-primary {
+        background: #e63946;
+        color: white;
+    }
+
+    .btn-secondary {
+        background: #333;
+        color: white;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .create-panel {
+        background: #1a1a1a;
+        padding: 30px;
+        border-radius: 12px;
+        border: 1px solid #333;
+    }
+
+    .form-grid {
+        display: grid;
+        gap: 20px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #ccc;
+        font-size: 14px;
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+        background: #262626;
+        border: 1px solid #333;
+        color: white;
+        padding: 12px;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+        outline: none;
+        border-color: #e63946;
+        box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.1);
+    }
+
+    .color-picker-group {
+        display: grid;
+        grid-template-columns: 1fr 80px;
+        gap: 10px;
+    }
+
+    .color-preview {
+        width: 80px;
+        height: 48px;
+        border-radius: 6px;
+        border: 2px solid #333;
+    }
+
+    .preset-colors {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .preset-color {
+        width: 40px;
+        height: 40px;
+        border-radius: 6px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.2s;
+    }
+
+    .preset-color:hover {
+        border-color: #e63946;
+        transform: scale(1.1);
+    }
+
+    .live-preview {
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-top: 20px;
+        aspect-ratio: 16/9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 15px;
+        background: #e63946;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-top: 20px;
+    }
+
+    .submit-btn:hover {
+        background: #d62839;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(230, 57, 70, 0.4);
+    }
+
+    .animation-select {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .animation-option {
+        padding: 12px;
+        background: #262626;
+        border: 2px solid #333;
+        border-radius: 6px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 13px;
+    }
+
+    .animation-option:hover {
+        border-color: #444;
+    }
+
+    .animation-option.active {
+        border-color: #e63946;
+        background: rgba(230, 57, 70, 0.1);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideDown {
+        from { transform: translateY(-50px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+
+    @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pause-screen-manager">
+    <div class="header">
+        <h1>⏸ Pausenbild Verwaltung</h1>
+        <p>Erstelle und verwalte Pausenbilder für deine Live-Sendungen</p>
+    </div>
+
+    <div class="grid">
+        <!-- Standard Pausenbilder -->
+        <div class="pause-card active" data-id="default">
+            <div class="pause-preview">
+                <div style="text-align: center;">
+                    <div class="pause-logo" style="width: 150px; height: 150px; background: url('/static/img/rsl_logo.png') center/contain no-repeat; margin: 0 auto 20px;"></div>
+                    <div class="pause-text-overlay">
+                        <div class="main-text">Kurze Pause</div>
+                        <div class="sub-text">Wir sind gleich zurück</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-info">
+                <div class="card-title">Standard Pausenbild</div>
+                <div class="card-meta">RSL Logo mit Text</div>
+                <div class="card-actions">
+                    <button class="btn btn-primary" onclick="activatePauseScreen('default')">
+                        ✓ Aktiv
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="pause-card" data-id="gradient1">
+            <div class="pause-preview type-gradient-1">
+                <div class="pause-text-overlay">
+                    <div class="main-text">Pause</div>
+                    <div class="sub-text">Gleich geht's weiter</div>
+                </div>
+            </div>
+            <div class="card-info">
+                <div class="card-title">Lila Gradient</div>
+                <div class="card-meta">Modernes Design</div>
+                <div class="card-actions">
+                    <button class="btn btn-secondary" onclick="activatePauseScreen('gradient1')">
+                        Aktivieren
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="pause-card" data-id="gradient2">
+            <div class="pause-preview type-gradient-2">
+                <div class="pause-text-overlay">
+                    <div class="main-text">Pause</div>
+                    <div class="sub-text">Gleich geht's weiter</div>
+                </div>
+            </div>
+            <div class="card-info">
+                <div class="card-title">Pink Gradient</div>
+                <div class="card-meta">Energetisch</div>
+                <div class="card-actions">
+                    <button class="btn btn-secondary" onclick="activatePauseScreen('gradient2')">
+                        Aktivieren
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="pause-card" data-id="gradient3">
+            <div class="pause-preview type-gradient-3">
+                <div class="pause-text-overlay">
+                    <div class="main-text">Pause</div>
+                    <div class="sub-text">Gleich geht's weiter</div>
+                </div>
+            </div>
+            <div class="card-info">
+                <div class="card-title">Blau Gradient</div>
+                <div class="card-meta">Beruhigend</div>
+                <div class="card-actions">
+                    <button class="btn btn-secondary" onclick="activatePauseScreen('gradient3')">
+                        Aktivieren
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Erstelle eigenes Pausenbild -->
+    <div class="create-panel">
+        <h2 style="margin-top: 0; color: #e63946;">Eigenes Pausenbild erstellen</h2>
+        
+        <form id="createPauseScreenForm" class="form-grid">
+            <div class="form-group">
+                <label class="form-label">Titel</label>
+                <input type="text" class="form-input" name="title" placeholder="z.B. Mein Custom Pausenbild" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Hintergrund-Typ</label>
+                <select class="form-select" name="bg_type" onchange="toggleBackgroundOptions(this.value)">
+                    <option value="gradient">Farbverlauf</option>
+                    <option value="solid">Einfarbig</option>
+                    <option value="image">Bild hochladen</option>
+                </select>
+            </div>
+
+            <div id="gradientOptions">
+                <div class="form-group">
+                    <label class="form-label">Farbe 1</label>
+                    <div class="color-picker-group">
+                        <input type="color" class="form-input" name="color1" value="#e63946" onchange="updatePreview()">
+                        <div class="color-preview" style="background: #e63946;"></div>
+                    </div>
+                    <div class="preset-colors">
+                        <div class="preset-color" style="background: #e63946;" onclick="setColor('color1', '#e63946')"></div>
+                        <div class="preset-color" style="background: #667eea;" onclick="setColor('color1', '#667eea')"></div>
+                        <div class="preset-color" style="background: #f093fb;" onclick="setColor('color1', '#f093fb')"></div>
+                        <div class="preset-color" style="background: #4facfe;" onclick="setColor('color1', '#4facfe')"></div>
+                        <div class="preset-color" style="background: #2a9d8f;" onclick="setColor('color1', '#2a9d8f')"></div>
+                        <div class="preset-color" style="background: #f77f00;" onclick="setColor('color1', '#f77f00')"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Farbe 2</label>
+                    <div class="color-picker-group">
+                        <input type="color" class="form-input" name="color2" value="#c1121f" onchange="updatePreview()">
+                        <div class="color-preview" style="background: #c1121f;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="imageOptions" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label">Hintergrundbild</label>
+                    <input type="file" class="form-input" name="bg_image" accept="image/*" onchange="previewImage(this)">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Haupttext</label>
+                <input type="text" class="form-input" name="main_text" value="Kurze Pause" onchange="updatePreview()">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Untertitel</label>
+                <input type="text" class="form-input" name="sub_text" value="Wir sind gleich zurück" onchange="updatePreview()">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Logo anzeigen?</label>
+                <select class="form-select" name="show_logo" onchange="updatePreview()">
+                    <option value="yes">Ja</option>
+                    <option value="no">Nein</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Animation</label>
+                <div class="animation-select">
+                    <div class="animation-option active" data-animation="none" onclick="selectAnimation(this, 'none')">
+                        Keine
+                    </div>
+                    <div class="animation-option" data-animation="fadeIn" onclick="selectAnimation(this, 'fadeIn')">
+                        Einblenden
+                    </div>
+                    <div class="animation-option" data-animation="slideDown" onclick="selectAnimation(this, 'slideDown')">
+                        Heruntergleiten
+                    </div>
+                    <div class="animation-option" data-animation="pulse" onclick="selectAnimation(this, 'pulse')">
+                        Pulsieren
+                    </div>
+                </div>
+                <input type="hidden" name="animation" value="none">
+            </div>
+
+            <!-- Live-Vorschau -->
+            <div class="live-preview" id="livePreview">
+                <div id="previewContent" style="text-align: center;">
+                    <div id="previewLogo" class="pause-logo" style="width: 150px; height: 150px; background: url('/static/img/rsl_logo.png') center/contain no-repeat; margin: 0 auto 20px;"></div>
+                    <div class="pause-text-overlay">
+                        <div class="main-text" id="previewMainText">Kurze Pause</div>
+                        <div class="sub-text" id="previewSubText">Wir sind gleich zurück</div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn">
+                💾 Pausenbild speichern
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+let currentAnimation = 'none';
+
+function toggleBackgroundOptions(type) {
+    document.getElementById('gradientOptions').style.display = type === 'gradient' ? 'block' : 'none';
+    document.getElementById('imageOptions').style.display = type === 'image' ? 'block' : 'none';
+    updatePreview();
+}
+
+function setColor(inputName, color) {
+    document.querySelector(`[name="${inputName}"]`).value = color;
+    updatePreview();
+}
+
+function selectAnimation(element, animation) {
+    document.querySelectorAll('.animation-option').forEach(opt => opt.classList.remove('active'));
+    element.classList.add('active');
+    document.querySelector('[name="animation"]').value = animation;
+    currentAnimation = animation;
+    updatePreview();
+}
+
+function updatePreview() {
+    const form = document.getElementById('createPauseScreenForm');
+    const preview = document.getElementById('livePreview');
+    const content = document.getElementById('previewContent');
+    const bgType = form.querySelector('[name="bg_type"]').value;
+    
+    // Background
+    if (bgType === 'gradient') {
+        const color1 = form.querySelector('[name="color1"]').value;
+        const color2 = form.querySelector('[name="color2"]').value;
+        preview.style.background = `linear-gradient(135deg, ${color1} 0%, ${color2} 100%)`;
+    } else if (bgType === 'solid') {
+        const color1 = form.querySelector('[name="color1"]').value;
+        preview.style.background = color1;
+    }
+    
+    // Text
+    document.getElementById('previewMainText').textContent = form.querySelector('[name="main_text"]').value;
+    document.getElementById('previewSubText').textContent = form.querySelector('[name="sub_text"]').value;
+    
+    // Logo
+    const showLogo = form.querySelector('[name="show_logo"]').value;
+    document.getElementById('previewLogo').style.display = showLogo === 'yes' ? 'block' : 'none';
+    
+    // Animation
+    content.style.animation = currentAnimation !== 'none' ? `${currentAnimation} 1s ease-in-out` : 'none';
+}
+
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('livePreview').style.backgroundImage = `url(${e.target.result})`;
+            document.getElementById('livePreview').style.backgroundSize = 'cover';
+            document.getElementById('livePreview').style.backgroundPosition = 'center';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function activatePauseScreen(id) {
+    // Alle Cards deaktivieren
+    document.querySelectorAll('.pause-card').forEach(card => {
+        card.classList.remove('active');
+        card.querySelector('.btn').classList.remove('btn-primary');
+        card.querySelector('.btn').classList.add('btn-secondary');
+        card.querySelector('.btn').textContent = 'Aktivieren';
+    });
+    
+    // Gewählte Card aktivieren
+    const card = document.querySelector(`[data-id="${id}"]`);
+    card.classList.add('active');
+    card.querySelector('.btn').classList.remove('btn-secondary');
+    card.querySelector('.btn').classList.add('btn-primary');
+    card.querySelector('.btn').innerHTML = '✓ Aktiv';
+    
+    // API-Call
+    fetch('/api/pause-screen/activate/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ pause_screen_id: id })
+    });
+}
+
+document.getElementById('createPauseScreenForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch('/api/pause-screen/create/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: formData
+        });
+        
+        if (response.ok) {
+            alert('Pausenbild erfolgreich erstellt!');
+            location.reload();
+        } else {
+            alert('Fehler beim Erstellen des Pausenbilds');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Fehler beim Erstellen des Pausenbilds');
+    }
+});
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

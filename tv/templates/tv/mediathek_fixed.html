@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mediathek - RSL TV{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: #0a0a0a;
+        color: #f0f0f0;
+    }
+
+    .hero-section {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        padding: 60px 0;
+        margin-bottom: 40px;
+        border-bottom: 3px solid #e94560;
+    }
+
+    .hero-section h1 {
+        font-size: 48px;
+        font-weight: 700;
+        color: #ffffff;
+    }
+
+    .video-card {
+        background: #1a1a1a;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 24px;
+        border: 2px solid #333;
+        transition: all 0.3s;
+    }
+
+    .video-card:hover {
+        border-color: #e94560;
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(233, 69, 96, 0.3);
+    }
+
+    .video-thumbnail {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        background: #000;
+    }
+
+    .video-info {
+        padding: 20px;
+    }
+
+    .video-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 8px;
+    }
+
+    .video-description {
+        font-size: 14px;
+        color: #b0b0b0;
+        margin-bottom: 12px;
+    }
+
+    .play-button {
+        background: #e94560;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .play-button:hover {
+        background: #ff5577;
+        transform: scale(1.05);
+    }
+
+    .modal-content {
+        background: #000;
+        border: none;
+    }
+
+    .modal-header {
+        border-bottom: 1px solid #333;
+    }
+
+    .modal-body {
+        padding: 0;
+    }
+
+    .video-player-container {
+        position: relative;
+        padding-bottom: 56.25%;
+        height: 0;
+        overflow: hidden;
+        background: #000;
+    }
+
+    .video-player-container iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="container text-center">
+        <h1>📺 Mediathek</h1>
+        <p class="lead">Alle Videos und Aufzeichnungen</p>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        {% for video in videos %}
+        <div class="col-md-6 col-lg-4">
+            <div class="video-card">
+                {% if video.thumbnail %}
+                <img src="{{ video.thumbnail.url }}" class="video-thumbnail" alt="{{ video.title }}">
+                {% else %}
+                <div class="video-thumbnail" style="display: flex; align-items: center; justify-content: center;">
+                    <span style="font-size: 48px;">🎬</span>
+                </div>
+                {% endif %}
+                
+                <div class="video-info">
+                    <h3 class="video-title">{{ video.title }}</h3>
+                    {% if video.description %}
+                    <p class="video-description">{{ video.description|truncatewords:15 }}</p>
+                    {% endif %}
+                    <button class="play-button" onclick="playVideo('{{ video.id }}', '{{ video.video_url }}')">
+                        ▶️ Abspielen
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                Noch keine Videos verfügbar.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Video Modal -->
+<div class="modal fade" id="videoModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" style="color: white;">Video Player</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="video-player-container">
+                    <iframe id="videoPlayer" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/**
+ * YouTube Video ID Extraktion - Verbesserte Version
+ */
+function extractYouTubeId(url) {
+    // Verschiedene YouTube URL-Formate unterstützen
+    const patterns = [
+        /(?:youtube\.com\/watch\?v=)([^&\s]+)/,           // watch?v=...
+        /(?:youtube\.com\/embed\/)([^?&\s]+)/,            // embed/...
+        /(?:youtube\.com\/v\/)([^?&\s]+)/,                // v/...
+        /(?:youtu\.be\/)([^?&\s]+)/,                      // youtu.be/...
+        /(?:youtube\.com\/.*[?&]v=)([^&\s]+)/             // andere Formate mit v=
+    ];
+    
+    for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match && match[1]) {
+            return match[1];
+        }
+    }
+    
+    return null;
+}
+
+/**
+ * Twitch Video/Channel Extraktion
+ */
+function extractTwitchInfo(url) {
+    // Twitch Video
+    if (url.includes('/videos/')) {
+        const match = url.match(/videos\/(\d+)/);
+        if (match) {
+            return { type: 'video', id: match[1] };
+        }
+    }
+    
+    // Twitch Channel (Live)
+    const match = url.match(/twitch\.tv\/([^/?]+)/);
+    if (match && match[1] !== 'videos') {
+        return { type: 'channel', id: match[1] };
+    }
+    
+    return null;
+}
+
+/**
+ * Video abspielen - Verbesserte Version
+ */
+function playVideo(videoId, videoUrl) {
+    console.log('🎬 Playing video:', videoUrl);
+    
+    const modal = new bootstrap.Modal(document.getElementById('videoModal'));
+    const player = document.getElementById('videoPlayer');
+    
+    // URL säubern
+    const url = videoUrl.trim();
+    
+    try {
+        // YouTube
+        if (url.includes('youtube.com') || url.includes('youtu.be')) {
+            const ytId = extractYouTubeId(url);
+            
+            if (ytId) {
+                // Verwende youtube-nocookie.com für bessere Privacy und weniger Probleme
+                const embedUrl = `https://www.youtube-nocookie.com/embed/${ytId}?` + new URLSearchParams({
+                    autoplay: '1',
+                    modestbranding: '1',
+                    rel: '0',
+                    origin: window.location.origin
+                }).toString();
+                
+                player.src = embedUrl;
+                console.log('✅ YouTube embed:', embedUrl);
+            } else {
+                console.error('❌ Konnte YouTube Video-ID nicht extrahieren:', url);
+                alert('Fehler beim Laden des YouTube-Videos. Bitte überprüfen Sie die URL.');
+                return;
+            }
+        }
+        // Twitch
+        else if (url.includes('twitch.tv')) {
+            const twitchInfo = extractTwitchInfo(url);
+            
+            if (twitchInfo) {
+                let embedUrl;
+                
+                if (twitchInfo.type === 'video') {
+                    embedUrl = `https://player.twitch.tv/?video=${twitchInfo.id}&parent=${window.location.hostname}&autoplay=true`;
+                } else {
+                    embedUrl = `https://player.twitch.tv/?channel=${twitchInfo.id}&parent=${window.location.hostname}&autoplay=true`;
+                }
+                
+                player.src = embedUrl;
+                console.log('✅ Twitch embed:', embedUrl);
+            } else {
+                console.error('❌ Konnte Twitch-Informationen nicht extrahieren:', url);
+                alert('Fehler beim Laden des Twitch-Videos. Bitte überprüfen Sie die URL.');
+                return;
+            }
+        }
+        // Direktes Video (MP4, WebM, etc.)
+        else if (url.match(/\.(mp4|webm|ogg)(\?|$)/i)) {
+            // Für direkte Videos verwenden wir <video> statt <iframe>
+            player.src = url;
+            console.log('✅ Direkte Video-URL:', url);
+        }
+        // Andere Embeds
+        else {
+            player.src = url;
+            console.log('ℹ️  Generischer Embed:', url);
+        }
+        
+        modal.show();
+        
+    } catch (error) {
+        console.error('❌ Fehler beim Laden des Videos:', error);
+        alert('Fehler beim Laden des Videos: ' + error.message);
+    }
+}
+
+/**
+ * Player beim Schließen stoppen
+ */
+document.getElementById('videoModal').addEventListener('hidden.bs.modal', function () {
+    const player = document.getElementById('videoPlayer');
+    player.src = '';
+    console.log('🛑 Video gestoppt');
+});
+
+/**
+ * Debug: Zeige alle verfügbaren Videos
+ */
+console.log('📺 Mediathek geladen');
+</script>
+{% endblock %}

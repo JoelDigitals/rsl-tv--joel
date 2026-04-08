@@ -1,501 +1,571 @@
-{% extends 'base.html' %}
+{% extends 'base_admin.html' %}
+{% load static %}
 
-{% block title %}{{ room.name }} – TV-Regie – RSL{% endblock %}
+{% block title %}Regieraum - RSL TV{% endblock %}
 
 {% block extra_css %}
 <style>
-    body {
-        background: #0a0a0a;
-        color: #ffffff !important;
-    }
-    
-    .camera-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 1rem;
-    }
-    
-    .camera-preview {
-        position: relative;
-        background: #000;
-        border-radius: 8px;
-        overflow: hidden;
-        cursor: pointer;
-        transition: all 0.3s;
-        border: 3px solid #333;
-        height: 200px;
-    }
-    
-    .camera-preview:hover {
-        border-color: #00c4ff;
-        transform: scale(1.02);
-    }
-    
-    .camera-preview.selected {
-        border-color: #4ade80;
-        box-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
-    }
-    
-    .camera-preview video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    
-    .camera-label {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: linear-gradient(transparent, rgba(0,0,0,0.95));
-        padding: 0.8rem;
-        color: #ffffff !important;
-        font-weight: 600;
-        text-align: center;
-    }
-    
-    .main-preview {
-        background: #000;
-        border-radius: 8px;
-        overflow: hidden;
-        border: 3px solid #00c4ff;
-    }
-    
-    .control-btn {
-        padding: 1rem;
-        font-weight: 700;
-        font-size: 1.1rem;
-        border-radius: 8px;
-        transition: all 0.2s;
-        color: #ffffff !important;
-    }
-    
-    .btn-go-live {
-        background: #4ade80;
-        color: #000 !important;
-        border: none;
-    }
-    
-    .btn-go-live:hover {
-        background: #22c55e;
-        transform: scale(1.05);
-    }
-    
-    .btn-cut-out {
-        background: #ef4444;
-        color: white !important;
-        border: none;
-    }
-    
-    .btn-standby {
-        background: #fbbf24;
-        color: #000 !important;
-        border: none;
-    }
-    
-    .rsl-card {
-        background: #1a1a2e;
-        border: 1px solid #333;
-        border-radius: 8px;
-        color: #ffffff !important;
-    }
-    
-    .rsl-card h6, .rsl-card p, .rsl-card span, .rsl-card label {
-        color: #ffffff !important;
-    }
-    
-    .page-header {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        padding: 2rem 0;
-        color: #ffffff !important;
-    }
-    
-    .page-header h1, .page-header p, .page-header a {
-        color: #ffffff !important;
-    }
-    
-    h5 {
-        color: #ffffff !important;
+    .director-room {
+        background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+        min-height: 100vh;
+        padding: 20px;
     }
 
+    .room-header {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .room-header h1 {
+        font-size: 2rem;
+        background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0;
+    }
+
+    .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .live-badge {
+        background: #dc2626;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        animation: pulse 2s infinite;
+    }
+
+    .standby-badge {
+        background: rgba(255, 255, 255, 0.2);
+        color: #888;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+
+    .action-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+    }
+
+    .action-panel {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .action-panel h3 {
+        color: #fff;
+        margin: 0 0 16px 0;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .camera-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .camera-btn {
+        background: rgba(0, 0, 0, 0.3);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 16px;
+        color: #e0e0e0;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-align: center;
+    }
+
+    .camera-btn:hover {
+        border-color: #3b82f6;
+        background: rgba(59, 130, 246, 0.1);
+    }
+
+    .camera-btn.active {
+        border-color: #dc2626;
+        background: rgba(220, 38, 38, 0.2);
+        color: #fff;
+    }
+
+    .camera-btn .icon {
+        font-size: 2rem;
+        margin-bottom: 8px;
+    }
+
+    .camera-btn .name {
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .camera-btn .type {
+        font-size: 0.75rem;
+        color: #888;
+        margin-top: 4px;
+    }
+
+    .scene-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .scene-btn {
+        background: rgba(0, 0, 0, 0.3);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 14px 16px;
+        color: #e0e0e0;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-align: left;
+    }
+
+    .scene-btn:hover {
+        border-color: #22c55e;
+        background: rgba(34, 197, 94, 0.1);
+    }
+
+    .scene-btn.active {
+        border-color: #22c55e;
+        background: rgba(34, 197, 94, 0.2);
+        color: #fff;
+    }
+
+    .scene-btn .scene-icon {
+        font-size: 1.5rem;
+    }
+
+    .scene-btn .scene-info {
+        flex: 1;
+    }
+
+    .scene-btn .scene-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .scene-btn .scene-camera {
+        font-size: 0.8rem;
+        color: #888;
+    }
+
+    .transition-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+
+    .transition-btn {
+        background: rgba(0, 0, 0, 0.3);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 12px 8px;
+        color: #e0e0e0;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 0.85rem;
+    }
+
+    .transition-btn:hover {
+        border-color: #f59e0b;
+        background: rgba(245, 158, 11, 0.1);
+    }
+
+    .transition-btn.active {
+        border-color: #f59e0b;
+        background: rgba(245, 158, 11, 0.2);
+        color: #fff;
+    }
+
+    .stream-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .stream-btn {
+        padding: 16px 24px;
+        border-radius: 12px;
+        border: none;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .stream-btn.start {
+        background: linear-gradient(90deg, #dc2626, #b91c1c);
+        color: white;
+    }
+
+    .stream-btn.start:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(220, 38, 38, 0.4);
+    }
+
+    .stream-btn.stop {
+        background: linear-gradient(90deg, #64748b, #475569);
+        color: white;
+    }
+
+    .stream-btn.stop:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(100, 116, 139, 0.4);
+    }
+
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .quick-btn {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 12px;
+        color: #e0e0e0;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 0.85rem;
+        text-align: center;
+    }
+
+    .quick-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: #00d4ff;
+    }
+
+    .nav-links {
+        display: flex;
+        gap: 8px;
+    }
+
+    .nav-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #e0e0e0;
+        padding: 10px 16px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: all 0.3s;
+    }
+
+    .nav-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+    }
+
+    @media (max-width: 768px) {
+        .action-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .camera-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .room-header {
+            flex-direction: column;
+            gap: 16px;
+            text-align: center;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-
-<div class="page-header">
-    <div class="container">
-        <h1><i class="bi bi-door-open me-3"></i>{{ room.name }}</h1>
-        <p class="text-muted mb-0">{{ room.description|default:"Regieraum-Steuerung" }}</p>
-        <a href="{% url 'tv_admin_dashboard' %}" class="btn btn-outline-light mt-3">
-            <i class="bi bi-arrow-left me-2"></i>Zurück zur Übersicht
-        </a>
-    </div>
-</div>
-
-<section class="py-4">
-    <div class="container-fluid">
-        <div class="row g-4">
+<div class="director-room">
+    <header class="room-header">
+        <div>
+            <h1>🎬 Regieraum</h1>
+            <p style="color: #888; margin: 4px 0 0 0;">Wählen Sie eine Aktion zum Ausführen</p>
+        </div>
+        
+        <div class="status-indicator">
+            {% if is_streaming %}
+            <span class="live-badge">🔴 LIVE</span>
+            {% else %}
+            <span class="standby-badge">⏸ STANDBY</span>
+            {% endif %}
             
-            <!-- Hauptbereich -->
-            <div class="col-lg-9">
-                <!-- Haupt-Preview -->
-                <div class="main-preview mb-4">
-                    <div style="position:relative;padding-bottom:56.25%;height:0;">
-                        <div id="main-output" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
-                            <div class="text-center">
-                                <i class="bi bi-camera-video-off d-block mb-3" style="font-size:4rem;color:var(--rsl-muted);"></i>
-                                <p style="color:var(--rsl-text);">Keine Kamera ausgewählt</p>
-                            </div>
-                        </div>
-                        
-                        <!-- Logo Overlay -->
-                        <div style="position:absolute;bottom:15px;right:15px;opacity:0.8;pointer-events:none;">
-                            {% load static %}
-                            <img src="{% static 'tv/img/logo-nobg.png' %}" alt="RSL" style="height:40px;">
-                        </div>
-                    </div>
-                    
-                    <div style="background:var(--rsl-panel);padding:1rem;color:white;">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <strong>PROGRAMM-OUTPUT</strong>
-                                <span class="text-muted ms-2" id="current-source">Kein Signal</span>
-                            </div>
-                            <div>
-                                <span class="badge bg-success" id="streaming-status" style="display:none;">
-                                    <i class="bi bi-broadcast me-1"></i>STREAMING
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Kamera-Auswahl -->
-                <h5 class="mb-3" style="color:white;"><i class="bi bi-camera-video me-2"></i>Verfügbare Kameras</h5>
-                {% if room_cameras %}
-                <div class="camera-grid">
-                    {% for rc in room_cameras %}
-                    <div class="camera-preview" onclick="selectCamera({{ rc.camera.id }}, '{{ rc.camera.name }}', '{{ rc.camera.stream_url }}', this)" data-camera-id="{{ rc.camera.id }}">
-                        <div style="position:relative;height:100%;">
-                            {% if rc.camera.preview_url %}
-                            <iframe 
-                                src="{{ rc.camera.preview_url }}" 
-                                style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
-                                loading="lazy">
-                            </iframe>
-                            {% elif rc.camera.stream_url %}
-                            <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#1a1a2e;">
-                                <i class="bi bi-camera-video" style="font-size:3rem;color:var(--rsl-muted);"></i>
-                            </div>
-                            {% endif %}
-                            
-                            <div class="camera-label">
-                                <i class="bi bi-camera-video me-2"></i>{{ rc.camera.name }}
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle me-2"></i>
-                    Keine Kameras für diesen Regieraum konfiguriert. Bitte fügen Sie Kameras im Admin-Bereich hinzu.
-                </div>
-                {% endif %}
+            <div class="nav-links">
+                <a href="{% url 'replay_studio' %}" class="nav-btn">🎬 Replay</a>
+                <a href="{% url 'rundown_planner' %}" class="nav-btn">📋 Rundown</a>
+                <a href="{% url 'scenes' %}" class="nav-btn">🎞 Szenen</a>
             </div>
-            
-            <!-- Kontrollbereich -->
-            <div class="col-lg-3">
-                <!-- Hauptsteuerung -->
-                <div class="rsl-card p-3 mb-3">
-                    <h6 class="mb-3" style="color:white;"><i class="bi bi-sliders me-2"></i>Hauptsteuerung</h6>
-                    <div class="d-grid gap-2">
-                        <button class="control-btn btn-go-live" onclick="goLive()">
-                            <i class="bi bi-broadcast me-2"></i>GO LIVE
-                        </button>
-                        <button class="control-btn btn-cut-out" onclick="cutOut()">
-                            <i class="bi bi-x-circle me-2"></i>CUT OUT
-                        </button>
-                        <button class="control-btn btn-standby" onclick="showStandby()">
-                            <i class="bi bi-pause-circle me-2"></i>PAUSENBILD
-                        </button>
-                    </div>
+        </div>
+    </header>
+
+    <div class="action-grid">
+        <!-- Kamera-Auswahl -->
+        <div class="action-panel">
+            <h3>🎥 Kameras</h3>
+            <div class="camera-grid">
+                {% for camera in cameras %}
+                <button class="camera-btn {% if camera == active_camera %}active{% endif %}" 
+                        onclick="switchCamera({{ camera.id }})"
+                        data-camera-id="{{ camera.id }}">
+                    <div class="icon">📹</div>
+                    <div class="name">{{ camera.name }}</div>
+                    <div class="type">{{ camera.get_camera_type_display }}</div>
+                </button>
+                {% empty %}
+                <div style="grid-column: 1 / -1; text-align: center; color: #888; padding: 20px;">
+                    Keine Kameras konfiguriert
                 </div>
-                
-                <!-- Streaming-Kontrolle -->
-                <div class="rsl-card p-3 mb-3">
-                    <h6 class="mb-3" style="color:white;"><i class="bi bi-broadcast me-2"></i>Streaming</h6>
-                    <div class="d-grid gap-2">
-                        {% if room.youtube_stream_key %}
-                        <button class="btn btn-outline-danger" onclick="startStreamPlatform('youtube')">
-                            <i class="bi bi-youtube me-2"></i>YouTube starten
-                        </button>
-                        {% endif %}
-                        
-                        {% if room.twitch_stream_key %}
-                        <button class="btn btn-outline-light" style="background:#9147ff;" onclick="startStreamPlatform('twitch')">
-                            <i class="bi bi-twitch me-2"></i>Twitch starten
-                        </button>
-                        {% endif %}
-                        
-                        {% if room.youtube_stream_key or room.twitch_stream_key %}
-                        <button class="btn btn-danger" onclick="stopStreamPlatform()">
-                            <i class="bi bi-stop-circle me-2"></i>Stream stoppen
-                        </button>
-                        {% else %}
-                        <div class="alert alert-info mb-0" style="font-size:0.85rem;">
-                            Keine Stream-Keys konfiguriert
-                        </div>
-                        {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Szenen -->
+        <div class="action-panel">
+            <h3>🎬 Szenen</h3>
+            <div class="scene-list">
+                {% for scene in scenes %}
+                <button class="scene-btn {% if scene == director_room.active_scene %}active{% endif %}"
+                        onclick="activateScene({{ scene.id }})">
+                    <span class="scene-icon">🎭</span>
+                    <div class="scene-info">
+                        <div class="scene-name">{{ scene.name }}</div>
+                        <div class="scene-camera">{{ scene.camera.name }}</div>
                     </div>
+                </button>
+                {% empty %}
+                <div style="text-align: center; color: #888; padding: 20px;">
+                    Keine Szenen konfiguriert
                 </div>
-                
-                <!-- Pausenbilder -->
-                {% if standby_images %}
-                <div class="rsl-card p-3">
-                    <h6 class="mb-3" style="color:white;"><i class="bi bi-image me-2"></i>Pausenbilder</h6>
-                    <div class="d-grid gap-2">
-                        {% for img in standby_images %}
-                        <button class="btn btn-sm btn-outline-light" onclick="loadStandbyImage('{{ img.image.url }}', '{{ img.title }}')">
-                            <i class="bi bi-image me-1"></i>{{ img.title }}
-                        </button>
-                        {% endfor %}
-                    </div>
-                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Übergänge -->
+        <div class="action-panel">
+            <h3>🎞 Übergänge</h3>
+            <div class="transition-grid">
+                <button class="transition-btn active" onclick="setTransition('cut', this)">
+                    ✂️ Schnitt
+                </button>
+                {% for transition in transitions %}
+                <button class="transition-btn" onclick="setTransition({{ transition.id }}, this)">
+                    {{ transition.name }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Stream-Kontrolle -->
+        <div class="action-panel">
+            <h3>📡 Stream</h3>
+            <div class="stream-controls">
+                {% if is_streaming %}
+                <button class="stream-btn stop" onclick="stopStream()">
+                    ⏹ Stream Stoppen
+                </button>
+                {% else %}
+                <button class="stream-btn start" onclick="startStream()">
+                    ▶ Stream Starten
+                </button>
                 {% endif %}
             </div>
         </div>
+
+        <!-- Schnellaktionen -->
+        <div class="action-panel">
+            <h3>⚡ Schnellaktionen</h3>
+            <div class="quick-actions">
+                <button class="quick-btn" onclick="cutToBlack()">
+                    ⬛ Black
+                </button>
+                <button class="quick-btn" onclick="showStandby()">
+                    🖼 Standby
+                </button>
+                <button class="quick-btn" onclick="triggerAd()">
+                    📺 Werbung
+                </button>
+                <button class="quick-btn" onclick="createReplay()">
+                    ⏪ Replay
+                </button>
+            </div>
+        </div>
+
+        <!-- Audio-Mute (vereinfacht) -->
+        <div class="action-panel">
+            <h3>🔇 Audio</h3>
+            <div class="quick-actions">
+                {% for audio in audio_sources|slice:":4" %}
+                <button class="quick-btn {% if audio.is_muted %}active{% endif %}" 
+                        onclick="toggleAudio({{ audio.id }})"
+                        style="{% if audio.is_muted %}background: rgba(220, 38, 38, 0.3);{% endif %}">
+                    {% if audio.is_muted %}🔇{% else %}🔊{% endif %} {{ audio.name|truncatechars:10 }}
+                </button>
+                {% empty %}
+                <div style="grid-column: 1 / -1; text-align: center; color: #888;">
+                    Keine Audio-Quellen
+                </div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
-</section>
+</div>
 
-{% endblock %}
-
-{% block extra_js %}
 <script>
-let selectedCameraId = null;
-let selectedCameraUrl = null;
-let selectedCameraName = null;
+let selectedTransition = 'cut';
+let useTransition = false;
 
-// Kamera auswählen
-function selectCamera(cameraId, cameraName, cameraUrl, element) {
-    // Alle Kameras deselektieren
-    document.querySelectorAll('.camera-preview').forEach(el => {
-        el.classList.remove('selected');
-    });
-    
-    // Diese Kamera selektieren
-    element.classList.add('selected');
-    
-    // Werte speichern
-    selectedCameraId = cameraId;
-    selectedCameraName = cameraName;
-    selectedCameraUrl = cameraUrl;
-    
-    // Vorschau aktualisieren - zeige Live-Stream
-    const mainOutput = document.getElementById('main-output');
-    
-    // Wenn es eine Video-Stream-URL ist (HLS, RTSP via Web-Proxy)
-    if (cameraUrl.includes('.m3u8') || cameraUrl.includes('stream')) {
-        mainOutput.innerHTML = `
-            <video 
-                id="live-preview"
-                style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;background:#000;"
-                autoplay 
-                muted
-                playsinline>
-                <source src="${cameraUrl}" type="application/x-mpegURL">
-                Ihr Browser unterstützt kein Video.
-            </video>
-        `;
-        
-        // HLS.js für bessere Kompatibilität
-        const video = document.getElementById('live-preview');
-        if (window.Hls && window.Hls.isSupported()) {
-            const hls = new Hls();
-            hls.loadSource(cameraUrl);
-            hls.attachMedia(video);
+// Sichere JSON-Fetch Hilfsfunktion
+async function safeJson(response) {
+    const ct = response.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) {
+        if (response.status === 401 || response.status === 302) {
+            alert('Sitzung abgelaufen – bitte neu einloggen.');
+            window.location.href = '/login/';
         }
-    } else {
-        // Fallback: iframe
-        mainOutput.innerHTML = `
-            <iframe 
-                src="${cameraUrl}" 
-                style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
-                allowfullscreen>
-            </iframe>
-        `;
+        throw new Error(`Kein JSON vom Server (HTTP ${response.status})`);
     }
-    
-    // Status aktualisieren
-    document.getElementById('current-source').textContent = cameraName;
-    
-    showNotification(`Kamera gewechselt: ${cameraName}`, 'success');
+    return response.json();
 }
 
-// Go Live
-function goLive() {
-    if (!selectedCameraId) {
-        showNotification('Bitte erst eine Kamera auswählen', 'warning');
-        return;
-    }
-    
-    if (!confirm(`Live-Übertragung mit ${selectedCameraName} starten?`)) return;
-    
-    fetch(`/tv-admin/room/{{ room.id }}/go-live/`, {
+// Kamera wechseln
+function switchCamera(cameraId) {
+    fetch('{% url "director_switch_camera" %}', {
         method: 'POST',
         headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: `camera_id=${selectedCameraId}`
+        body: `camera_id=${cameraId}&use_transition=${useTransition}`
     })
-    .then(r => r.json())
+    .then(response => safeJson(response))
     .then(data => {
-        if (data.status === 'success') {
-            showNotification('Live-Übertragung gestartet!', 'success');
-            document.getElementById('streaming-status').style.display = 'inline-block';
-        } else {
-            showNotification(data.message || 'Fehler beim Starten', 'error');
+        if (data.success) {
+            document.querySelectorAll('.camera-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-camera-id="${cameraId}"]`).classList.add('active');
         }
-    })
-    .catch(err => {
-        console.error(err);
-        showNotification('Fehler beim Starten der Live-Übertragung', 'error');
     });
 }
 
-// Cut Out
-function cutOut() {
-    if (!confirm('Live-Übertragung wirklich beenden?')) return;
-    
-    fetch(`/tv-admin/room/{{ room.id }}/cut-out/`, {
-        method: 'POST',
-    })
-    .then(r => r.json())
-    .then(data => {
-        showNotification('Live-Übertragung beendet', 'success');
-        document.getElementById('streaming-status').style.display = 'none';
-    })
-    .catch(err => {
-        showNotification('Fehler beim Beenden', 'error');
-    });
-}
-
-// Pausenbild anzeigen
-function showStandby() {
-    fetch(`/tv-admin/room/{{ room.id }}/standby/`, {
-        method: 'POST',
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.status === 'success') {
-            showNotification('Pausenbild aktiviert', 'success');
-            const mainOutput = document.getElementById('main-output');
-            mainOutput.innerHTML = `
-                <img src="${data.image_url}" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;">
-            `;
-            document.getElementById('current-source').textContent = 'Pausenbild';
-        }
-    })
-    .catch(err => {
-        showNotification('Fehler beim Laden des Pausenbilds', 'error');
-    });
-}
-
-// Pausenbild laden
-function loadStandbyImage(imageUrl, title) {
-    const mainOutput = document.getElementById('main-output');
-    mainOutput.innerHTML = `
-        <img src="${imageUrl}" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;">
-    `;
-    document.getElementById('current-source').textContent = title;
-    showNotification(`Pausenbild geladen: ${title}`, 'info');
-}
-
-// Stream zu Plattform starten
-function startStreamPlatform(platform) {
-    if (!confirm(`Stream zu ${platform.toUpperCase()} wirklich starten?`)) return;
-    
-    fetch(`/tv-admin/room/{{ room.id }}/start-stream/`, {
+// Szene aktivieren
+function activateScene(sceneId) {
+    fetch('{% url "scene_activate" %}', {
         method: 'POST',
         headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: `platform=${platform}`
+        body: `scene_id=${sceneId}`
     })
-    .then(r => r.json())
+    .then(response => safeJson(response))
     .then(data => {
-        if (data.status === 'success') {
-            showNotification(`Stream zu ${platform.toUpperCase()} gestartet`, 'success');
-            document.getElementById('streaming-status').style.display = 'inline-block';
-        } else {
-            showNotification(data.message || 'Fehler', 'error');
+        if (data.success) {
+            document.querySelectorAll('.scene-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.closest('.scene-btn').classList.add('active');
+        }
+    });
+}
+
+// Übergang setzen
+function setTransition(transitionId, btn) {
+    document.querySelectorAll('.transition-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedTransition = transitionId;
+    useTransition = transitionId !== 'cut';
+}
+
+// Stream starten
+function startStream() {
+    if (!confirm('Stream starten?')) return;
+    
+    fetch('{% url "director_start_stream" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
         }
     })
-    .catch(err => {
-        showNotification('Fehler beim Starten des Streams', 'error');
+    .then(response => safeJson(response))
+    .then(data => {
+        if (data.success) location.reload();
+        else alert('Fehler: ' + data.error);
     });
 }
 
 // Stream stoppen
-function stopStreamPlatform() {
+function stopStream() {
     if (!confirm('Stream wirklich stoppen?')) return;
     
-    fetch(`/tv-admin/room/{{ room.id }}/stop-stream/`, {
+    fetch('{% url "director_stop_stream" %}', {
         method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        }
     })
-    .then(r => r.json())
+    .then(response => safeJson(response))
     .then(data => {
-        showNotification('Stream gestoppt', 'success');
-        document.getElementById('streaming-status').style.display = 'none';
-    })
-    .catch(err => {
-        showNotification('Fehler beim Stoppen', 'error');
+        if (data.success) location.reload();
     });
 }
 
-// Notification Helper
-function showNotification(message, type = 'info') {
-    const colors = {
-        success: '#4ade80',
-        error: '#ef4444',
-        info: '#3b82f6',
-        warning: '#fbbf24'
-    };
-    
-    const notif = document.createElement('div');
-    notif.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${colors[type]};
-        color: white;
-        padding: 1rem 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        z-index: 9999;
-        font-weight: 600;
-        animation: slideIn 0.3s;
-    `;
-    notif.textContent = message;
-    document.body.appendChild(notif);
-    
-    setTimeout(() => {
-        notif.style.animation = 'slideOut 0.3s';
-        setTimeout(() => notif.remove(), 300);
-    }, 3000);
+// Audio toggle
+function toggleAudio(audioId) {
+    fetch('{% url "director_toggle_audio" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `audio_id=${audioId}`
+    })
+    .then(response => safeJson(response))
+    .then(data => {
+        if (data.success) location.reload();
+    });
+}
+
+// Platzhalter-Funktionen für Schnellaktionen
+function cutToBlack() {
+    alert('Cut to Black - implementieren');
+}
+
+function showStandby() {
+    alert('Standby anzeigen - implementieren');
+}
+
+function triggerAd() {
+    alert('Werbepause - implementieren');
+}
+
+function createReplay() {
+    window.location.href = '{% url "replay_studio" %}';
 }
 </script>
-
-<style>
-@keyframes slideIn {
-    from { transform: translateX(400px); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-
-@keyframes slideOut {
-    from { transform: translateX(0); opacity: 1; }
-    to { transform: translateX(400px); opacity: 0; }
-}
-</style>
 {% endblock %}

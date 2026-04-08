@@ -1,0 +1,12 @@
+"""
+URLs zum Hinzufügen in tv/urls.py
+===================================
+
+Füge diese Zeilen in den "API ENDPUNKTE" Bereich ein:
+"""
+
+# TV-Display & Werbepausen APIs
+path('api/current-show/', views.api_current_show_extended, name='api_current_show_extended'),
+path('api/ad-break-status/', views.api_ad_break_status, name='api_ad_break_status'),
+path('api/ad-break/start/', views.api_start_ad_break, name='api_start_ad_break'),
+path('api/ad-break/end/', views.api_end_ad_break, name='api_end_ad_break'),

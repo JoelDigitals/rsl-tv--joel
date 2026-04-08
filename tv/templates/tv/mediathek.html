@@ -1,285 +1,647 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Mediathek – RSL{% endblock %}
+{% block title %}Mediathek - RSL TV{% endblock %}
 
 {% block extra_css %}
 <style>
+    /* ARD/ZDF/Joyn Style - Modern & Professional */
+    
+    :root {
+        --primary: #e94560;
+        --primary-dark: #d63651;
+        --bg-dark: #0a0a0a;
+        --bg-card: #1a1a1a;
+        --bg-card-hover: #222;
+        --text-primary: #ffffff;
+        --text-secondary: #b0b0b0;
+        --border: #333;
+    }
+    
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    
+    body {
+        background: var(--bg-dark);
+        color: var(--text-primary);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+    }
+    
+    /* Hero Section */
+    .hero-section {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        padding: 80px 0 60px;
+        margin-bottom: 40px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(circle at 30% 50%, rgba(233,69,96,0.1) 0%, transparent 50%);
+    }
+    
+    .hero-content {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+    }
+    
+    .hero-section h1 {
+        font-size: clamp(32px, 8vw, 56px);
+        font-weight: 800;
+        margin-bottom: 16px;
+        background: linear-gradient(135deg, #fff 0%, var(--primary) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .hero-section .lead {
+        font-size: clamp(16px, 3vw, 20px);
+        color: var(--text-secondary);
+    }
+    
+    /* Category Filter */
+    .category-filter {
+        background: var(--bg-card);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 40px;
+        border: 1px solid var(--border);
+    }
+    
+    .category-pills {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    
+    .category-label {
+        color: var(--text-secondary);
+        font-weight: 600;
+        margin-right: 8px;
+        white-space: nowrap;
+    }
+    
+    .category-pill {
+        padding: 10px 20px;
+        border-radius: 24px;
+        background: transparent;
+        border: 2px solid var(--border);
+        color: var(--text-secondary);
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+        white-space: nowrap;
+    }
+    
+    .category-pill:hover {
+        background: var(--bg-card-hover);
+        border-color: var(--primary);
+        color: var(--primary);
+        transform: translateY(-2px);
+    }
+    
+    .category-pill.active {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+    }
+    
+    /* Search */
+    .search-wrapper {
+        position: relative;
+        max-width: 600px;
+        margin: 0 auto 40px;
+    }
+    
+    .search-input {
+        width: 100%;
+        padding: 16px 24px 16px 52px;
+        background: var(--bg-card);
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        color: var(--text-primary);
+        font-size: 16px;
+        transition: all 0.2s;
+    }
+    
+    .search-input:focus {
+        outline: none;
+        border-color: var(--primary);
+        background: var(--bg-card-hover);
+    }
+    
+    .search-input::placeholder {
+        color: var(--text-secondary);
+    }
+    
+    .search-icon {
+        position: absolute;
+        left: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 20px;
+        color: var(--text-secondary);
+        pointer-events: none;
+    }
+    
+    /* Video Grid - ARD/ZDF Style */
     .video-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 1.5rem;
+        gap: 24px;
+        margin-bottom: 60px;
     }
     
+    @media (min-width: 768px) {
+        .video-grid {
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 30px;
+        }
+    }
+    
+    @media (min-width: 1200px) {
+        .video-grid {
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        }
+    }
+    
+    /* Video Card */
     .video-card {
-        background: var(--rsl-gray);
-        border: 1px solid var(--rsl-light-gray);
-        border-radius: 8px;
+        background: var(--bg-card);
+        border-radius: 12px;
         overflow: hidden;
-        transition: all 0.3s;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         cursor: pointer;
+        border: 1px solid transparent;
+        position: relative;
     }
     
     .video-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 20px rgba(33, 150, 243, 0.3);
-        border-color: var(--rsl-secondary);
+        transform: translateY(-8px);
+        border-color: var(--primary);
+        box-shadow: 0 12px 40px rgba(233, 69, 96, 0.3);
     }
     
-    .video-thumbnail {
+    .video-thumbnail-wrapper {
         position: relative;
-        padding-bottom: 56.25%;
-        background: var(--rsl-darker);
+        padding-top: 56.25%; /* 16:9 */
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
         overflow: hidden;
     }
     
-    .video-thumbnail img {
+    .video-thumbnail {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transition: transform 0.3s;
+        transition: transform 0.3s ease;
     }
     
-    .video-card:hover .video-thumbnail img {
-        transform: scale(1.1);
+    .video-card:hover .video-thumbnail {
+        transform: scale(1.05);
+    }
+    
+    .video-thumbnail.loading {
+        display: none;
+    }
+    
+    .thumbnail-placeholder {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 64px;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     }
     
     .video-duration {
         position: absolute;
         bottom: 8px;
         right: 8px;
-        background: rgba(0,0,0,0.8);
-        color: white;
-        padding: 2px 6px;
-        border-radius: 3px;
-        font-size: 0.75rem;
+        background: rgba(0, 0, 0, 0.9);
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
         font-weight: 600;
-    }
-    
-    .category-filter {
-        background: var(--rsl-gray);
-        border: 1px solid var(--rsl-light-gray);
-        padding: 0.5rem 1rem;
-        border-radius: 6px;
-        color: var(--rsl-text);
-        transition: all 0.2s;
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-block;
-    }
-    
-    .category-filter:hover {
-        background: var(--rsl-light-gray);
         color: white;
-    }
-    
-    .category-filter.active {
-        background: var(--rsl-primary);
-        border-color: var(--rsl-primary);
-        color: white;
-    }
-    
-    .play-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(0,0,0,0);
-        transition: background 0.3s;
-    }
-    
-    .video-card:hover .play-overlay {
-        background: rgba(0,0,0,0.5);
+        backdrop-filter: blur(10px);
     }
     
     .play-button {
-        width: 60px;
-        height: 60px;
-        background: var(--rsl-primary);
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 64px;
+        height: 64px;
+        background: rgba(233, 69, 96, 0.95);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
-        font-size: 1.5rem;
         opacity: 0;
-        transform: scale(0.8);
-        transition: all 0.3s;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
     }
     
     .video-card:hover .play-button {
         opacity: 1;
-        transform: scale(1);
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+    
+    .play-button::before {
+        content: '▶';
+        font-size: 24px;
+        color: white;
+        margin-left: 4px;
+    }
+    
+    .video-info {
+        padding: 20px;
+    }
+    
+    .video-category {
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+    }
+    
+    .video-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        min-height: 50px;
+    }
+    
+    .video-description {
+        font-size: 14px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        margin-bottom: 12px;
+        min-height: 44px;
+    }
+    
+    .video-meta {
+        display: flex;
+        gap: 16px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .video-meta span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    /* Modal */
+    .modal-content {
+        background: #000;
+        border: none;
+        border-radius: 0;
+    }
+    
+    .modal-dialog {
+        max-width: 90vw;
+        margin: 2vh auto;
+    }
+    
+    @media (min-width: 992px) {
+        .modal-dialog {
+            max-width: 1200px;
+        }
+    }
+    
+    .modal-header {
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--border);
+        padding: 20px 30px;
+    }
+    
+    .modal-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: white;
+    }
+    
+    .modal-body {
+        padding: 0;
+        background: #000;
+    }
+    
+    .video-player-wrapper {
+        position: relative;
+        padding-top: 56.25%;
+        background: #000;
+    }
+    
+    .video-player-wrapper iframe,
+    .video-player-wrapper video {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+        grid-column: 1 / -1;
+    }
+    
+    .empty-state-icon {
+        font-size: 80px;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+    
+    .empty-state h3 {
+        font-size: 24px;
+        margin-bottom: 12px;
+        color: var(--text-primary);
+    }
+    
+    .empty-state p {
+        color: var(--text-secondary);
+        font-size: 16px;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-
-<div class="page-header">
+<!-- Hero -->
+<div class="hero-section">
     <div class="container">
-        <h1><i class="bi bi-collection-play me-3"></i>Mediathek</h1>
-        <p class="text-muted mb-0">Alle Videos und Sendungen auf Abruf</p>
+        <div class="hero-content">
+            <h1>📺 Mediathek</h1>
+            <p class="lead">Alle Sendungen jederzeit verfügbar</p>
+        </div>
     </div>
 </div>
 
-<section class="py-4">
-    <div class="container">
-        
-        <!-- Filter & Suche -->
-        <div class="row g-3 mb-4">
-            <div class="col-md-8">
-                <!-- Kategorien -->
-                <div class="d-flex flex-wrap gap-2">
-                    <a href="/mediathek/" class="category-filter {% if not current_category %}active{% endif %}">
-                        <i class="bi bi-grid-3x3 me-1"></i>Alle
-                    </a>
-                    {% for cat in categories %}
-                    <a href="?kategorie={{ cat.slug }}" 
-                       class="category-filter {% if current_category == cat.slug %}active{% endif %}"
-                       style="{% if current_category == cat.slug %}background:{{ cat.color }};border-color:{{ cat.color }};{% endif %}">
-                        {{ cat.name }}
-                    </a>
-                    {% endfor %}
-                </div>
-            </div>
-            
-            <div class="col-md-4">
-                <!-- Suche -->
-                <form method="get" class="d-flex gap-2">
-                    <input type="search" 
-                           name="q" 
-                           class="form-control" 
-                           placeholder="Video suchen..." 
-                           value="{{ search }}">
-                    <button type="submit" class="btn btn-rsl">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </form>
-            </div>
-        </div>
-        
-        <!-- Video Grid -->
-        {% if videos %}
-        <div class="video-grid">
-            {% for video in videos %}
-            <div class="video-card" onclick="playVideo('{{ video.id }}', '{{ video.get_stream_url }}')">
-                <div class="video-thumbnail">
-                    {% if video.thumbnail_url %}
-                    <img src="{{ video.thumbnail_url }}" alt="{{ video.title }}" loading="lazy">
-                    {% else %}
-                    <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--rsl-gray),var(--rsl-darker));">
-                        <i class="bi bi-film" style="font-size:3rem;color:var(--rsl-muted);"></i>
-                    </div>
-                    {% endif %}
-                    
-                    {% if video.duration %}
-                    <div class="video-duration">{{ video.duration_display }}</div>
-                    {% endif %}
-                    
-                    <div class="play-overlay">
-                        <div class="play-button">
-                            <i class="bi bi-play-fill"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="p-3">
-                    <h6 class="mb-2 fw-bold">{{ video.title }}</h6>
-                    
-                    {% if video.category %}
-                    <span class="badge mb-2" style="background:{{ video.category.color }};">
-                        {{ video.category.name }}
-                    </span>
-                    {% endif %}
-                    
-                    {% if video.description %}
-                    <p class="text-muted mb-0" style="font-size:0.85rem;">
-                        {{ video.description|truncatewords:15 }}
-                    </p>
-                    {% endif %}
-                    
-                    <div class="mt-2 d-flex justify-content-between align-items-center">
-                        <small class="text-muted">
-                            <i class="bi bi-clock me-1"></i>{{ video.duration_display }}
-                        </small>
-                        <small class="text-muted">
-                            <i class="bi bi-calendar me-1"></i>{{ video.created_at|date:"d.m.Y" }}
-                        </small>
-                    </div>
-                </div>
-            </div>
+<div class="container">
+    <!-- Search -->
+    <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input 
+            type="text" 
+            class="search-input" 
+            id="searchInput" 
+            placeholder="Sendungen durchsuchen..."
+            autocomplete="off"
+        >
+    </div>
+    
+    <!-- Categories -->
+    <div class="category-filter">
+        <div class="category-pills">
+            <span class="category-label">Kategorien:</span>
+            <a href="?kategorie=" class="category-pill {% if not current_category %}active{% endif %}">
+                Alle
+            </a>
+            {% for category in categories %}
+            <a href="?kategorie={{ category.slug }}" class="category-pill {% if current_category == category.slug %}active{% endif %}">
+                {{ category.name }}
+            </a>
             {% endfor %}
         </div>
-        {% else %}
-        <div class="text-center text-muted py-5">
-            <i class="bi bi-collection-play d-block mb-3" style="font-size:3rem;"></i>
-            <p>Keine Videos gefunden.</p>
-            {% if search or current_category %}
-            <a href="/mediathek/" class="btn btn-rsl">Filter zurücksetzen</a>
-            {% endif %}
-        </div>
-        {% endif %}
-        
     </div>
-</section>
+    
+    <!-- Video Grid -->
+    <div class="video-grid" id="videoGrid">
+        {% for video in videos %}
+        <div class="video-card" 
+             data-title="{{ video.title|lower }}" 
+             data-description="{{ video.description|default:''|lower }}"
+             onclick="playVideo('{{ video.video_url|escapejs }}', '{{ video.title|escapejs }}')">
+            
+            <div class="video-thumbnail-wrapper">
+                {% if video.thumbnail %}
+                    <img src="{{ video.thumbnail.url }}" class="video-thumbnail" alt="{{ video.title }}" loading="lazy">
+                {% else %}
+                    <div class="thumbnail-placeholder">📺</div>
+                    <img src="" class="video-thumbnail auto-thumbnail" data-video-url="{{ video.video_url }}" alt="{{ video.title }}" loading="lazy">
+                {% endif %}
+                
+                {% if video.duration %}
+                <div class="video-duration">{{ video.duration }}</div>
+                {% endif %}
+                
+                <div class="play-button"></div>
+            </div>
+            
+            <div class="video-info">
+                {% if video.category %}
+                <div class="video-category">{{ video.category.name }}</div>
+                {% endif %}
+                
+                <h3 class="video-title">{{ video.title }}</h3>
+                
+                <p class="video-description">{{ video.description|default:"Keine Beschreibung verfügbar" }}</p>
+                
+                <div class="video-meta">
+                    {% if video.created_at %}
+                    <span>📅 {{ video.created_at|date:"d.m.Y" }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📺</div>
+            <h3>Keine Videos gefunden</h3>
+            <p>Versuchen Sie eine andere Suche oder Kategorie</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
 
-<!-- Video Player Modal -->
+<!-- Video Modal -->
 <div class="modal fade" id="videoModal" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content" style="background:var(--rsl-dark);border:2px solid var(--rsl-primary);">
-            <div class="modal-header border-0">
-                <h5 class="modal-title" id="videoTitle">Video</h5>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="videoTitle"></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body p-0">
-                <div style="position:relative;padding-bottom:56.25%;height:0;background:#000;">
-                    <iframe id="videoPlayer" 
-                            style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
-                            allowfullscreen>
-                    </iframe>
+            <div class="modal-body">
+                <div class="video-player-wrapper">
+                    <div id="videoPlayerContainer"></div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
 <script>
-function playVideo(videoId, videoUrl) {
-    const modal = new bootstrap.Modal(document.getElementById('videoModal'));
-    const player = document.getElementById('videoPlayer');
+// Auto-load YouTube Thumbnails
+document.addEventListener('DOMContentLoaded', function() {
+    const autoThumbnails = document.querySelectorAll('.auto-thumbnail');
     
-    // Prüfe Video-Typ und setze entsprechende URL
-    if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
-        // YouTube
-        const videoIdMatch = videoUrl.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu.be\/)([^"&?\/\s]{11})/);
-        if (videoIdMatch) {
-            player.src = `https://www.youtube.com/embed/${videoIdMatch[1]}?autoplay=1&modestbranding=1&rel=0`;
+    autoThumbnails.forEach(img => {
+        const videoUrl = img.getAttribute('data-video-url');
+        if (!videoUrl) return;
+        
+        const videoId = extractYouTubeId(videoUrl);
+        if (videoId) {
+            const thumbnails = [
+                `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+                `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+                `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+            ];
+            
+            let index = 0;
+            const tryLoad = () => {
+                if (index >= thumbnails.length) {
+                    img.style.display = 'none';
+                    return;
+                }
+                img.src = thumbnails[index];
+                img.onerror = () => { index++; tryLoad(); };
+                img.onload = () => {
+                    img.classList.remove('loading');
+                    img.parentElement.querySelector('.thumbnail-placeholder')?.remove();
+                };
+            };
+            tryLoad();
         }
-    } else if (videoUrl.includes('twitch.tv')) {
-        // Twitch
-        const channel = videoUrl.split('twitch.tv/')[1];
-        player.src = `https://player.twitch.tv/?video=${channel}&parent=${window.location.hostname}&autoplay=true`;
-    } else {
-        // Direkte URL
-        player.src = videoUrl;
-    }
+    });
+});
+
+// Video Player
+function playVideo(videoUrl, videoTitle) {
+    const modal = new bootstrap.Modal(document.getElementById('videoModal'));
+    const container = document.getElementById('videoPlayerContainer');
+    const titleEl = document.getElementById('videoTitle');
     
-    modal.show();
+    titleEl.textContent = videoTitle;
+    container.innerHTML = '';
+    
+    try {
+        if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
+            const videoId = extractYouTubeId(videoUrl);
+            if (videoId) {
+                const iframe = document.createElement('iframe');
+                iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&modestbranding=1&rel=0`;
+                iframe.allowFullscreen = true;
+                iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+                container.appendChild(iframe);
+            }
+        } else if (videoUrl.includes('twitch.tv')) {
+            const info = extractTwitchInfo(videoUrl);
+            if (info) {
+                const iframe = document.createElement('iframe');
+                iframe.src = info.type === 'video' 
+                    ? `https://player.twitch.tv/?video=${info.id}&parent=${window.location.hostname}&autoplay=true`
+                    : `https://player.twitch.tv/?channel=${info.id}&parent=${window.location.hostname}&autoplay=true`;
+                iframe.allowFullscreen = true;
+                container.appendChild(iframe);
+            }
+        } else {
+            const video = document.createElement('video');
+            video.src = videoUrl;
+            video.controls = true;
+            video.autoplay = true;
+            container.appendChild(video);
+        }
+        modal.show();
+    } catch (e) {
+        alert('Fehler beim Laden: ' + e.message);
+    }
 }
 
-// Player beim Schließen stoppen
-document.getElementById('videoModal').addEventListener('hidden.bs.modal', function () {
-    document.getElementById('videoPlayer').src = '';
+function extractYouTubeId(url) {
+    const patterns = [
+        /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+        /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+        /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+        /(?:youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/
+    ];
+    for (const p of patterns) {
+        const m = url.match(p);
+        if (m && m[1]) return m[1];
+    }
+    return null;
+}
+
+function extractTwitchInfo(url) {
+    if (url.includes('/videos/')) {
+        const m = url.match(/videos\/(\d+)/);
+        if (m) return {type: 'video', id: m[1]};
+    }
+    const m = url.match(/twitch\.tv\/([^/?]+)/);
+    if (m && m[1] !== 'videos') return {type: 'channel', id: m[1]};
+    return null;
+}
+
+// Search
+const searchInput = document.getElementById('searchInput');
+const cards = document.querySelectorAll('.video-card');
+
+searchInput.addEventListener('input', function() {
+    const term = this.value.toLowerCase();
+    cards.forEach(card => {
+        const title = card.getAttribute('data-title') || '';
+        const desc = card.getAttribute('data-description') || '';
+        card.style.display = (title.includes(term) || desc.includes(term)) ? 'block' : 'none';
+    });
 });
+
+// Modal cleanup
+document.getElementById('videoModal').addEventListener('hidden.bs.modal', () => {
+    document.getElementById('videoPlayerContainer').innerHTML = '';
+});
+
+// Keyboard
+document.addEventListener('keydown', e => {
+    if (e.key === '/') {
+        e.preventDefault();
+        searchInput.focus();
+    }
+});
+
+console.log('📺 Mediathek geladen - {{ videos|length }} Videos');
 </script>
 {% endblock %}

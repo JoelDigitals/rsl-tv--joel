@@ -1,13 +1,18 @@
 """
-RSL TV – Models (vollständig überarbeitet)
-Joel Digitals
+RSL TV – Models (vereinigt)
+Kombiniert: Basis-System + Erweiterte Features (Audio, Multi-Kamera, Übergänge, Replay)
 """
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.core.validators import MinValueValidator, MaxValueValidator
 import uuid
 import os
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BASIS-MODELLE (aus Datei 1)
+# ══════════════════════════════════════════════════════════════════════════════
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
@@ -57,7 +62,6 @@ class SenderLogo(models.Model):
             'bottom_right': f"overlay=W-w-10:H-h-10",
         }
         overlay = pos_map.get(self.position, "overlay=W-w-10:10")
-        # Format: [logo][main] overlay
         return {
             'logo_path': path,
             'scale': scale,
@@ -127,7 +131,6 @@ class AdVideo(models.Model):
     duration = models.IntegerField(default=30, help_text="Sekunden")
     ad_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='spot')
     is_active = models.BooleanField(default=True)
-    # Verknüpfung zu einer gebuchten Werbung (optional – für eigene Sender-Trailer leer)
     advertisement = models.ForeignKey(
         'Advertisement', on_delete=models.SET_NULL,
         null=True, blank=True, related_name='ad_videos'
@@ -176,8 +179,7 @@ class AdBreakTemplate(models.Model):
                 result.append(t)
                 used_seconds += t.duration
 
-        # 2. Aktive Werbespots (gebuchte + freigeschaltete)
-        from django.utils import timezone
+        # 2. Aktive Werbespots
         now = timezone.now()
         spots = list(AdVideo.objects.filter(
             ad_type='spot',
@@ -190,7 +192,7 @@ class AdBreakTemplate(models.Model):
                 advertisement__start_date__lte=now.date(),
                 advertisement__end_date__gte=now.date(),
             )
-        ).order_by('?'))  # Zufällige Reihenfolge
+        ).order_by('?'))
 
         for spot in spots:
             if used_seconds + spot.duration <= self.max_duration - (30 if self.include_outro else 0):
@@ -570,76 +572,6 @@ class ContactMessage(models.Model):
         return f"{self.name} – {self.subject}"
 
 
-class Camera(models.Model):
-    """Kamera für Live-Regie"""
-    name = models.CharField(max_length=100, help_text="z.B. 'Kamera 1', 'Overhead'")
-    stream_url = models.URLField(max_length=500, help_text="RTMP/RTSP/HTTP Stream URL")
-    is_active = models.BooleanField(default=True)
-    preview_url = models.URLField(max_length=500, blank=True, help_text="Optional: Vorschau-URL")
-    order = models.IntegerField(default=0)
-
-    class Meta:
-        verbose_name = "Kamera"
-        verbose_name_plural = "Kameras"
-        ordering = ['order', 'name']
-
-    def __str__(self):
-        return self.name
-
-
-class LiveDirector(models.Model):
-    """Aktuell ausgewählte Kamera für Live-Sendung"""
-    live_stream = models.OneToOneField('LiveStream', on_delete=models.CASCADE, related_name='director')
-    selected_camera = models.ForeignKey(Camera, on_delete=models.SET_NULL, null=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        verbose_name = "Live-Regie"
-
-    def __str__(self):
-        return f"Regie für {self.live_stream.title}"
-
-
-class DirectorRoom(models.Model):
-    """Regieraum mit eigenen Kameras und Kontrollen"""
-    name = models.CharField(max_length=100, help_text="z.B. 'Studio A', 'Studio B', 'Sport-Regie'")
-    description = models.TextField(blank=True)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    # Streaming-Konfiguration für diesen Regieraum
-    youtube_stream_key = models.CharField(max_length=200, blank=True, help_text="YouTube Stream Key für diesen Raum")
-    twitch_stream_key = models.CharField(max_length=200, blank=True, help_text="Twitch Stream Key für diesen Raum")
-    
-    # Aktueller Status
-    is_streaming = models.BooleanField(default=False)
-    current_output = models.TextField(blank=True, help_text="Aktuelle Stream-URL oder Status")
-    
-    class Meta:
-        verbose_name = "Regieraum"
-        verbose_name_plural = "Regieräume"
-        ordering = ['name']
-    
-    def __str__(self):
-        return self.name
-
-
-class DirectorRoomCamera(models.Model):
-    """Zuordnung von Kameras zu Regieräumen"""
-    room = models.ForeignKey(DirectorRoom, on_delete=models.CASCADE, related_name='room_cameras')
-    camera = models.ForeignKey(Camera, on_delete=models.CASCADE)
-    order = models.IntegerField(default=0)
-    
-    class Meta:
-        verbose_name = "Regieraum-Kamera"
-        verbose_name_plural = "Regieraum-Kameras"
-        ordering = ['room', 'order']
-        unique_together = ['room', 'camera']
-    
-    def __str__(self):
-        return f"{self.room.name} - {self.camera.name}"
-
-
 class StandbyImage(models.Model):
     """Pausenbild für Sendepausen (außerhalb von Sendungen)"""
     title = models.CharField(max_length=200, default="Pausenbild")
@@ -654,3 +586,881 @@ class StandbyImage(models.Model):
     
     def __str__(self):
         return self.title
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ERWEITERTES KAMERA- & AUDIO-SYSTEM (aus Datei 2 - erweitert)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class AudioSource(models.Model):
+    """Audio-Quelle (Kamera-Ton, PC-Audio, externes Mikro, etc.)"""
+    AUDIO_TYPE_CHOICES = [
+        ('camera', 'Kamera-Ton'),
+        ('pc', 'PC-Audio'),
+        ('microphone', 'Mikrofon'),
+        ('line_in', 'Line-In'),
+        ('virtual', 'Virtuelles Audio'),
+        ('file', 'Audio-Datei'),
+    ]
+    
+    name = models.CharField(max_length=100, verbose_name="Bezeichnung")
+    audio_type = models.CharField(max_length=20, choices=AUDIO_TYPE_CHOICES)
+    source_url = models.CharField(max_length=500, blank=True, help_text="RTSP/RTMP/HTTP URL oder Geräte-Pfad")
+    audio_file = models.FileField(upload_to='audio/', blank=True, null=True)
+    
+    # Audio-Eigenschaften
+    volume = models.IntegerField(default=100, validators=[MinValueValidator(0), MaxValueValidator(200)])
+    is_muted = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    is_looping = models.BooleanField(default=False, help_text="Endlos wiederholen (z.B. für Hintergrundmusik)")
+    
+    # Linked Camera (wenn Kamera-Ton)
+    linked_camera = models.ForeignKey('Camera', on_delete=models.CASCADE, null=True, blank=True, related_name='audio_sources')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    order = models.IntegerField(default=0, help_text="Reihenfolge im Mixer")
+    
+    class Meta:
+        verbose_name = "Audio-Quelle"
+        verbose_name_plural = "Audio-Quellen"
+        ordering = ['order', 'name']
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_audio_type_display()})"
+    
+    def get_audio_url(self):
+        """Gibt die tatsächliche Audio-URL zurück"""
+        if self.audio_file:
+            return self.audio_file.path
+        if self.linked_camera and self.audio_type == 'camera':
+            return self.linked_camera.stream_url
+        return self.source_url or ''
+
+
+class Camera(models.Model):
+    """Erweiterte Kamera mit Audio-Support und FFmpeg-Integration"""
+    CAMERA_TYPE_CHOICES = [
+        ('rtsp', 'RTSP (IP-Kamera)'),
+        ('rtmp', 'RTMP (Stream)'),
+        ('http', 'HTTP (MJPEG/HLS)'),
+        ('webcam', 'Webcam (lokal)'),
+        ('ndi', 'NDI'),
+        ('sdi', 'SDI/HDMI'),
+        ('virtual', 'Virtuell (OBS Virtual Camera)'),
+        ('screen', 'Bildschirm-Capture'),
+    ]
+    
+    name = models.CharField(max_length=100, verbose_name="Kamera-Name")
+    camera_type = models.CharField(
+        max_length=20,
+        choices=CAMERA_TYPE_CHOICES,
+        default='rtsp'
+    )
+    stream_url = models.CharField(max_length=500, help_text="Stream-URL oder Geräte-Pfad (z.B. /dev/video0)")
+    
+    # Preview
+    preview_image = models.ImageField(upload_to='camera_previews/', blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    
+    # Audio-Einstellungen
+    has_audio = models.BooleanField(default=True)
+    audio_enabled = models.BooleanField(default=False, help_text="Kamera-Audio verwenden")
+    
+    # Position im Regieraum
+    order = models.IntegerField(default=0)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Kamera"
+        verbose_name_plural = "Kameras"
+        ordering = ['order', 'name']
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_camera_type_display()})"
+    
+    def get_ffmpeg_input(self):
+        """Generiert FFmpeg-Input-Parameter für diese Kamera"""
+        params = []
+        
+        if self.camera_type == 'rtsp':
+            params = ['-rtsp_transport', 'tcp', '-i', self.stream_url]
+        elif self.camera_type == 'rtmp':
+            params = ['-i', self.stream_url]
+        elif self.camera_type == 'webcam':
+            params = ['-f', 'v4l2', '-i', self.stream_url]
+        elif self.camera_type == 'screen':
+            params = ['-f', 'x11grab', '-i', self.stream_url or ':0.0']
+        elif self.camera_type == 'ndi':
+            params = ['-f', 'libndi_newtek', '-i', self.stream_url]
+        else:
+            params = ['-i', self.stream_url]
+        
+        return params
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ÜBERGANGS-STUDIO & SZENEN
+# ══════════════════════════════════════════════════════════════════════════════
+
+class Transition(models.Model):
+    """Übergangseffekt zwischen Szenen/Kameras"""
+    TRANSITION_TYPE_CHOICES = [
+        ('cut', 'Harter Schnitt'),
+        ('fade', 'Überblendung'),
+        ('wipe_left', 'Wipe Left'),
+        ('wipe_right', 'Wipe Right'),
+        ('wipe_up', 'Wipe Up'),
+        ('wipe_down', 'Wipe Down'),
+        ('dissolve', 'Dissolve'),
+        ('slide_left', 'Slide Left'),
+        ('slide_right', 'Slide Right'),
+        ('zoom_in', 'Zoom In'),
+        ('zoom_out', 'Zoom Out'),
+        ('pixelize', 'Pixelize'),
+    ]
+    
+    name = models.CharField(max_length=100)
+    transition_type = models.CharField(max_length=20, choices=TRANSITION_TYPE_CHOICES)
+    duration = models.FloatField(default=1.0, help_text="Dauer in Sekunden")
+    
+    # FFmpeg-Filter
+    ffmpeg_filter = models.TextField(blank=True, help_text="Custom FFmpeg xfade Filter")
+    
+    is_active = models.BooleanField(default=True)
+    is_default = models.BooleanField(default=False)
+    
+    class Meta:
+        verbose_name = "Übergangseffekt"
+        verbose_name_plural = "Übergangseffekte"
+        ordering = ['name']
+    
+    def __str__(self):
+        return f"{self.name} ({self.duration}s)"
+    
+    def get_ffmpeg_filter(self):
+        """Gibt FFmpeg xfade Filter zurück"""
+        if self.ffmpeg_filter:
+            return self.ffmpeg_filter
+        
+        return f"xfade=transition={self.transition_type}:duration={self.duration}:offset=0"
+
+
+class Scene(models.Model):
+    """Szene im Übergangs-Studio (Kombination aus Kamera + Overlays + Audio)"""
+    name = models.CharField(max_length=100)
+    
+    # Primäre Kamera
+    camera = models.ForeignKey(Camera, on_delete=models.CASCADE, related_name='scenes')
+    
+    # Audio-Mix für diese Szene
+    audio_sources = models.ManyToManyField(AudioSource, blank=True, through='SceneAudioMix')
+    
+    # Overlays (Lower-Third, Bauchbinde, etc.)
+    overlay_text = models.CharField(max_length=500, blank=True)
+    overlay_image = models.ImageField(upload_to='overlays/', blank=True, null=True)
+    
+    # Farb-Korrektur
+    brightness = models.IntegerField(default=0, validators=[MinValueValidator(-100), MaxValueValidator(100)])
+    contrast = models.IntegerField(default=0, validators=[MinValueValidator(-100), MaxValueValidator(100)])
+    saturation = models.IntegerField(default=0, validators=[MinValueValidator(-100), MaxValueValidator(100)])
+    
+    is_active = models.BooleanField(default=True)
+    order = models.IntegerField(default=0)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Szene"
+        verbose_name_plural = "Szenen"
+        ordering = ['order', 'name']
+    
+    def __str__(self):
+        return f"{self.name} (Kamera: {self.camera.name})"
+
+
+class SceneAudioMix(models.Model):
+    """Audio-Mix für eine Szene"""
+    scene = models.ForeignKey(Scene, on_delete=models.CASCADE)
+    audio_source = models.ForeignKey(AudioSource, on_delete=models.CASCADE)
+    volume = models.IntegerField(default=100, validators=[MinValueValidator(0), MaxValueValidator(200)])
+    is_muted = models.BooleanField(default=False)
+    
+    class Meta:
+        verbose_name = "Szenen-Audio-Mix"
+        verbose_name_plural = "Szenen-Audio-Mixe"
+        unique_together = ['scene', 'audio_source']
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BEITRAGS-PLANUNG & RUNDOWN
+# ══════════════════════════════════════════════════════════════════════════════
+
+class ShowRundown(models.Model):
+    """Sendeablauf / Rundown für eine Show"""
+    title = models.CharField(max_length=200)
+    show_date = models.DateTimeField()
+    
+    # Gesamt-Dauer
+    total_planned_duration = models.IntegerField(default=0, help_text="Summe aller Segmente")
+    
+    # Status
+    is_active = models.BooleanField(default=True)
+    is_live = models.BooleanField(default=False, help_text="Wird gerade gesendet?")
+    
+    # Aktuelles Segment
+    current_segment = models.ForeignKey('ContentSegment', on_delete=models.SET_NULL, null=True, blank=True, related_name='current_in_rundown')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Show-Rundown"
+        verbose_name_plural = "Show-Rundowns"
+        ordering = ['-show_date']
+    
+    def __str__(self):
+        return f"{self.title} ({self.show_date.strftime('%d.%m.%Y %H:%M')})"
+    
+    def calculate_total_duration(self):
+        """Berechnet Gesamt-Dauer"""
+        total = self.segments.aggregate(models.Sum('planned_duration'))['planned_duration__sum'] or 0
+        self.total_planned_duration = total
+        self.save(update_fields=['total_planned_duration'])
+        return total
+
+
+class ContentSegment(models.Model):
+    """Vorbereiteter Beitrag/Segment für Live-Show"""
+    SEGMENT_TYPE_CHOICES = [
+        ('video', 'Video-Beitrag'),
+        ('interview', 'Interview'),
+        ('discussion', 'Diskussion'),
+        ('presentation', 'Präsentation'),
+        ('game', 'Spiel/Quiz'),
+        ('music', 'Musik'),
+        ('ad_break', 'Werbepause'),
+        ('other', 'Sonstiges'),
+    ]
+    
+    title = models.CharField(max_length=200)
+    segment_type = models.CharField(max_length=20, choices=SEGMENT_TYPE_CHOICES)
+    description = models.TextField(blank=True)
+    
+    # Timing
+    planned_duration = models.IntegerField(help_text="Geplante Dauer in Sekunden")
+    actual_duration = models.IntegerField(null=True, blank=True, help_text="Tatsächliche Dauer nach Ausstrahlung")
+    
+    # Content
+    video_file = models.FileField(upload_to='segments/', blank=True, null=True)
+    video_url = models.URLField(blank=True, max_length=500)
+    
+    # Szenen-Zuordnung (falls live mit Kamera)
+    scene = models.ForeignKey(Scene, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Skript/Notizen
+    script = models.TextField(blank=True, help_text="Skript oder Moderations-Text")
+    notes = models.TextField(blank=True, help_text="Technische Notizen")
+    
+    # Platzierung in Rundown
+    rundown = models.ForeignKey(ShowRundown, on_delete=models.CASCADE, related_name='segments')
+    order = models.IntegerField(default=0)
+    
+    # Status
+    is_ready = models.BooleanField(default=False, help_text="Technisch vorbereitet?")
+    was_played = models.BooleanField(default=False)
+    played_at = models.DateTimeField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Content-Segment"
+        verbose_name_plural = "Content-Segmente"
+        ordering = ['rundown', 'order']
+    
+    def __str__(self):
+        return f"{self.title} ({self.planned_duration}s)"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# REPLAY-SYSTEM
+# ══════════════════════════════════════════════════════════════════════════════
+
+class ReplayClip(models.Model):
+    """Aufgenommener Replay-Clip"""
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    
+    # Quelle
+    source_camera = models.ForeignKey(Camera, on_delete=models.SET_NULL, null=True, blank=True)
+    source_rundown = models.ForeignKey(ShowRundown, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Datei
+    video_file = models.FileField(upload_to='replays/')
+    thumbnail = models.ImageField(upload_to='replay_thumbs/', blank=True, null=True)
+    duration = models.IntegerField(default=0, help_text="Dauer in Sekunden")
+    
+    # Timing
+    recorded_at = models.DateTimeField(auto_now_add=True)
+    in_point = models.FloatField(default=0, help_text="Start-Punkt in Sekunden")
+    out_point = models.FloatField(default=0, help_text="End-Punkt in Sekunden")
+    
+    # Playback-Optionen
+    playback_speed = models.FloatField(default=1.0, help_text="1.0 = normal, 0.5 = slow-mo, 2.0 = fast")
+    
+    # Tags/Kategorisierung
+    tags = models.CharField(max_length=500, blank=True)
+    
+    # Status
+    is_favorite = models.BooleanField(default=False)
+    times_played = models.IntegerField(default=0)
+    
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Replay-Clip"
+        verbose_name_plural = "Replay-Clips"
+        ordering = ['-recorded_at']
+    
+    def __str__(self):
+        return f"{self.title} ({self.duration}s)"
+    
+    def get_effective_duration(self):
+        """Gibt die Dauer unter Berücksichtigung der Geschwindigkeit zurück"""
+        base_duration = self.out_point - self.in_point if self.out_point > 0 else self.duration
+        return base_duration / self.playback_speed if self.playback_speed > 0 else base_duration
+
+
+class ReplayPlaylist(models.Model):
+    """Zusammenstellung von Replay-Clips"""
+    name = models.CharField(max_length=200)
+    clips = models.ManyToManyField(ReplayClip, through='ReplayPlaylistItem')
+    
+    # Auto-generiert?
+    auto_generated = models.BooleanField(default=False, help_text="Automatisch aus Show generiert?")
+    source_rundown = models.ForeignKey(ShowRundown, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Replay-Playlist"
+        verbose_name_plural = "Replay-Playlists"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return self.name
+
+
+class ReplayPlaylistItem(models.Model):
+    """Einzelner Clip in Replay-Playlist"""
+    playlist = models.ForeignKey(ReplayPlaylist, on_delete=models.CASCADE)
+    clip = models.ForeignKey(ReplayClip, on_delete=models.CASCADE)
+    order = models.IntegerField(default=0)
+    
+    # Transition zum nächsten Clip
+    transition = models.ForeignKey(Transition, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    class Meta:
+        ordering = ['order']
+        unique_together = ['playlist', 'clip', 'order']
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# REGIERÄUME (Vereinigt aus beiden Versionen)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class DirectorRoom(models.Model):
+    """
+    Erweiterter Regieraum mit Multi-Kamera + Audio-Mixing + Streaming.
+    Vereinigt Funktionen aus beiden Versionen.
+    """
+    name = models.CharField(max_length=100, default="Hauptregie")
+    description = models.TextField(blank=True)
+    
+    # Kameras (Many-to-Many für Multi-Kamera-Support)
+    cameras = models.ManyToManyField(Camera, blank=True, related_name='director_rooms')
+    active_camera = models.ForeignKey(Camera, on_delete=models.SET_NULL, null=True, blank=True, related_name='active_in_rooms')
+    preview_camera = models.ForeignKey(Camera, on_delete=models.SET_NULL, null=True, blank=True, related_name='preview_in_rooms')
+    
+    # Audio-Mixing
+    audio_sources = models.ManyToManyField(AudioSource, blank=True, related_name='director_rooms')
+    
+    # Aktive Szene
+    active_scene = models.ForeignKey(Scene, on_delete=models.SET_NULL, null=True, blank=True, related_name='active_in_rooms')
+    
+    # Streaming-Konfiguration
+    youtube_stream_key = models.CharField(max_length=255, blank=True, help_text="YouTube Stream Key")
+    twitch_stream_key = models.CharField(max_length=255, blank=True, help_text="Twitch Stream Key")
+    
+    # Streaming-Status
+    is_streaming_youtube = models.BooleanField(default=False)
+    is_streaming_twitch = models.BooleanField(default=False)
+    is_streaming = models.BooleanField(default=False, help_text="Wird aktuell gestreamt?")
+    current_output = models.TextField(blank=True, help_text="Aktuelle Stream-URL oder Status")
+    
+    # Recording
+    is_recording = models.BooleanField(default=False)
+    recording_path = models.CharField(max_length=500, blank=True)
+    
+    # Prozess-Management
+    ffmpeg_pid = models.IntegerField(null=True, blank=True, help_text="Prozess-ID des laufenden FFmpeg")
+    last_stream_started = models.DateTimeField(null=True, blank=True)
+    
+    # Automatische Replay-Aufnahme
+    auto_record_replays = models.BooleanField(default=True, help_text="Automatisch Replay-Clips erstellen")
+    replay_buffer_seconds = models.IntegerField(default=30, help_text="Replay-Puffer in Sekunden")
+    
+    # Logging
+    stream_log = models.TextField(blank=True, help_text="Stream-Log")
+    
+    # Status
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Regieraum"
+        verbose_name_plural = "Regieräume"
+        ordering = ['name']
+    
+    def __str__(self):
+        status = "🟢" if self.is_streaming else "🔴"
+        return f"{status} {self.name}"
+    
+    def append_log(self, message):
+        """Fügt Log-Eintrag hinzu (max 1000 Zeilen)"""
+        timestamp = timezone.now().strftime('%H:%M:%S')
+        entry = f"[{timestamp}] {message}\n"
+        self.stream_log = (self.stream_log or '') + entry
+        lines = self.stream_log.split('\n')
+        if len(lines) > 1000:
+            self.stream_log = '\n'.join(lines[-1000:])
+        self.save(update_fields=['stream_log', 'updated_at'])
+    
+    def get_active_audio_sources(self):
+        """Gibt alle aktiven Audio-Quellen zurück"""
+        return self.audio_sources.filter(is_active=True, is_muted=False)
+    
+    def switch_to_camera(self, camera, use_transition=True):
+        """Wechselt zur angegebenen Kamera (mit optionalem Übergang)"""
+        old_camera = self.active_camera
+        
+        if use_transition and old_camera and old_camera != camera:
+            transition = Transition.objects.filter(is_default=True).first()
+            if not transition:
+                transition = Transition.objects.filter(is_active=True).first()
+            
+            if transition:
+                self.append_log(f"Übergang: {old_camera.name} → {camera.name} ({transition.name})")
+        
+        self.active_camera = camera
+        self.save(update_fields=['active_camera', 'updated_at'])
+        self.append_log(f"Kamera aktiv: {camera.name}")
+    
+    def create_replay_clip(self, title, duration_seconds=30):
+        """Erstellt Replay-Clip aus aktuellem Stream-Buffer"""
+        if not self.auto_record_replays:
+            return None
+        
+        clip = ReplayClip.objects.create(
+            title=title,
+            source_camera=self.active_camera,
+            duration=duration_seconds,
+        )
+        
+        self.append_log(f"Replay-Clip erstellt: {title} ({duration_seconds}s)")
+        return clip
+
+
+class DirectorRoomCamera(models.Model):
+    """Zuordnung von Kameras zu Regieräumen mit Reihenfolge"""
+    room = models.ForeignKey(DirectorRoom, on_delete=models.CASCADE, related_name='room_cameras')
+    camera = models.ForeignKey(Camera, on_delete=models.CASCADE)
+    order = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=False, help_text="Ist diese Kamera aktuell aktiv?")
+    
+    class Meta:
+        verbose_name = "Regieraum-Kamera"
+        verbose_name_plural = "Regieraum-Kameras"
+        ordering = ['room', 'order']
+        unique_together = ['room', 'camera']
+    
+    def __str__(self):
+        active = "🟢" if self.is_active else "⚪"
+        return f"{active} {self.room.name} - {self.camera.name}"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# LIVE-DIRECTOR (Legacy - für einfache Live-Streams)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class LiveDirector(models.Model):
+    """Aktuell ausgewählte Kamera für Live-Sendung (Legacy-Einfachversion)"""
+    live_stream = models.OneToOneField(LiveStream, on_delete=models.CASCADE, related_name='director')
+    selected_camera = models.ForeignKey(Camera, on_delete=models.SET_NULL, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Live-Regie (Legacy)"
+
+    def __str__(self):
+        return f"Regie für {self.live_stream.title}"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PROGRAMM-REGIERAUM (24/7 Streaming)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class ProgramRoom(models.Model):
+    """
+    Programm-Regieraum für 24/7 Sendeplan-Streaming.
+    Steuert FFmpeg-Prozesse, Werbepausen und Stream-Status.
+    """
+    # Primärschlüssel fix auf 1 für Singleton-Pattern
+    id = models.AutoField(primary_key=True)
+    
+    # Stream-Keys und RTMP-URLs
+    youtube_stream_key = models.CharField(max_length=255, blank=True, help_text="YouTube Stream Key")
+    twitch_stream_key = models.CharField(max_length=255, blank=True, help_text="Twitch Stream Key")
+    youtube_rtmp_url = models.CharField(max_length=255, default='rtmp://a.rtmp.youtube.com/live2')
+    twitch_rtmp_url = models.CharField(max_length=255, default='rtmp://live.twitch.tv/app')
+    
+    # Stream-Status
+    is_streaming_youtube = models.BooleanField(default=False)
+    is_streaming_twitch = models.BooleanField(default=False)
+    ffmpeg_pid = models.IntegerField(null=True, blank=True, help_text="Prozess-ID des laufenden FFmpeg")
+    
+    # Werbepause-Status
+    ad_break_active = models.BooleanField(default=False)
+    ad_break_started_at = models.DateTimeField(null=True, blank=True)
+    ad_break_ends_at = models.DateTimeField(null=True, blank=True)
+    
+    # Video-Position für Resume nach Werbepause
+    video_position_seconds = models.IntegerField(default=0, help_text="Aktuelle Position im Video (Sekunden)")
+    
+    # Buffer-Konfiguration
+    buffer_ahead_minutes = models.IntegerField(default=5, help_text="Minuten vor Sendebeginn für Vorab-Download")
+    
+    # Logging
+    log_text = models.TextField(blank=True, default="", help_text="Letzte Log-Einträge")
+    
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Programm-Regieraum"
+        verbose_name_plural = "Programm-Regieraum"
+
+    def __str__(self):
+        status = "🟢" if (self.is_streaming_youtube or self.is_streaming_twitch) else "🔴"
+        return f"{status} Programm-Regieraum"
+
+    def get_rtmp_targets(self):
+        """Gibt Liste der aktiven RTMP-Ziele zurück"""
+        targets = []
+        if self.youtube_stream_key:
+            targets.append(('youtube', f"{self.youtube_rtmp_url}/{self.youtube_stream_key}"))
+        if self.twitch_stream_key:
+            targets.append(('twitch', f"{self.twitch_rtmp_url}/{self.twitch_stream_key}"))
+        return targets
+
+    def append_log(self, message):
+        """Fügt Log-Eintrag hinzu (max 100 Zeilen)"""
+        timestamp = timezone.now().strftime("%H:%M:%S")
+        new_line = f"[{timestamp}] {message}"
+        lines = self.log_text.split('\n') if self.log_text else []
+        lines.append(new_line)
+        self.log_text = '\n'.join(lines[-100:])
+        self.save(update_fields=['log_text', 'updated_at'])
+
+
+class VideoCache(models.Model):
+    """
+    Lokaler Cache für Videos aus dem Sendeplan.
+    Videos werden vorab heruntergeladen, um Buffering zu vermeiden.
+    """
+    video = models.OneToOneField(Video, on_delete=models.CASCADE, related_name='cache')
+    
+    STATUS_CHOICES = [
+        ('pending', 'Wartet'),
+        ('downloading', 'Wird heruntergeladen'),
+        ('ready', 'Bereit'),
+        ('error', 'Fehler'),
+    ]
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    local_path = models.CharField(max_length=500, blank=True, help_text="Lokaler Dateipfad")
+    file_size_mb = models.FloatField(default=0)
+    duration_seconds = models.IntegerField(default=0)
+    progress_percent = models.IntegerField(default=0)
+    error_message = models.TextField(blank=True)
+    downloaded_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Video-Cache"
+        verbose_name_plural = "Video-Caches"
+
+    def __str__(self):
+        return f"Cache: {self.video.title} ({self.get_status_display()})"
+
+    def is_ready(self):
+        """Prüft ob Video bereit und Datei existiert"""
+        if self.status != 'ready':
+            return False
+        if not self.local_path:
+            return False
+        import os
+        return os.path.exists(self.local_path)
+
+
+class StreamProcess(models.Model):
+    """
+    Protokollierung von gestarteten FFmpeg-Stream-Prozessen.
+    """
+    program_room = models.ForeignKey(ProgramRoom, on_delete=models.CASCADE, related_name='processes')
+    
+    STATUS_CHOICES = [
+        ('starting', 'Wird gestartet'),
+        ('running', 'Läuft'),
+        ('stopped', 'Gestoppt'),
+        ('error', 'Fehler'),
+        ('crashed', 'Abgestürzt'),
+    ]
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='starting')
+    pid = models.IntegerField(null=True, blank=True)
+    platforms = models.CharField(max_length=100, help_text="youtube, twitch, both")
+    started_at = models.DateTimeField(auto_now_add=True)
+    stopped_at = models.DateTimeField(null=True, blank=True)
+    error_message = models.TextField(blank=True)
+    log_output = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "Stream-Prozess"
+        verbose_name_plural = "Stream-Prozesse"
+        ordering = ['-started_at']
+
+    def __str__(self):
+        return f"Stream {self.pid or 'N/A'} ({self.get_status_display()})"
+
+# Füge dies zu tv/models.py hinzu (am Ende vor den letzten Zeilen)
+
+class PauseScreen(models.Model):
+    """Pausenbild für Live-Sendungen"""
+    BACKGROUND_TYPE_CHOICES = [
+        ('gradient', 'Farbverlauf'),
+        ('solid', 'Einfarbig'),
+        ('image', 'Bild'),
+    ]
+    
+    ANIMATION_CHOICES = [
+        ('none', 'Keine'),
+        ('fadeIn', 'Einblenden'),
+        ('slideDown', 'Heruntergleiten'),
+        ('pulse', 'Pulsieren'),
+    ]
+    
+    title = models.CharField(max_length=200)
+    background_type = models.CharField(max_length=20, choices=BACKGROUND_TYPE_CHOICES, default='gradient')
+    
+    # Farben (für gradient/solid)
+    color_primary = models.CharField(max_length=7, default='#e63946', help_text="Hex-Farbe z.B. #e63946")
+    color_secondary = models.CharField(max_length=7, default='#c1121f', help_text="Nur für Gradient")
+    
+    # Bild (optional)
+    background_image = models.ImageField(upload_to='pause_screens/', blank=True, null=True)
+    
+    # Text
+    main_text = models.CharField(max_length=100, default='Kurze Pause')
+    sub_text = models.CharField(max_length=200, default='Wir sind gleich zurück', blank=True)
+    
+    # Logo
+    show_logo = models.BooleanField(default=True)
+    custom_logo = models.ImageField(upload_to='pause_screens/logos/', blank=True, null=True)
+    
+    # Animation
+    animation = models.CharField(max_length=20, choices=ANIMATION_CHOICES, default='none')
+    
+    # Status
+    is_active = models.BooleanField(default=False, help_text="Aktuell verwendetes Pausenbild")
+    is_default = models.BooleanField(default=False)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Pausenbild"
+        verbose_name_plural = "Pausenbilder"
+        ordering = ['-is_active', '-created_at']
+    
+    def __str__(self):
+        return f"{self.title} {'(AKTIV)' if self.is_active else ''}"
+    
+    def activate(self):
+        """Aktiviert dieses Pausenbild und deaktiviert alle anderen"""
+        PauseScreen.objects.all().update(is_active=False)
+        self.is_active = True
+        self.save()
+    
+    def get_css_background(self):
+        """Gibt den CSS-Background-String zurück"""
+        if self.background_type == 'gradient':
+            return f"linear-gradient(135deg, {self.color_primary} 0%, {self.color_secondary} 100%)"
+        elif self.background_type == 'solid':
+            return self.color_primary
+        elif self.background_type == 'image' and self.background_image:
+            return f"url({self.background_image.url})"
+        return "#1a1a1a"
+
+
+class StreamOverlay(models.Model):
+    """Lower-Third und andere Overlays für den Stream"""
+    OVERLAY_TYPE_CHOICES = [
+        ('lower_third', 'Lower Third (Name/Titel)'),
+        ('ticker', 'Lauftext'),
+        ('countdown', 'Countdown'),
+        ('logo', 'Logo/Bug'),
+        ('scoreboard', 'Spielstand'),
+    ]
+    
+    POSITION_CHOICES = [
+        ('bottom', 'Unten'),
+        ('top', 'Oben'),
+        ('left', 'Links'),
+        ('right', 'Rechts'),
+        ('center', 'Mittig'),
+        ('bottom_left', 'Unten Links'),
+        ('bottom_right', 'Unten Rechts'),
+        ('top_left', 'Oben Links'),
+        ('top_right', 'Oben Rechts'),
+    ]
+    
+    name = models.CharField(max_length=200)
+    overlay_type = models.CharField(max_length=20, choices=OVERLAY_TYPE_CHOICES)
+    position = models.CharField(max_length=20, choices=POSITION_CHOICES, default='bottom')
+    
+    # Design
+    background_color = models.CharField(max_length=7, default='#e63946')
+    text_color = models.CharField(max_length=7, default='#ffffff')
+    font_size = models.IntegerField(default=24, help_text="Schriftgröße in Pixel")
+    
+    # Content
+    text_content = models.TextField(help_text="Text für Lower Third oder Ticker")
+    duration = models.IntegerField(default=10, help_text="Anzeigedauer in Sekunden (0 = permanent)")
+    
+    # Animation
+    animation_in = models.CharField(max_length=20, default='slideInLeft')
+    animation_out = models.CharField(max_length=20, default='slideOutLeft')
+    
+    # Status
+    is_active = models.BooleanField(default=False)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Stream-Overlay"
+        verbose_name_plural = "Stream-Overlays"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_overlay_type_display()})"
+
+
+class CutOutGraphic(models.Model):
+    """Cut-Out Grafiken (Freisteller, Sticker, Emojis für Stream)"""
+    CATEGORY_CHOICES = [
+        ('emoji', 'Emoji/Reaktionen'),
+        ('sticker', 'Sticker'),
+        ('logo', 'Logo'),
+        ('frame', 'Rahmen'),
+        ('other', 'Sonstiges'),
+    ]
+    
+    name = models.CharField(max_length=200)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='sticker')
+    
+    # Bild (PNG mit Transparenz!)
+    image = models.ImageField(upload_to='cutouts/', help_text="PNG mit Transparenz empfohlen")
+    
+    # Position & Größe (Default-Werte)
+    default_x = models.IntegerField(default=0, help_text="X-Position in Pixel")
+    default_y = models.IntegerField(default=0, help_text="Y-Position in Pixel")
+    default_width = models.IntegerField(default=200, help_text="Breite in Pixel")
+    default_height = models.IntegerField(default=200, help_text="Höhe in Pixel")
+    
+    # Verhalten
+    can_animate = models.BooleanField(default=False)
+    animation_duration = models.IntegerField(default=2, help_text="Dauer in Sekunden")
+    
+    # Hotkey (optional)
+    hotkey = models.CharField(max_length=10, blank=True, help_text="z.B. F1, F2, etc.")
+    
+    # Status
+    is_active = models.BooleanField(default=True)
+    times_used = models.IntegerField(default=0)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Cut-Out Grafik"
+        verbose_name_plural = "Cut-Out Grafiken"
+        ordering = ['-times_used', 'category', 'name']
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_category_display()})"
+    
+    def use(self):
+        """Zählt Verwendung hoch"""
+        self.times_used += 1
+        self.save(update_fields=['times_used'])
+
+
+class StreamPreset(models.Model):
+    """Vorkonfigurierte Stream-Einstellungen (wie OBS Profile)"""
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    
+    # Video-Einstellungen
+    resolution = models.CharField(max_length=20, default='1920x1080')
+    fps = models.IntegerField(default=30)
+    bitrate = models.IntegerField(default=4500, help_text="Kbps")
+    
+    # Audio-Einstellungen
+    audio_bitrate = models.IntegerField(default=128, help_text="Kbps")
+    audio_sample_rate = models.IntegerField(default=48000, help_text="Hz")
+    
+    # Szenen-Zuordnung
+    default_scene = models.ForeignKey(Scene, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Overlays
+    overlays = models.ManyToManyField(StreamOverlay, blank=True)
+    
+    # Status
+    is_active = models.BooleanField(default=False)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Stream-Preset"
+        verbose_name_plural = "Stream-Presets"
+        ordering = ['-is_active', 'name']
+    
+    def __str__(self):
+        return f"{self.name} ({self.resolution}@{self.fps}fps)"
+    
+    def activate(self):
+        """Aktiviert dieses Preset"""
+        StreamPreset.objects.all().update(is_active=False)
+        self.is_active = True
+        self.save()

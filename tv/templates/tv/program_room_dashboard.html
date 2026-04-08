@@ -1,0 +1,716 @@
+{% extends 'base_admin.html' %}
+
+{% block title %}Programm-Regie – RSL{% endblock %}
+
+{% block extra_css %}
+<style>
+    body { background: #070710; color: #fff; }
+
+    :root {
+        --pr-bg:      #0d0d1a;
+        --pr-panel:   #12122a;
+        --pr-border:  #2a2a4a;
+        --pr-accent:  #00c4ff;
+        --pr-green:   #4ade80;
+        --pr-red:     #ef4444;
+        --pr-yellow:  #fbbf24;
+        --pr-purple:  #9147ff;
+    }
+
+    .page-header {
+        background: linear-gradient(135deg, #0d0d1a 0%, #1a1a3a 100%);
+        border-bottom: 2px solid var(--pr-border);
+        padding: 1.5rem 0;
+    }
+
+    .regie-card {
+        background: var(--pr-panel);
+        border: 1px solid var(--pr-border);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .regie-card-header {
+        background: rgba(0,196,255,0.08);
+        border-bottom: 1px solid var(--pr-border);
+        padding: 0.8rem 1.2rem;
+        font-weight: 700;
+        font-size: 0.85rem;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--pr-accent);
+    }
+
+    .regie-card-body { padding: 1.2rem; }
+
+    /* Status-Badges */
+    .status-dot {
+        display: inline-block;
+        width: 10px; height: 10px;
+        border-radius: 50%;
+        margin-right: 6px;
+        animation: pulse 1.5s infinite;
+    }
+    .status-dot.live   { background: var(--pr-green); }
+    .status-dot.idle   { background: #555; animation: none; }
+    .status-dot.warn   { background: var(--pr-yellow); }
+    .status-dot.error  { background: var(--pr-red); }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50%       { opacity: 0.6; transform: scale(0.85); }
+    }
+
+    /* Große Steuerknöpfe */
+    .big-btn {
+        width: 100%;
+        padding: 1rem;
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    }
+    .big-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+    .big-btn:active { transform: translateY(0); }
+    .big-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    .btn-yt    { background: #ff0000; color: #fff; }
+    .btn-tw    { background: var(--pr-purple); color: #fff; }
+    .btn-both  { background: linear-gradient(90deg, #ff0000, var(--pr-purple)); color: #fff; }
+    .btn-stop  { background: var(--pr-red); color: #fff; }
+    .btn-ad    { background: #f59e0b; color: #000; }
+    .btn-save  { background: var(--pr-green); color: #000; }
+    .btn-dl    { background: #3b82f6; color: #fff; }
+
+    /* Sendeplan-Zeile */
+    .schedule-row {
+        display: flex;
+        align-items: center;
+        padding: 0.7rem 0;
+        border-bottom: 1px solid var(--pr-border);
+        gap: 0.8rem;
+    }
+    .schedule-row:last-child { border-bottom: none; }
+    .schedule-row.now { background: rgba(74,222,128,0.07); border-left: 3px solid var(--pr-green); padding-left: 0.6rem; }
+
+    .sch-time   { font-variant-numeric: tabular-nums; font-size: 0.85rem; color: var(--pr-accent); min-width: 50px; }
+    .sch-title  { flex: 1; font-weight: 600; font-size: 0.9rem; }
+    .sch-dur    { font-size: 0.78rem; color: #888; }
+
+    /* Cache-Badges */
+    .cache-badge {
+        font-size: 0.72rem; padding: 2px 8px; border-radius: 10px;
+        font-weight: 700; white-space: nowrap;
+    }
+    .cache-ready    { background: rgba(74,222,128,0.2); color: var(--pr-green); }
+    .cache-loading  { background: rgba(59,130,246,0.2); color: #60a5fa; }
+    .cache-pending  { background: rgba(255,255,255,0.1); color: #888; }
+    .cache-error    { background: rgba(239,68,68,0.2); color: var(--pr-red); }
+    .cache-stream   { background: rgba(0,196,255,0.15); color: var(--pr-accent); }
+
+    /* Haupt-Status-Panel */
+    .main-status {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .status-tile {
+        background: var(--pr-panel);
+        border: 1px solid var(--pr-border);
+        border-radius: 10px;
+        padding: 1.2rem;
+        text-align: center;
+    }
+    .status-tile .platform { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 0.4rem; }
+    .status-tile .value    { font-size: 1.5rem; font-weight: 700; }
+    .status-tile.active    { border-color: var(--pr-green); }
+
+    /* Log */
+    .log-box {
+        background: #070710;
+        border: 1px solid var(--pr-border);
+        border-radius: 6px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.78rem;
+        padding: 0.8rem;
+        height: 180px;
+        overflow-y: auto;
+        color: #9ca3af;
+    }
+    .log-box .log-line   { margin: 0; line-height: 1.5; }
+    .log-box .log-ok     { color: var(--pr-green); }
+    .log-box .log-err    { color: var(--pr-red); }
+    .log-box .log-ad     { color: var(--pr-yellow); }
+    .log-box .log-stream { color: var(--pr-accent); }
+
+    /* Ad-break Timer */
+    #ad-timer-wrap {
+        display: none;
+        background: rgba(245,158,11,0.12);
+        border: 1px solid var(--pr-yellow);
+        border-radius: 8px;
+        padding: 0.8rem 1rem;
+        margin-top: 1rem;
+        text-align: center;
+    }
+    #ad-countdown { font-size: 2rem; font-weight: 700; color: var(--pr-yellow); }
+
+    /* Input-Styling */
+    .key-input {
+        background: #0a0a18;
+        border: 1px solid var(--pr-border);
+        color: #fff;
+        border-radius: 6px;
+        padding: 0.5rem 0.8rem;
+        font-size: 0.88rem;
+        width: 100%;
+        font-family: 'Courier New', monospace;
+    }
+    .key-input:focus {
+        outline: none;
+        border-color: var(--pr-accent);
+        box-shadow: 0 0 0 2px rgba(0,196,255,0.15);
+    }
+
+    label { font-size: 0.8rem; color: #aaa; display: block; margin-bottom: 4px; }
+
+    /* Fortschrittsbalken */
+    .progress-thin {
+        height: 4px;
+        background: var(--pr-border);
+        border-radius: 2px;
+        overflow: hidden;
+        margin-top: 4px;
+    }
+    .progress-thin-bar {
+        height: 100%;
+        background: var(--pr-accent);
+        transition: width 0.5s;
+        border-radius: 2px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+    <div class="container">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                <h1 class="mb-1" style="color:#fff;">
+                    <i class="bi bi-broadcast me-2" style="color:var(--pr-accent);"></i>
+                    Programm-Regie
+                </h1>
+                <p class="mb-0" style="color:#888;">Sendeplan-Stream • YouTube &amp; Twitch</p>
+            </div>
+            <a href="{% url 'tv_admin_dashboard' %}" class="btn btn-outline-light btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Übersicht
+            </a>
+        </div>
+    </div>
+</div>
+
+<section class="py-4">
+<div class="container-fluid px-lg-4">
+<div class="row g-3">
+
+<!-- ═══════════════════════════════════════════ LINKE SPALTE -->
+<div class="col-lg-8">
+
+    <!-- STATUS-KACHELN -->
+    <div class="main-status">
+        <div class="status-tile" id="yt-tile">
+            <div class="platform"><i class="bi bi-youtube me-1"></i>YouTube</div>
+            <div class="value" id="yt-status-val">
+                <span class="status-dot idle"></span>OFFLINE
+            </div>
+        </div>
+        <div class="status-tile" id="tw-tile">
+            <div class="platform"><i class="bi bi-twitch me-1"></i>Twitch</div>
+            <div class="value" id="tw-status-val">
+                <span class="status-dot idle"></span>OFFLINE
+            </div>
+        </div>
+    </div>
+
+    <!-- AD-BREAK TIMER -->
+    <div id="ad-timer-wrap">
+        <div style="font-size:0.8rem;color:var(--pr-yellow);margin-bottom:4px;">
+            <i class="bi bi-broadcast me-1"></i> WERBEPAUSE AKTIV – Video resumed danach automatisch
+        </div>
+        <div id="ad-countdown">--:--</div>
+        <div style="font-size:0.75rem;color:#888;margin-top:4px;">
+            Alle Spots die in 600s beginnen werden gezeigt. Video setzt exakt an der Pause-Stelle fort.
+        </div>
+    </div>
+
+    <!-- AKTUELL IM PROGRAMM -->
+    <div class="regie-card mb-3 mt-3">
+        <div class="regie-card-header">
+            <i class="bi bi-play-circle me-2"></i>Jetzt im Programm
+        </div>
+        <div class="regie-card-body">
+            {% if current_show %}
+            <div class="d-flex align-items-center gap-3">
+                <span class="live-badge">JETZT</span>
+                <div>
+                    <div style="font-weight:700;font-size:1.1rem;color:#fff;">{{ current_show.title }}</div>
+                    <div style="color:#888;font-size:0.85rem;">
+                        {{ current_show.start_time|time:"H:i" }} – {{ current_show.end_time|time:"H:i" }}
+                        &nbsp;·&nbsp; {{ current_show.duration_minutes }} Min
+                        {% if current_show.video %}
+                        &nbsp;·&nbsp; Quelle: <code style="color:var(--pr-accent);">{{ current_show.video.source_type }}</code>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if current_show.video %}
+                <div class="ms-auto">
+                    {% with cache=current_show.video.cache %}
+                    {% if cache and cache.status == 'ready' %}
+                        <span class="cache-badge cache-ready"><i class="bi bi-hdd me-1"></i>Lokal bereit</span>
+                    {% elif cache and cache.status == 'downloading' %}
+                        <span class="cache-badge cache-loading">
+                            <i class="bi bi-arrow-down me-1"></i>Lädt {{ cache.progress_percent }}%
+                        </span>
+                    {% else %}
+                        <span class="cache-badge cache-stream"><i class="bi bi-cloud me-1"></i>Wird gestreamt</span>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="text-center py-3" style="color:#888;">
+                <i class="bi bi-calendar-x d-block fs-3 mb-2"></i>
+                Keine aktuelle Sendung – Pausenbild wird gezeigt
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- SENDEPLAN (NÄCHSTE SENDUNGEN) -->
+    <div class="regie-card mb-3">
+        <div class="regie-card-header">
+            <i class="bi bi-calendar3 me-2"></i>Nächste Sendungen &amp; Buffer-Status
+        </div>
+        <div class="regie-card-body" style="padding:0 1.2rem;">
+            {% if cache_status %}
+            {% for item in cache_status %}
+            <div class="schedule-row {% if item.show.start_time <= now and item.show.end_time >= now %}now{% endif %}">
+                <div class="sch-time">{{ item.show.start_time|time:"H:i" }}</div>
+                <div class="sch-title">
+                    {{ item.show.title }}
+                    {% if item.show.ad_breaks.count %}
+                    <small style="color:var(--pr-yellow);">
+                        <i class="bi bi-broadcast me-1"></i>{{ item.show.ad_breaks.count }} Werbepause(n)
+                    </small>
+                    {% endif %}
+                </div>
+                <div class="sch-dur">{{ item.show.duration_minutes }} Min</div>
+                <div>
+                    {% if item.cache %}
+                        {% if item.cache.status == 'ready' %}
+                            <span class="cache-badge cache-ready"><i class="bi bi-hdd me-1"></i>Bereit</span>
+                        {% elif item.cache.status == 'downloading' %}
+                            <div style="text-align:center;">
+                                <span class="cache-badge cache-loading">⬇ {{ item.cache.progress_percent }}%</span>
+                                <div class="progress-thin" style="width:80px;margin-top:4px;">
+                                    <div class="progress-thin-bar" style="width:{{ item.cache.progress_percent }}%;"></div>
+                                </div>
+                            </div>
+                        {% elif item.cache.status == 'error' %}
+                            <span class="cache-badge cache-error" title="{{ item.cache.error_message }}">❌ Fehler</span>
+                        {% else %}
+                            <span class="cache-badge cache-pending">Ausstehend</span>
+                        {% endif %}
+                    {% elif item.show.video %}
+                        <button class="btn btn-sm btn-dl py-0 px-2" 
+                                onclick="downloadVideo({{ item.show.video.id }}, this)"
+                                style="font-size:0.75rem;">
+                            <i class="bi bi-download me-1"></i>Jetzt laden
+                        </button>
+                    {% else %}
+                        <span style="color:#555;font-size:0.78rem;">Kein Video</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="py-4 text-center" style="color:#888;">
+                <i class="bi bi-calendar-x d-block fs-3 mb-2"></i>
+                Keine Sendungen in den nächsten 6 Stunden
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- LOG -->
+    <div class="regie-card">
+        <div class="regie-card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-terminal me-2"></i>Stream-Log</span>
+            <button class="btn btn-sm" style="color:#888;font-size:0.75rem;" onclick="clearLog()">Leeren</button>
+        </div>
+        <div class="regie-card-body p-0">
+            <div class="log-box" id="stream-log">
+                {% for line in log_lines %}
+                <p class="log-line {% if '❌' in line or 'Fehler' in line %}log-err{% elif '▶' in line or '✅' in line %}log-ok{% elif '🎯' in line or '⬇' in line %}log-ad{% elif '🚀' in line or '📡' in line %}log-stream{% endif %}">{{ line }}</p>
+                {% empty %}
+                <p class="log-line" style="color:#555;">Noch keine Log-Einträge...</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════ RECHTE SPALTE -->
+<div class="col-lg-4">
+
+    <!-- STREAM STARTEN -->
+    <div class="regie-card mb-3">
+        <div class="regie-card-header">
+            <i class="bi bi-broadcast-pin me-2"></i>Stream starten
+        </div>
+        <div class="regie-card-body d-grid gap-2">
+            <button class="big-btn btn-both" onclick="startStream('both')" id="btn-both">
+                <i class="bi bi-broadcast"></i>YouTube + Twitch
+            </button>
+            <button class="big-btn btn-yt" onclick="startStream('youtube')" id="btn-yt">
+                <i class="bi bi-youtube"></i>Nur YouTube
+            </button>
+            <button class="big-btn btn-tw" onclick="startStream('twitch')" id="btn-tw">
+                <i class="bi bi-twitch"></i>Nur Twitch
+            </button>
+            <button class="big-btn btn-stop" onclick="stopStream()" id="btn-stop">
+                <i class="bi bi-stop-circle"></i>Stream STOPPEN
+            </button>
+        </div>
+    </div>
+
+    <!-- WERBUNG -->
+    <div class="regie-card mb-3">
+        <div class="regie-card-header">
+            <i class="bi bi-megaphone me-2"></i>Werbung
+        </div>
+        <div class="regie-card-body">
+            <p style="font-size:0.82rem;color:#aaa;margin-bottom:0.8rem;">
+                Startet eine Werbepause (max. 600 Sek.). Das Video pausiert und setzt
+                exakt an der gestoppten Stelle fort, sobald alle Spots gezeigt wurden
+                oder die 600s abgelaufen sind.
+            </p>
+            <button class="big-btn btn-ad" onclick="triggerAdBreak()" id="btn-ad">
+                <i class="bi bi-megaphone-fill"></i>Werbepause starten
+            </button>
+        </div>
+    </div>
+
+    <!-- STREAM-KEYS KONFIGURATION -->
+    <div class="regie-card mb-3">
+        <div class="regie-card-header">
+            <i class="bi bi-key me-2"></i>Stream-Keys &amp; RTMP
+        </div>
+        <div class="regie-card-body">
+            <div class="mb-3">
+                <label><i class="bi bi-youtube me-1" style="color:#ff0000;"></i>YouTube Stream Key</label>
+                <input type="password" class="key-input" id="yt-key"
+                       value="{{ room.youtube_stream_key }}"
+                       placeholder="xxxx-xxxx-xxxx-xxxx-xxxx">
+                <div style="font-size:0.72rem;color:#666;margin-top:3px;">
+                    YouTube Studio → Live-Übertragungen → Stream-Key
+                </div>
+            </div>
+            <div class="mb-3">
+                <label><i class="bi bi-twitch me-1" style="color:#9147ff;"></i>Twitch Stream Key</label>
+                <input type="password" class="key-input" id="tw-key"
+                       value="{{ room.twitch_stream_key }}"
+                       placeholder="live_xxxxxxxxx_xxxxxxxxxx">
+                <div style="font-size:0.72rem;color:#666;margin-top:3px;">
+                    Twitch Studio → Einstellungen → Stream → Stream-Key
+                </div>
+            </div>
+            <div class="mb-3">
+                <label>YouTube RTMP Server</label>
+                <input type="text" class="key-input" id="yt-rtmp"
+                       value="{{ room.youtube_rtmp_url }}"
+                       placeholder="rtmp://a.rtmp.youtube.com/live2">
+            </div>
+            <div class="mb-3">
+                <label>Twitch RTMP Server</label>
+                <input type="text" class="key-input" id="tw-rtmp"
+                       value="{{ room.twitch_rtmp_url }}"
+                       placeholder="rtmp://live.twitch.tv/app">
+            </div>
+            <div class="mb-3">
+                <label><i class="bi bi-clock me-1"></i>Buffer: Vorlauf-Minuten (reine Puffer-Zeit)</label>
+                <input type="number" class="key-input" id="buf-min"
+                       value="{{ room.buffer_ahead_minutes }}" min="1" max="60">
+                <div style="font-size:0.72rem;color:#666;margin-top:3px;">
+                    Download startet (Video-Dauer × 2.5 + Vorlauf) Minuten vorher.
+                    Bei 20-Min-Video und 5 Min Vorlauf → Download startet ~55 Min vorher.
+                </div>
+            </div>
+            <button class="big-btn btn-save" onclick="saveKeys()" style="font-size:0.9rem;padding:0.7rem;">
+                <i class="bi bi-floppy me-1"></i>Speichern
+            </button>
+        </div>
+    </div>
+
+    <!-- LETZTE PROZESSE -->
+    <div class="regie-card">
+        <div class="regie-card-header">
+            <i class="bi bi-list-ul me-2"></i>Letzte Prozesse
+        </div>
+        <div class="regie-card-body p-0">
+            {% for proc in recent_processes %}
+            <div style="padding:0.6rem 1rem;border-bottom:1px solid var(--pr-border);font-size:0.8rem;">
+                <div class="d-flex justify-content-between">
+                    <span style="color:{% if proc.status == 'running' %}var(--pr-green){% elif proc.status == 'error' %}var(--pr-red){% else %}#888{% endif %};">
+                        ●&nbsp;{{ proc.get_platform_display }} – {{ proc.get_status_display }}
+                    </span>
+                    <span style="color:#555;">{{ proc.started_at|time:"H:i" }}</span>
+                </div>
+                {% if proc.schedule %}
+                <div style="color:#888;">{{ proc.schedule.title }}</div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="p-3 text-center" style="color:#555;font-size:0.82rem;">Noch keine Prozesse</div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+</div>
+</div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const ROOM_STATUS_URL  = "{% url 'program_room_status' %}";
+const START_URL        = "{% url 'program_room_start' %}";
+const STOP_URL         = "{% url 'program_room_stop' %}";
+const AD_URL           = "{% url 'program_room_trigger_ad' %}";
+const KEYS_URL         = "{% url 'program_room_save_keys' %}";
+const DOWNLOAD_URL     = "{% url 'program_room_download' %}";
+
+const CSRF = getCookie('csrftoken');
+
+let adTimerInterval = null;
+
+// ─── STATUS POLLING ──────────────────────────────────────────────────────
+function pollStatus() {
+    fetch(ROOM_STATUS_URL)
+        .then(r => r.json())
+        .then(data => {
+            updateStatusTiles(data);
+            updateAdTimer(data); 
+            updateLog(data.log_tail || []);
+        })
+        .catch(() => {});
+}
+
+function updateStatusTiles(data) {
+    const ytTile = document.getElementById('yt-tile');
+    const twTile = document.getElementById('tw-tile');
+    const ytVal  = document.getElementById('yt-status-val');
+    const twVal  = document.getElementById('tw-status-val');
+
+    if (data.is_streaming_youtube) {
+        ytTile.classList.add('active');
+        ytVal.innerHTML = '<span class="status-dot live"></span>LIVE';
+    } else {
+        ytTile.classList.remove('active');
+        ytVal.innerHTML = '<span class="status-dot idle"></span>OFFLINE';
+    }
+
+    if (data.is_streaming_twitch) {
+        twTile.classList.add('active');
+        twVal.innerHTML = '<span class="status-dot live"></span>LIVE';
+    } else {
+        twTile.classList.remove('active');
+        twVal.innerHTML = '<span class="status-dot idle"></span>OFFLINE';
+    }
+}
+
+function updateAdTimer(data) {
+    const wrap = document.getElementById('ad-timer-wrap');
+    const cd   = document.getElementById('ad-countdown');
+
+    if (data.ad_break_active && data.ad_break_ends_at) {
+        wrap.style.display = 'block';
+        const endsAt = new Date(data.ad_break_ends_at);
+        const remaining = Math.max(0, Math.round((endsAt - Date.now()) / 1000));
+        const m = Math.floor(remaining / 60);
+        const s = remaining % 60;
+        cd.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+    } else {
+        wrap.style.display = 'none';
+        if (adTimerInterval) { clearInterval(adTimerInterval); adTimerInterval = null; }
+    }
+}
+
+let lastLogLen = 0;
+function updateLog(lines) {
+    if (!lines || lines.length === 0) return;
+    const box = document.getElementById('stream-log');
+    if (lines.length !== lastLogLen) {
+        lastLogLen = lines.length;
+        box.innerHTML = lines.map(line => {
+            let cls = '';
+            if (line.includes('❌') || line.includes('Fehler')) cls = 'log-err';
+            else if (line.includes('▶') || line.includes('✅')) cls = 'log-ok';
+            else if (line.includes('🎯') || line.includes('⬇')) cls = 'log-ad';
+            else if (line.includes('🚀') || line.includes('📡')) cls = 'log-stream';
+            return `<p class="log-line ${cls}">${escHtml(line)}</p>`;
+        }).join('');
+        box.scrollTop = box.scrollHeight;
+    }
+}
+
+function clearLog() {
+    document.getElementById('stream-log').innerHTML = '';
+}
+
+// ─── AKTIONEN ────────────────────────────────────────────────────────────
+function startStream(platform) {
+    if (!confirm(`Stream zu ${platform === 'both' ? 'YouTube + Twitch' : platform.charAt(0).toUpperCase()+platform.slice(1)} starten?`)) return;
+
+    postAction(START_URL, { platform }, data => {
+        notify(`▶ Stream gestartet: ${data.message}`, 'success');
+    });
+}
+
+function stopStream() {
+    if (!confirm('Stream wirklich stoppen?')) return;
+    postAction(STOP_URL, {}, data => {
+        notify('⏹ Stream gestoppt', 'info');
+    });
+}
+
+function triggerAdBreak() {
+    if (!confirm('Werbepause starten? Das Video pausiert und setzt nach allen Spots (max 600s) fort.')) return;
+    postAction(AD_URL, {}, data => {
+        notify('🎯 Werbepause gestartet (max 600s)', 'warning');
+    });
+}
+
+function saveKeys() {
+    const body = {
+        youtube_stream_key: document.getElementById('yt-key').value,
+        twitch_stream_key:  document.getElementById('tw-key').value,
+        youtube_rtmp_url:   document.getElementById('yt-rtmp').value,
+        twitch_rtmp_url:    document.getElementById('tw-rtmp').value,
+        buffer_ahead_minutes: document.getElementById('buf-min').value,
+    };
+    postAction(KEYS_URL, body, data => {
+        notify('💾 Keys gespeichert', 'success');
+    });
+}
+
+function downloadVideo(videoId, btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Lädt...';
+    postAction(DOWNLOAD_URL, { video_id: videoId }, data => {
+        btn.innerHTML = '<i class="bi bi-check me-1"></i>Gestartet';
+        notify('⬇ Download gestartet', 'info');
+    }, () => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-download me-1"></i>Fehler';
+    });
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────
+// ─── HELPERS ─────────────────────────────────────────────────────────────
+function postAction(url, data, onSuccess, onError) {
+    const body = new URLSearchParams(data);
+    fetch(url, {
+        method: 'POST',
+        headers: { 
+            'X-CSRFToken': CSRF, 
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: body.toString(),
+    })
+    .then(async r => {
+        // Prüfe Content-Type
+        const contentType = r.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await r.text();
+            console.error('Nicht-JSON Antwort:', text.substring(0, 500));
+            throw new Error('Server hat kein JSON zurückgegeben. Möglicherweise ein Server-Fehler (500).');
+        }
+        return r.json();
+    })
+    .then(d => {
+        if (d.status === 'error' || d.success === false || d.error) { 
+            const msg = d.message || d.error || 'Unbekannter Fehler';
+            notify(msg, 'error'); 
+            if (onError) onError(); 
+        }
+        else if (onSuccess) onSuccess(d);
+    })
+    .catch(e => { 
+        notify('Fehler: ' + e.message, 'error'); 
+        console.error(e);
+        if (onError) onError(); 
+    });
+}
+
+function getCookie(name) {
+    let cv = null;
+    if (document.cookie && document.cookie !== '') {
+        document.cookie.split(';').forEach(c => {
+            const t = c.trim();
+            if (t.startsWith(name + '=')) cv = decodeURIComponent(t.slice(name.length + 1));
+        });
+    }
+    return cv;
+}
+
+function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+let notifCount = 0;
+function notify(msg, type = 'info') {
+    const colors = { success: '#4ade80', error: '#ef4444', info: '#3b82f6', warning: '#f59e0b' };
+    const textColors = { success: '#000', error: '#fff', info: '#fff', warning: '#000' };
+    const n = document.createElement('div');
+    n.style.cssText = `
+        position:fixed;top:${20 + notifCount * 60}px;right:20px;
+        background:${colors[type]};color:${textColors[type]};
+        padding:.75rem 1.2rem;border-radius:8px;z-index:9999;
+        font-weight:700;font-size:.9rem;max-width:320px;
+        box-shadow:0 4px 12px rgba(0,0,0,.4);
+        animation:slideIn .3s;
+    `;
+    n.textContent = msg;
+    document.body.appendChild(n);
+    notifCount++;
+    setTimeout(() => { n.remove(); notifCount = Math.max(0, notifCount - 1); }, 4000);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────
+setInterval(pollStatus, 3000);
+pollStatus();
+
+// Scroll Log nach unten
+const logBox = document.getElementById('stream-log');
+if (logBox) logBox.scrollTop = logBox.scrollHeight;
+</script>
+
+<style>
+@keyframes slideIn {
+    from { transform: translateX(350px); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,461 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}TV Display - RSL TV{% endblock %}
+
+{% block extra_css %}
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        background: #000;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+    }
+
+    #tv-container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        background: #000;
+    }
+
+    #video-player {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: #000;
+    }
+
+    /* Werbepausen-Overlay */
+    #ad-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    #ad-overlay.active {
+        display: flex;
+    }
+
+    .ad-content {
+        text-align: center;
+        color: white;
+    }
+
+    .ad-logo {
+        width: 200px;
+        height: 200px;
+        margin-bottom: 40px;
+        opacity: 0.9;
+    }
+
+    .ad-text {
+        font-size: 48px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+
+    .ad-subtext {
+        font-size: 24px;
+        color: #b0b0b0;
+        margin-bottom: 40px;
+    }
+
+    .ad-countdown {
+        font-size: 72px;
+        font-weight: 700;
+        color: #e94560;
+        font-family: 'Courier New', monospace;
+    }
+
+    /* Loading-Indikator */
+    #loading-indicator {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 24px;
+        z-index: 500;
+        display: none;
+    }
+
+    #loading-indicator.active {
+        display: block;
+    }
+
+    /* Status-Bar (nur für Debug, kann entfernt werden) */
+    #status-bar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px 20px;
+        font-size: 14px;
+        z-index: 100;
+        display: none; /* In Produktion ausblenden */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="tv-container">
+    <!-- Video Player -->
+    <video id="video-player" autoplay playsinline></video>
+
+    <!-- Werbepausen-Overlay -->
+    <div id="ad-overlay">
+        <div class="ad-content">
+            {% if sender_logo %}
+            <img src="{{ sender_logo.url }}" alt="Logo" class="ad-logo">
+            {% else %}
+            <div class="ad-logo" style="background: #e94560; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 72px;">
+                📺
+            </div>
+            {% endif %}
+            <div class="ad-text">Werbepause</div>
+            <div class="ad-subtext">Wir sind gleich wieder zurück</div>
+            <div class="ad-countdown" id="ad-countdown">--</div>
+        </div>
+    </div>
+
+    <!-- Loading-Indikator -->
+    <div id="loading-indicator">
+        <div>🔄 Lädt...</div>
+    </div>
+
+    <!-- Status-Bar (Debug) -->
+    <div id="status-bar">
+        <span id="status-text">Initialisiere...</span>
+    </div>
+</div>
+
+<script>
+/**
+ * TV Controller - YouTube Player ohne Bedienelemente mit Werbepausen-Kontrolle
+ * 
+ * Features:
+ * - Spielt YouTube-Videos ohne sichtbare Bedienelemente
+ * - Nicht vorspulbar
+ * - Automatische Werbepausen-Erkennung
+ * - Position bleibt bei Werbepausen erhalten
+ */
+class TVController {
+    constructor() {
+        this.player = document.getElementById('video-player');
+        this.adOverlay = document.getElementById('ad-overlay');
+        this.adCountdown = document.getElementById('ad-countdown');
+        this.loadingIndicator = document.getElementById('loading-indicator');
+        this.statusBar = document.getElementById('status-bar');
+        this.statusText = document.getElementById('status-text');
+        
+        this.currentVideoUrl = null;
+        this.pausePosition = 0;
+        this.checkInterval = null;
+        this.isInAdBreak = false;
+        
+        this.init();
+    }
+    
+    init() {
+        console.log('📺 TV Controller initialisiert');
+        
+        // Verhindere Kontext-Menü
+        this.player.addEventListener('contextmenu', (e) => e.preventDefault());
+        
+        // Verhindere Vorspulen (Seek)
+        this.player.addEventListener('seeking', (e) => {
+            if (!this.isInAdBreak) {
+                // Nur erlauben wenn vom Server gesteuert
+                console.log('⚠️  Vorspulen verhindert');
+            }
+        });
+        
+        // Verhindere Pause durch Benutzer
+        this.player.addEventListener('pause', (e) => {
+            if (!this.isInAdBreak && !this.player.ended) {
+                console.log('⚠️  Pause verhindert');
+                this.player.play();
+            }
+        });
+        
+        // Error-Handling
+        this.player.addEventListener('error', (e) => {
+            console.error('❌ Player-Fehler:', e);
+            this.updateStatus('Fehler beim Laden');
+        });
+        
+        // Starte Polling
+        this.startChecking();
+        
+        // Initial laden
+        this.checkCurrentShow();
+    }
+    
+    updateStatus(text) {
+        this.statusText.textContent = text;
+        console.log('📊', text);
+    }
+    
+    startChecking() {
+        // Prüfe alle 5 Sekunden auf Updates
+        this.checkInterval = setInterval(() => {
+            this.checkCurrentShow();
+            this.checkAdBreak();
+        }, 5000);
+    }
+    
+    async checkCurrentShow() {
+        try {
+            const response = await fetch('/api/current-show/');
+            const data = await response.json();
+            
+            if (data.current && data.current.video_url) {
+                const videoUrl = data.current.video_url;
+                
+                // Nur neu laden wenn sich URL geändert hat
+                if (videoUrl !== this.currentVideoUrl) {
+                    this.updateStatus(`Lade: ${data.current.title}`);
+                    await this.loadVideo(videoUrl);
+                }
+            } else {
+                this.updateStatus('Kein Programm verfügbar');
+            }
+            
+        } catch (error) {
+            console.error('❌ Fehler beim Laden der Sendung:', error);
+            this.updateStatus('Verbindungsfehler');
+        }
+    }
+    
+    async checkAdBreak() {
+        try {
+            const response = await fetch('/api/ad-break-status/');
+            const data = await response.json();
+            
+            if (data.is_active && !this.isInAdBreak) {
+                this.startAdBreak(data.remaining_seconds);
+            } else if (!data.is_active && this.isInAdBreak) {
+                this.endAdBreak();
+            } else if (data.is_active && this.isInAdBreak) {
+                // Update Countdown
+                this.adCountdown.textContent = data.remaining_seconds;
+            }
+            
+        } catch (error) {
+            console.error('❌ Fehler beim Prüfen der Werbepause:', error);
+        }
+    }
+    
+    async loadVideo(youtubeUrl) {
+        console.log('🎬 Lade Video:', youtubeUrl);
+        
+        this.loadingIndicator.classList.add('active');
+        
+        try {
+            // Extrahiere YouTube Video-ID
+            const videoId = this.extractYouTubeId(youtubeUrl);
+            
+            if (!videoId) {
+                throw new Error('Ungültige YouTube-URL');
+            }
+            
+            // WICHTIG: Wir verwenden direkt den Video-Stream von YouTube
+            // Alternative Ansätze für mehr Kontrolle:
+            // 1. YouTube IFrame API (komplexer)
+            // 2. Eigener Proxy-Server (erfordert yt-dlp)
+            
+            // Für jetzt: Verwende die direkte Methode
+            const streamUrl = await this.getYouTubeStreamUrl(videoId);
+            
+            if (streamUrl) {
+                this.currentVideoUrl = youtubeUrl;
+                this.player.src = streamUrl;
+                this.player.load();
+                this.player.play();
+                
+                this.updateStatus('Video läuft');
+                console.log('✅ Video gestartet');
+            }
+            
+        } catch (error) {
+            console.error('❌ Fehler beim Laden des Videos:', error);
+            this.updateStatus('Fehler beim Laden');
+        } finally {
+            this.loadingIndicator.classList.remove('active');
+        }
+    }
+    
+    extractYouTubeId(url) {
+        const patterns = [
+            /(?:youtube\.com\/watch\?v=)([^&\s]+)/,
+            /(?:youtube\.com\/embed\/)([^?&\s]+)/,
+            /(?:youtu\.be\/)([^?&\s]+)/,
+            /(?:youtube\.com\/.*[?&]v=)([^&\s]+)/
+        ];
+        
+        for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match && match[1]) {
+                return match[1];
+            }
+        }
+        
+        return null;
+    }
+    
+    async getYouTubeStreamUrl(videoId) {
+        /**
+         * WICHTIG: Diese Methode erfordert einen Backend-Proxy!
+         * 
+         * Ohne yt-dlp und FFmpeg ist das schwierig. Die Optionen sind:
+         * 
+         * Option 1: YouTube IFrame API (eingeschränkte Kontrolle)
+         * Option 2: Backend-Proxy mit yt-dlp (EMPFOHLEN)
+         * Option 3: Kaufe YouTube API Zugang
+         * 
+         * Da Sie "ohne FFmpeg" möchten, müssen wir Option 1 verwenden:
+         * YouTube IFrame API mit maximaler Kontrolle
+         */
+        
+        // HINWEIS: Ohne Backend-Proxy verwenden wir einen Workaround
+        // Der Server sollte einen /api/youtube-stream/ Endpoint bereitstellen
+        
+        try {
+            const response = await fetch(`/api/youtube-stream/?video_id=${videoId}`);
+            const data = await response.json();
+            
+            if (data.stream_url) {
+                return data.stream_url;
+            }
+            
+            throw new Error('Keine Stream-URL erhalten');
+            
+        } catch (error) {
+            console.error('❌ Fehler beim Holen der Stream-URL:', error);
+            
+            // Fallback: Verwende YouTube-Nocookie Embed
+            // ACHTUNG: Dies zeigt Bedienelemente an!
+            console.warn('⚠️  Fallback auf YouTube Embed (zeigt Bedienelemente)');
+            
+            // Erstelle ein unsichtbares iframe und extrahiere das Video
+            // Dies ist ein Workaround - für Produktion NICHT empfohlen!
+            return this.createEmbedFallback(videoId);
+        }
+    }
+    
+    createEmbedFallback(videoId) {
+        /**
+         * WARNUNG: Dieser Fallback ist NICHT ideal!
+         * Er zeigt YouTube-Bedienelemente an.
+         * 
+         * Für eine produktionsreife Lösung MUSS ein Backend-Proxy
+         * mit yt-dlp verwendet werden!
+         */
+        
+        console.warn('⚠️  Verwende Embed-Fallback - Bedienelemente sichtbar!');
+        
+        // Erstelle iframe
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'absolute';
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.border = 'none';
+        
+        // Maximale Kontrolle über YouTube Embed
+        const params = new URLSearchParams({
+            autoplay: '1',
+            controls: '0',        // Keine Bedienelemente
+            disablekb: '1',       // Keine Tastatur-Shortcuts
+            fs: '0',              // Kein Fullscreen-Button
+            modestbranding: '1',  // Minimales Branding
+            rel: '0',             // Keine verwandten Videos
+            showinfo: '0',        // Keine Infos
+            iv_load_policy: '3',  // Keine Annotations
+            playsinline: '1',     // Inline abspielen
+            origin: window.location.origin
+        });
+        
+        iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?${params}`;
+        iframe.allow = 'autoplay';
+        
+        // Ersetze <video> durch <iframe>
+        const container = document.getElementById('tv-container');
+        const oldPlayer = this.player;
+        
+        container.removeChild(oldPlayer);
+        container.insertBefore(iframe, container.firstChild);
+        
+        this.player = iframe;
+        
+        return null; // iframe handhabt das Video selbst
+    }
+    
+    startAdBreak(duration) {
+        if (this.isInAdBreak) return;
+        
+        console.log('📺 Werbepause gestartet:', duration, 'Sekunden');
+        
+        // Speichere Position
+        this.pausePosition = this.player.currentTime;
+        
+        // Pause Video
+        this.player.pause();
+        
+        // Zeige Overlay
+        this.adOverlay.classList.add('active');
+        this.isInAdBreak = true;
+        
+        // Setze Countdown
+        this.adCountdown.textContent = duration;
+        
+        this.updateStatus(`Werbepause: ${duration}s`);
+    }
+    
+    endAdBreak() {
+        if (!this.isInAdBreak) return;
+        
+        console.log('📺 Werbepause beendet');
+        
+        // Verstecke Overlay
+        this.adOverlay.classList.remove('active');
+        this.isInAdBreak = false;
+        
+        // Setze Video an exakter Position fort
+        this.player.currentTime = this.pausePosition;
+        this.player.play();
+        
+        this.updateStatus('Video läuft');
+    }
+}
+
+// Starte Controller wenn DOM geladen
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        window.tvController = new TVController();
+    });
+} else {
+    window.tvController = new TVController();
+}
+</script>
+{% endblock %}

@@ -12,9 +12,14 @@ from .models import (
     Category, SenderLogo, Video, AdVideo, AdBreakTemplate, AdBreak, LiveAdBreak,
     Schedule, LiveStream, Advertisement, AdBooking,
     PlaylistItem, PlaylistEntry, NewsItem, ContactMessage,
-    Camera, LiveDirector, DirectorRoom, StandbyImage, DirectorRoomCamera
+    Camera, LiveDirector, DirectorRoom, StandbyImage, DirectorRoomCamera,
+    ProgramRoom, PauseScreen, StreamOverlay, CutOutGraphic, StreamPreset,
+    ContentSegment, ShowRundown
 )
 from .mail import send_booking_confirmation, send_invoice, send_booking_approved, send_new_booking_admin
+
+admin.site.register(ProgramRoom)
+
 
 class DirectorRoomCameraInline(admin.TabularInline):
     model = DirectorRoomCamera
@@ -312,19 +317,26 @@ class ContactMessageAdmin(admin.ModelAdmin):
 # ── Kameras & Regie ───────────────────────────────────────────────────────
 @admin.register(Camera)
 class CameraAdmin(admin.ModelAdmin):
-    list_display = ['name', 'stream_url_short', 'preview_available', 'is_active', 'order', 'assigned_rooms']
+    list_display = ['name', 'stream_url_short', 'preview_image_available', 'is_active', 'order', 'assigned_rooms']
     list_editable = ['is_active', 'order']
-    list_filter = ['is_active']
+    list_filter = ['is_active', 'camera_type']  # camera_type hinzugefügt für bessere Filterung
     search_fields = ['name', 'stream_url']
     ordering = ['order', 'name']
     
     fieldsets = (
         ('Kamera-Informationen', {
-            'fields': ('name', 'is_active', 'order')
+            'fields': ('name', 'camera_type', 'is_active', 'order')
         }),
         ('Stream-URLs', {
-            'fields': ('stream_url', 'preview_url'),
-            'description': 'stream_url: Haupt-Stream-URL (RTMP/RTSP/HLS) | preview_url: Optional - URL für Vorschau im Browser'
+            'fields': ('stream_url',),
+            'description': 'stream_url: Haupt-Stream-URL (RTMP/RTSP/HLS)'
+        }),
+        ('Vorschau', {
+            'fields': ('preview_image',),
+            'description': 'Statisches Vorschaubild für den Admin-Bereich'
+        }),
+        ('Audio', {
+            'fields': ('has_audio', 'audio_enabled'),
         }),
     )
     
@@ -335,11 +347,11 @@ class CameraAdmin(admin.ModelAdmin):
         return url
     stream_url_short.short_description = "Stream URL"
     
-    def preview_available(self, obj):
-        if obj.preview_url:
+    def preview_image_available(self, obj):
+        if obj.preview_image:
             return format_html('<span style="color:#28a745;">✅</span>')
         return format_html('<span style="color:#6c757d;">–</span>')
-    preview_available.short_description = "Vorschau"
+    preview_image_available.short_description = "Vorschau"
     
     def assigned_rooms(self, obj):
         rooms = DirectorRoomCamera.objects.filter(camera=obj).select_related('room')
@@ -355,3 +367,355 @@ class LiveDirectorAdmin(admin.ModelAdmin):
     list_display = ['live_stream', 'selected_camera', 'updated_at']
     list_filter = ['live_stream']
     readonly_fields = ['updated_at']
+
+# Füge dies zu tv/admin.py hinzu
+
+from django.contrib import admin
+from django.utils.html import format_html
+
+@admin.register(PauseScreen)
+class PauseScreenAdmin(admin.ModelAdmin):
+    list_display = ['title', 'background_type', 'show_active_badge', 'preview_colors', 'created_at']
+    list_filter = ['background_type', 'is_active', 'animation']
+    search_fields = ['title', 'main_text', 'sub_text']
+    readonly_fields = ['created_at', 'updated_at', 'created_by']
+    
+    fieldsets = (
+        ('Allgemein', {
+            'fields': ('title', 'is_active', 'is_default')
+        }),
+        ('Hintergrund', {
+            'fields': ('background_type', 'color_primary', 'color_secondary', 'background_image')
+        }),
+        ('Text', {
+            'fields': ('main_text', 'sub_text')
+        }),
+        ('Logo', {
+            'fields': ('show_logo', 'custom_logo')
+        }),
+        ('Animation', {
+            'fields': ('animation',)
+        }),
+        ('Meta', {
+            'fields': ('created_at', 'updated_at', 'created_by'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def show_active_badge(self, obj):
+        if obj.is_active:
+            return format_html(
+                '<span style="background: #2a9d8f; color: white; padding: 3px 10px; border-radius: 10px; font-weight: 600;">✓ AKTIV</span>'
+            )
+        return format_html(
+            '<span style="background: #666; color: white; padding: 3px 10px; border-radius: 10px;">Inaktiv</span>'
+        )
+    show_active_badge.short_description = 'Status'
+    
+    def preview_colors(self, obj):
+        if obj.background_type == 'gradient':
+            return format_html(
+                '<div style="display: flex; gap: 5px;">'
+                '<div style="width: 30px; height: 30px; background: {}; border-radius: 4px; border: 1px solid #ddd;"></div>'
+                '<div style="width: 30px; height: 30px; background: {}; border-radius: 4px; border: 1px solid #ddd;"></div>'
+                '</div>',
+                obj.color_primary, obj.color_secondary
+            )
+        elif obj.background_type == 'solid':
+            return format_html(
+                '<div style="width: 60px; height: 30px; background: {}; border-radius: 4px; border: 1px solid #ddd;"></div>',
+                obj.color_primary
+            )
+        return '(Bild)'
+    preview_colors.short_description = 'Vorschau'
+    
+    def save_model(self, request, obj, form, change):
+        if not obj.created_by:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+    
+    actions = ['activate_pause_screen']
+    
+    def activate_pause_screen(self, request, queryset):
+        if queryset.count() > 1:
+            self.message_user(request, "Bitte nur ein Pausenbild auswählen", level='error')
+            return
+        
+        pause_screen = queryset.first()
+        pause_screen.activate()
+        self.message_user(request, f'"{pause_screen.title}" wurde aktiviert')
+    activate_pause_screen.short_description = "Ausgewähltes Pausenbild aktivieren"
+
+
+@admin.register(StreamOverlay)
+class StreamOverlayAdmin(admin.ModelAdmin):
+    list_display = ['name', 'overlay_type', 'position', 'show_active_badge', 'preview_style', 'duration']
+    list_filter = ['overlay_type', 'position', 'is_active']
+    search_fields = ['name', 'text_content']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Allgemein', {
+            'fields': ('name', 'overlay_type', 'position', 'is_active')
+        }),
+        ('Design', {
+            'fields': ('background_color', 'text_color', 'font_size')
+        }),
+        ('Content', {
+            'fields': ('text_content', 'duration')
+        }),
+        ('Animation', {
+            'fields': ('animation_in', 'animation_out')
+        }),
+        ('Meta', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def show_active_badge(self, obj):
+        if obj.is_active:
+            return format_html(
+                '<span style="background: #2a9d8f; color: white; padding: 3px 10px; border-radius: 10px; font-weight: 600;">✓ AN</span>'
+            )
+        return format_html(
+            '<span style="background: #666; color: white; padding: 3px 10px; border-radius: 10px;">AUS</span>'
+        )
+    show_active_badge.short_description = 'Status'
+    
+    def preview_style(self, obj):
+        return format_html(
+            '<div style="background: {}; color: {}; padding: 5px 10px; border-radius: 4px; font-size: {}px; display: inline-block;">'
+            'Vorschau'
+            '</div>',
+            obj.background_color, obj.text_color, min(obj.font_size, 14)
+        )
+    preview_style.short_description = 'Stil-Vorschau'
+
+
+@admin.register(CutOutGraphic)
+class CutOutGraphicAdmin(admin.ModelAdmin):
+    list_display = ['name', 'category', 'show_thumbnail', 'hotkey', 'times_used', 'is_active']
+    list_filter = ['category', 'is_active', 'can_animate']
+    search_fields = ['name', 'hotkey']
+    readonly_fields = ['times_used', 'created_at', 'created_by', 'show_preview']
+    
+    fieldsets = (
+        ('Allgemein', {
+            'fields': ('name', 'category', 'image', 'show_preview', 'is_active')
+        }),
+        ('Position & Größe', {
+            'fields': (
+                ('default_x', 'default_y'),
+                ('default_width', 'default_height')
+            )
+        }),
+        ('Verhalten', {
+            'fields': ('can_animate', 'animation_duration', 'hotkey')
+        }),
+        ('Statistik', {
+            'fields': ('times_used',),
+            'classes': ('collapse',)
+        }),
+        ('Meta', {
+            'fields': ('created_at', 'created_by'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def show_thumbnail(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="max-width: 50px; max-height: 50px; border-radius: 4px;">',
+                obj.image.url
+            )
+        return '(Kein Bild)'
+    show_thumbnail.short_description = 'Vorschau'
+    
+    def show_preview(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="max-width: 300px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">',
+                obj.image.url
+            )
+        return '(Noch kein Bild hochgeladen)'
+    show_preview.short_description = 'Bild-Vorschau'
+    
+    def save_model(self, request, obj, form, change):
+        if not obj.created_by:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(StreamPreset)
+class StreamPresetAdmin(admin.ModelAdmin):
+    list_display = ['name', 'resolution', 'fps', 'bitrate', 'show_active_badge', 'created_at']
+    list_filter = ['resolution', 'fps', 'is_active']
+    search_fields = ['name', 'description']
+    readonly_fields = ['created_at', 'updated_at', 'created_by']
+    filter_horizontal = ['overlays']
+    
+    fieldsets = (
+        ('Allgemein', {
+            'fields': ('name', 'description', 'is_active')
+        }),
+        ('Video-Einstellungen', {
+            'fields': (
+                ('resolution', 'fps'),
+                'bitrate'
+            )
+        }),
+        ('Audio-Einstellungen', {
+            'fields': (
+                ('audio_bitrate', 'audio_sample_rate'),
+            )
+        }),
+        ('Szene & Overlays', {
+            'fields': ('default_scene', 'overlays')
+        }),
+        ('Meta', {
+            'fields': ('created_at', 'updated_at', 'created_by'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def show_active_badge(self, obj):
+        if obj.is_active:
+            return format_html(
+                '<span style="background: #2a9d8f; color: white; padding: 3px 10px; border-radius: 10px; font-weight: 600;">✓ AKTIV</span>'
+            )
+        return format_html(
+            '<span style="background: #666; color: white; padding: 3px 10px; border-radius: 10px;">Inaktiv</span>'
+        )
+    show_active_badge.short_description = 'Status'
+    
+    def save_model(self, request, obj, form, change):
+        if not obj.created_by:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+    
+    actions = ['activate_preset']
+    
+    def activate_preset(self, request, queryset):
+        if queryset.count() > 1:
+            self.message_user(request, "Bitte nur ein Preset auswählen", level='error')
+            return
+        
+        preset = queryset.first()
+        preset.activate()
+        self.message_user(request, f'Preset "{preset.name}" wurde aktiviert')
+    activate_preset.short_description = "Ausgewähltes Preset aktivieren"
+
+
+# Erweitere bestehende ContentSegment Admin
+@admin.register(ContentSegment)
+class ContentSegmentAdmin(admin.ModelAdmin):
+    list_display = ['title', 'rundown', 'segment_type', 'show_duration', 'order', 'show_status', 'is_ready']
+    list_filter = ['segment_type', 'is_ready', 'was_played', 'rundown']
+    search_fields = ['title', 'description', 'script']
+    readonly_fields = ['actual_duration', 'was_played', 'played_at', 'created_at', 'updated_at']
+    list_editable = ['order']
+    
+    fieldsets = (
+        ('Allgemein', {
+            'fields': ('title', 'segment_type', 'description', 'rundown', 'order')
+        }),
+        ('Timing', {
+            'fields': (
+                'planned_duration',
+                'actual_duration'
+            )
+        }),
+        ('Content', {
+            'fields': ('video_file', 'video_url', 'scene')
+        }),
+        ('Skript & Notizen', {
+            'fields': ('script', 'notes')
+        }),
+        ('Status', {
+            'fields': ('is_ready', 'was_played', 'played_at')
+        }),
+        ('Meta', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def show_duration(self, obj):
+        mins = obj.planned_duration // 60
+        secs = obj.planned_duration % 60
+        return f"{mins}:{secs:02d}"
+    show_duration.short_description = 'Dauer'
+    
+    def show_status(self, obj):
+        if obj.was_played:
+            return format_html(
+                '<span style="background: #444; color: #999; padding: 3px 10px; border-radius: 10px;">✓ Gespielt</span>'
+            )
+        elif obj.is_ready:
+            return format_html(
+                '<span style="background: #2a9d8f; color: white; padding: 3px 10px; border-radius: 10px;">✓ Bereit</span>'
+            )
+        return format_html(
+            '<span style="background: #666; color: white; padding: 3px 10px; border-radius: 10px;">○ Ausstehend</span>'
+        )
+    show_status.short_description = 'Status'
+
+
+@admin.register(ShowRundown)
+class ShowRundownAdmin(admin.ModelAdmin):
+    list_display = ['title', 'show_date', 'show_total_duration', 'segment_count', 'show_status', 'is_live']
+    list_filter = ['is_live', 'is_active', 'show_date']
+    search_fields = ['title']
+    readonly_fields = ['total_planned_duration', 'current_segment', 'created_at', 'updated_at', 'created_by']
+    date_hierarchy = 'show_date'
+    
+    fieldsets = (
+        ('Allgemein', {
+            'fields': ('title', 'show_date', 'is_active')
+        }),
+        ('Status', {
+            'fields': ('is_live', 'current_segment', 'total_planned_duration')
+        }),
+        ('Meta', {
+            'fields': ('created_at', 'updated_at', 'created_by'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def show_total_duration(self, obj):
+        hours = obj.total_planned_duration // 3600
+        mins = (obj.total_planned_duration % 3600) // 60
+        return f"{hours}h {mins}min"
+    show_total_duration.short_description = 'Gesamt-Dauer'
+    
+    def segment_count(self, obj):
+        return obj.segments.count()
+    segment_count.short_description = 'Segmente'
+    
+    def show_status(self, obj):
+        if obj.is_live:
+            return format_html(
+                '<span style="background: #e63946; color: white; padding: 3px 10px; border-radius: 10px; font-weight: 600;">● LIVE</span>'
+            )
+        elif obj.is_active:
+            return format_html(
+                '<span style="background: #2a9d8f; color: white; padding: 3px 10px; border-radius: 10px;">Aktiv</span>'
+            )
+        return format_html(
+            '<span style="background: #666; color: white; padding: 3px 10px; border-radius: 10px;">Inaktiv</span>'
+        )
+    show_status.short_description = 'Status'
+    
+    def save_model(self, request, obj, form, change):
+        if not obj.created_by:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+    
+    actions = ['recalculate_duration']
+    
+    def recalculate_duration(self, request, queryset):
+        for rundown in queryset:
+            rundown.calculate_total_duration()
+        self.message_user(request, f'{queryset.count()} Rundown(s) aktualisiert')
+    recalculate_duration.short_description = "Dauer neu berechnen"
