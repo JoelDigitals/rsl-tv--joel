@@ -116,20 +116,20 @@
         <div class="col-lg-8">
             <div class="stream-container">
                 <div class="stream-selector">
-                    <button class="stream-button active" onclick="showYouTube(this)">
-                        📺 YouTube
+                    <button class="stream-button active" onclick="showRSL(this)">
+                        📺 RSL Live
                     </button>
                     <button class="stream-button" onclick="showTwitch(this)">
                         🎮 Twitch
                     </button>
                 </div>
                 
-                <!-- YouTube Stream -->
-                <div id="youtube-stream" class="stream-embed">
+                <!-- RSL Studio Live Embed (ersetzt YouTube) -->
+                <div id="rsl-stream" class="stream-embed">
                     <iframe 
-                        src="https://www.youtube.com/embed/live_stream?channel={{ youtube_channel }}" 
+                        src="https://rsl-studio-live.lovable.app/embed"
                         allowfullscreen
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
+                        allow="autoplay; fullscreen">
                     </iframe>
                 </div>
                 
@@ -146,15 +146,15 @@
 </div>
 
 <script>
-function showYouTube(btn) {
-    document.getElementById('youtube-stream').style.display = 'block';
+function showRSL(btn) {
+    document.getElementById('rsl-stream').style.display = 'block';
     document.getElementById('twitch-stream').style.display = 'none';
     document.querySelectorAll('.stream-button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 }
 
 function showTwitch(btn) {
-    document.getElementById('youtube-stream').style.display = 'none';
+    document.getElementById('rsl-stream').style.display = 'none';
     document.getElementById('twitch-stream').style.display = 'block';
     document.querySelectorAll('.stream-button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');

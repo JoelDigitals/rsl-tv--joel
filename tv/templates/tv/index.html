@@ -19,32 +19,13 @@
                             <!-- Live Stream Player -->
                             <div id="live-player" style="position:absolute;top:0;left:0;width:100%;height:100%;background:#000;">
                                 {% if live_stream.source_type == 'youtube' %}
-                                <!-- YouTube als eingebetteter HLS-Stream ohne Kontrollen -->
-                                <video id="video-player" 
-                                       style="width:100%;height:100%;object-fit:contain;background:#000;"
-                                       autoplay 
-                                       muted
-                                       playsinline>
-                                </video>
-                                <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-                                <script>
-                                    // Extrahiere YouTube Video ID
-                                    var youtubeUrl = '{{ live_stream.stream_url }}';
-                                    var videoId = youtubeUrl.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-                                    
-                                    if (videoId && videoId[1]) {
-                                        // Verwende einen HLS-Proxy oder direkte Einbettung
-                                        var video = document.getElementById('video-player');
-                                        
-                                        // Alternative: YouTube IFrame API ohne Kontrollen
-                                        var iframe = document.createElement('iframe');
-                                        iframe.src = `https://www.youtube.com/embed/${videoId[1]}?autoplay=1&controls=0&disablekb=1&fs=0&modestbranding=1&rel=0&showinfo=0`;
-                                        iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:0;pointer-events:none;';
-                                        iframe.setAttribute('allowfullscreen', '');
-                                        document.getElementById('live-player').appendChild(iframe);
-                                        video.remove();
-                                    }
-                                </script>
+                                <!-- RSL Studio Live Embed (ersetzt YouTube-Widget) -->
+                                <iframe
+                                    src="https://rsl-studio-live.lovable.app/embed"
+                                    style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;pointer-events:none;"
+                                    allowfullscreen
+                                    allow="autoplay; fullscreen">
+                                </iframe>
                                 {% elif live_stream.source_type == 'twitch' %}
                                 <!-- Twitch Embed ohne Kontrollen -->
                                 <iframe 
@@ -90,43 +71,13 @@
                                 {% endif %}
                             </div>
                         {% elif youtube_channel %}
-                        <!-- YouTube Kanal Stream -->
-                        <div id="ytplayer-channel" style="position:absolute;top:0;left:0;width:100%;height:100%;"></div>
-                        <script>
-                            var tag = document.createElement('script');
-                            tag.src = "https://www.youtube.com/iframe_api";
-                            var firstScriptTag = document.getElementsByTagName('script')[0];
-                            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-                            
-                            var player;
-                            function onYouTubeIframeAPIReady() {
-                                var channelUrl = '{{ youtube_channel }}';
-                                var videoId = channelUrl.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-                                if (videoId) {
-                                    player = new YT.Player('ytplayer-channel', {
-                                        videoId: videoId[1],
-                                        playerVars: {
-                                            'autoplay': 1,
-                                            'controls': 0,
-                                            'disablekb': 1,
-                                            'fs': 0,
-                                            'modestbranding': 1,
-                                            'rel': 0,
-                                            'showinfo': 0,
-                                            'iv_load_policy': 3
-                                        },
-                                        events: {
-                                            'onReady': function(event) {
-                                                event.target.playVideo();
-                                                // Verhindere Interaktion
-                                                var iframe = document.getElementById('ytplayer-channel');
-                                                iframe.style.pointerEvents = 'none';
-                                            }
-                                        }
-                                    });
-                                }
-                            }
-                        </script>
+                        <!-- RSL Studio Live Embed (ersetzt YouTube-Kanal-Widget) -->
+                        <iframe
+                            src="https://rsl-studio-live.lovable.app/embed"
+                            style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;pointer-events:none;"
+                            allowfullscreen
+                            allow="autoplay; fullscreen">
+                        </iframe>
                         {% else %}
                         <!-- Placeholder wenn kein Stream -->
                         <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;background:linear-gradient(135deg,#0a0a0f,#1a1a2e);">
@@ -267,28 +218,28 @@
                 <div class="rsl-card p-4 text-center h-100">
                     <div style="font-size:2.5rem;margin-bottom:1rem;">📺</div>
                     <h5 class="fw-bold" style="color:#FFFFFF;">24/7 Live TV</h5>
-                    <p class="text-muted small mb-0">RSL läuft rund um die Uhr mit automatischem Programm und Live-Events.</p>
+                    <p style="color:#FFFFFF;opacity:0.85;" class="small mb-0">RSL läuft rund um die Uhr mit automatischem Programm und Live-Events.</p>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="rsl-card p-4 text-center h-100">
                     <div style="font-size:2.5rem;margin-bottom:1rem;">🔴</div>
                     <h5 class="fw-bold" style="color:#FFFFFF;">Live-Sendungen</h5>
-                    <p class="text-muted small mb-0">Live-Events und Übertragungen direkt auf RSL.</p>
+                    <p style="color:#FFFFFF;opacity:0.85;" class="small mb-0">Live-Events und Übertragungen direkt auf RSL.</p>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="rsl-card p-4 text-center h-100">
                     <div style="font-size:2.5rem;margin-bottom:1rem;">📱</div>
                     <h5 class="fw-bold" style="color:#FFFFFF;">Überall schauen</h5>
-                    <p class="text-muted small mb-0">Auf Handy, Tablet, PC oder Smart TV per IPTV.</p>
+                    <p style="color:#FFFFFF;opacity:0.85;" class="small mb-0">Auf Handy, Tablet, PC oder Smart TV per IPTV.</p>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="rsl-card p-4 text-center h-100">
                     <div style="font-size:2.5rem;margin-bottom:1rem;">💰</div>
                     <h5 class="fw-bold" style="color:#FFFFFF;">Werbung schalten</h5>
-                    <p class="text-muted small mb-0">Ihre Werbung auf RSL – einfach online buchen.</p>
+                    <p style="color:#FFFFFF;opacity:0.85;" class="small mb-0">Ihre Werbung auf RSL – einfach online buchen.</p>
                 </div>
             </div>
         </div>
@@ -300,7 +251,7 @@
     <div class="container text-center">
         <h2 class="section-title" style="color:#FFFFFF;">Werbung auf <span style="color:var(--rsl-accent);">RSL</span> schalten</h2>
         <div class="section-divider mx-auto"></div>
-        <p class="text-muted mb-4">Erreichen Sie tausende Zuschauer mit Ihrer Werbung auf RSL.</p>
+        <p style="color:#FFFFFF;opacity:0.85;" class="mb-4">Erreichen Sie tausende Zuschauer mit Ihrer Werbung auf RSL.</p>
         <div class="d-flex gap-3 justify-content-center flex-wrap">
             <a href="/werbung/" class="btn btn-rsl btn-lg">
                 <i class="bi bi-megaphone me-2"></i>Werbemöglichkeiten ansehen
