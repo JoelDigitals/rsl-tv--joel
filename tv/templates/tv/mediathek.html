@@ -1,647 +1,209 @@
-{% extends 'base.html' %}
-{% load static %}
-
-{% block title %}Mediathek - RSL TV{% endblock %}
-
-{% block extra_css %}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSL TV – Mediathek</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
-    /* ARD/ZDF/Joyn Style - Modern & Professional */
-    
-    :root {
-        --primary: #e94560;
-        --primary-dark: #d63651;
-        --bg-dark: #0a0a0a;
-        --bg-card: #1a1a1a;
-        --bg-card-hover: #222;
-        --text-primary: #ffffff;
-        --text-secondary: #b0b0b0;
-        --border: #333;
-    }
-    
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-    
-    body {
-        background: var(--bg-dark);
-        color: var(--text-primary);
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        line-height: 1.6;
-    }
-    
-    /* Hero Section */
-    .hero-section {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        padding: 80px 0 60px;
-        margin-bottom: 40px;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .hero-section::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: radial-gradient(circle at 30% 50%, rgba(233,69,96,0.1) 0%, transparent 50%);
-    }
-    
-    .hero-content {
-        position: relative;
-        z-index: 1;
-        text-align: center;
-    }
-    
-    .hero-section h1 {
-        font-size: clamp(32px, 8vw, 56px);
-        font-weight: 800;
-        margin-bottom: 16px;
-        background: linear-gradient(135deg, #fff 0%, var(--primary) 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-    
-    .hero-section .lead {
-        font-size: clamp(16px, 3vw, 20px);
-        color: var(--text-secondary);
-    }
-    
-    /* Category Filter */
-    .category-filter {
-        background: var(--bg-card);
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 40px;
-        border: 1px solid var(--border);
-    }
-    
-    .category-pills {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        align-items: center;
-    }
-    
-    .category-label {
-        color: var(--text-secondary);
-        font-weight: 600;
-        margin-right: 8px;
-        white-space: nowrap;
-    }
-    
-    .category-pill {
-        padding: 10px 20px;
-        border-radius: 24px;
-        background: transparent;
-        border: 2px solid var(--border);
-        color: var(--text-secondary);
-        font-weight: 600;
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        text-decoration: none;
-        display: inline-block;
-        white-space: nowrap;
-    }
-    
-    .category-pill:hover {
-        background: var(--bg-card-hover);
-        border-color: var(--primary);
-        color: var(--primary);
-        transform: translateY(-2px);
-    }
-    
-    .category-pill.active {
-        background: var(--primary);
-        border-color: var(--primary);
-        color: white;
-    }
-    
-    /* Search */
-    .search-wrapper {
-        position: relative;
-        max-width: 600px;
-        margin: 0 auto 40px;
-    }
-    
-    .search-input {
-        width: 100%;
-        padding: 16px 24px 16px 52px;
-        background: var(--bg-card);
-        border: 2px solid var(--border);
-        border-radius: 12px;
-        color: var(--text-primary);
-        font-size: 16px;
-        transition: all 0.2s;
-    }
-    
-    .search-input:focus {
-        outline: none;
-        border-color: var(--primary);
-        background: var(--bg-card-hover);
-    }
-    
-    .search-input::placeholder {
-        color: var(--text-secondary);
-    }
-    
-    .search-icon {
-        position: absolute;
-        left: 20px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 20px;
-        color: var(--text-secondary);
-        pointer-events: none;
-    }
-    
-    /* Video Grid - ARD/ZDF Style */
-    .video-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 24px;
-        margin-bottom: 60px;
-    }
-    
-    @media (min-width: 768px) {
-        .video-grid {
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 30px;
-        }
-    }
-    
-    @media (min-width: 1200px) {
-        .video-grid {
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-        }
-    }
-    
-    /* Video Card */
-    .video-card {
-        background: var(--bg-card);
-        border-radius: 12px;
-        overflow: hidden;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        cursor: pointer;
-        border: 1px solid transparent;
-        position: relative;
-    }
-    
-    .video-card:hover {
-        transform: translateY(-8px);
-        border-color: var(--primary);
-        box-shadow: 0 12px 40px rgba(233, 69, 96, 0.3);
-    }
-    
-    .video-thumbnail-wrapper {
-        position: relative;
-        padding-top: 56.25%; /* 16:9 */
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        overflow: hidden;
-    }
-    
-    .video-thumbnail {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: transform 0.3s ease;
-    }
-    
-    .video-card:hover .video-thumbnail {
-        transform: scale(1.05);
-    }
-    
-    .video-thumbnail.loading {
-        display: none;
-    }
-    
-    .thumbnail-placeholder {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 64px;
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    }
-    
-    .video-duration {
-        position: absolute;
-        bottom: 8px;
-        right: 8px;
-        background: rgba(0, 0, 0, 0.9);
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 600;
-        color: white;
-        backdrop-filter: blur(10px);
-    }
-    
-    .play-button {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 64px;
-        height: 64px;
-        background: rgba(233, 69, 96, 0.95);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        opacity: 0;
-        transition: all 0.3s ease;
-        backdrop-filter: blur(10px);
-    }
-    
-    .video-card:hover .play-button {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1.1);
-    }
-    
-    .play-button::before {
-        content: '▶';
-        font-size: 24px;
-        color: white;
-        margin-left: 4px;
-    }
-    
-    .video-info {
-        padding: 20px;
-    }
-    
-    .video-category {
-        color: var(--primary);
-        font-size: 12px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 8px;
-    }
-    
-    .video-title {
-        font-size: 18px;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 8px;
-        line-height: 1.4;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        min-height: 50px;
-    }
-    
-    .video-description {
-        font-size: 14px;
-        color: var(--text-secondary);
-        line-height: 1.6;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        margin-bottom: 12px;
-        min-height: 44px;
-    }
-    
-    .video-meta {
-        display: flex;
-        gap: 16px;
-        font-size: 12px;
-        color: var(--text-secondary);
-        align-items: center;
-        flex-wrap: wrap;
-    }
-    
-    .video-meta span {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-    }
-    
-    /* Modal */
-    .modal-content {
-        background: #000;
-        border: none;
-        border-radius: 0;
-    }
-    
-    .modal-dialog {
-        max-width: 90vw;
-        margin: 2vh auto;
-    }
-    
-    @media (min-width: 992px) {
-        .modal-dialog {
-            max-width: 1200px;
-        }
-    }
-    
-    .modal-header {
-        background: var(--bg-card);
-        border-bottom: 1px solid var(--border);
-        padding: 20px 30px;
-    }
-    
-    .modal-title {
-        font-size: 24px;
-        font-weight: 700;
-        color: white;
-    }
-    
-    .modal-body {
-        padding: 0;
-        background: #000;
-    }
-    
-    .video-player-wrapper {
-        position: relative;
-        padding-top: 56.25%;
-        background: #000;
-    }
-    
-    .video-player-wrapper iframe,
-    .video-player-wrapper video {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        border: none;
-    }
-    
-    /* Empty State */
-    .empty-state {
-        text-align: center;
-        padding: 80px 20px;
-        grid-column: 1 / -1;
-    }
-    
-    .empty-state-icon {
-        font-size: 80px;
-        margin-bottom: 20px;
-        opacity: 0.5;
-    }
-    
-    .empty-state h3 {
-        font-size: 24px;
-        margin-bottom: 12px;
-        color: var(--text-primary);
-    }
-    
-    .empty-state p {
-        color: var(--text-secondary);
-        font-size: 16px;
-    }
+:root {
+  --rsl-blue:       #0a6eb4;
+  --rsl-blue-dark:  #073e6e;
+  --rsl-blue-deep:  #041c36;
+  --rsl-blue-light: #1a8fd1;
+  --rsl-steel:      #1d5a82;
+  --rsl-sky:        #5baed4;
+  --rsl-dark:       #070d14;
+  --rsl-darker:     #040810;
+  --rsl-panel:      #0d1a27;
+  --rsl-panel2:     #111f30;
+  --rsl-border:     #162842;
+  --rsl-border2:    #1e3a56;
+  --rsl-text:       #ffffff;
+  --rsl-muted:      #a8c4d9;
+  --rsl-bright:     #ffffff;
+  --rsl-accent:     #00c4ff;
+  --rsl-live:       #e63946;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--rsl-dark);color:var(--rsl-text);font-family:'Barlow',sans-serif;min-height:100vh;overflow-x:hidden;}
+
+/* NAV */
+.rsl-navbar{background:linear-gradient(180deg,var(--rsl-darker) 0%,rgba(4,8,16,0.98) 100%);border-bottom:2px solid var(--rsl-blue);position:sticky;top:0;z-index:300;box-shadow:0 2px 24px rgba(10,110,180,0.35);}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 1.5rem;display:flex;align-items:center;gap:1rem;height:62px;}
+.rsl-logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0;}
+.logo-name{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:2rem;color:#fff;letter-spacing:4px;text-transform:uppercase;line-height:1;}
+.logo-tag{font-size:.55rem;color:var(--rsl-muted);letter-spacing:3px;text-transform:uppercase;display:block;}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:.75rem;}
+.btn-rsl{background:linear-gradient(135deg,var(--rsl-blue-dark),var(--rsl-blue-light));color:#fff;border:none;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;padding:.5rem 1.25rem;border-radius:4px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:.9rem;transition:all .2s;display:inline-flex;align-items:center;gap:.4rem;text-decoration:none;}
+.btn-rsl:hover{background:linear-gradient(135deg,var(--rsl-blue-light),var(--rsl-accent));box-shadow:0 4px 16px rgba(10,110,180,.4);transform:translateY(-1px);}
+
+.wrap{max-width:1400px;margin:0 auto;padding:2.5rem 1.5rem;}
+
+/* SECTION */
+.section-title{font-family:'Barlow Condensed',sans-serif;font-size:2.2rem;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#fff;}
+.section-title span{color:var(--rsl-accent);}
+.section-div{width:50px;height:3px;background:linear-gradient(90deg,var(--rsl-blue),var(--rsl-accent));margin:.4rem 0 1.5rem;}
+
+/* GRID */
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem;margin-top:2rem;}
+@media(max-width:1200px){.grid-4{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:900px){.grid-4{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:580px){.grid-4{grid-template-columns:1fr;}}
+
+/* CARD */
+.rsl-card{background:var(--rsl-panel);border:1px solid var(--rsl-border);border-radius:6px;overflow:hidden;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s;}
+.rsl-card:hover{transform:translateY(-4px);border-color:var(--rsl-blue);box-shadow:0 8px 28px rgba(10,110,180,.22);}
+.card-thumb{position:relative;aspect-ratio:16/9;background:#040810;overflow:hidden;}
+.card-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s;}
+.rsl-card:hover .card-thumb img{transform:scale(1.04);}
+.card-play-overlay{position:absolute;inset:0;background:rgba(4,8,16,.45);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;}
+.rsl-card:hover .card-play-overlay{opacity:1;}
+.play-btn{width:50px;height:50px;background:linear-gradient(135deg,var(--rsl-blue-dark),var(--rsl-blue-light));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;box-shadow:0 0 20px rgba(10,110,180,.5);}
+.card-badge{position:absolute;top:8px;left:8px;font-size:.62rem;font-weight:800;letter-spacing:1.5px;padding:.25rem .6rem;border-radius:2px;text-transform:uppercase;font-family:'Barlow Condensed',sans-serif;}
+.badge-upload{background:var(--rsl-live);color:#fff;}
+.badge-youtube{background:var(--rsl-blue-dark);color:var(--rsl-accent);border:1px solid var(--rsl-blue);}
+.card-dur{position:absolute;bottom:7px;right:7px;background:rgba(4,8,16,.85);font-size:.72rem;padding:.15rem .45rem;border-radius:2px;font-family:'Barlow Condensed',sans-serif;font-weight:700;}
+.card-body{padding:.9rem 1rem;}
+.card-title{font-weight:600;font-size:.92rem;line-height:1.35;margin-bottom:.35rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.card-meta{font-size:.75rem;color:var(--rsl-muted);display:flex;align-items:center;justify-content:space-between;gap:.5rem;}
+.card-cat{background:rgba(10,110,180,.18);color:var(--rsl-sky);font-size:.65rem;font-weight:700;padding:.15rem .5rem;border-radius:2px;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:4rem 1.5rem;}
+.empty-state i{font-size:4rem;color:var(--rsl-blue);margin-bottom:1rem;display:block;}
+.empty-state h3{font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:900;letter-spacing:2px;text-transform:uppercase;margin-bottom:.5rem;}
+.empty-state p{color:var(--rsl-muted);font-size:.95rem;margin-bottom:2rem;}
+
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:var(--rsl-darker);}
+::-webkit-scrollbar-thumb{background:var(--rsl-blue);border-radius:3px;}
 </style>
-{% endblock %}
+</head>
+<body>
 
-{% block content %}
-<!-- Hero -->
-<div class="hero-section">
-    <div class="container">
-        <div class="hero-content">
-            <h1>📺 Mediathek</h1>
-            <p class="lead">Alle Sendungen jederzeit verfügbar</p>
-        </div>
+<!-- NAVBAR -->
+<nav class="rsl-navbar">
+  <div class="nav-inner">
+    <a class="rsl-logo" href="/">
+      <div>
+        <div class="logo-name">RSL</div>
+        <span class="logo-tag">von Joel Digitals</span>
+      </div>
+    </a>
+    <div class="nav-right">
+      <a href="/upload/video/" class="btn-rsl" id="uploadBtn">
+        <i class="bi bi-upload"></i> VIDEO HOCHLADEN
+      </a>
     </div>
+  </div>
+</nav>
+
+<!-- MEDIATHEK -->
+<div class="wrap">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:2rem;gap:1rem;">
+    <div>
+      <div class="section-title">MEDIA<span>THEK</span></div>
+      <div class="section-div"></div>
+    </div>
+  </div>
+
+  <!-- Videos Grid -->
+  <div class="grid-4" id="videoGrid"></div>
+  
+  <!-- Empty State -->
+  <div class="empty-state" id="emptyState" style="display:none;">
+    <i class="bi bi-film"></i>
+    <h3>KEINE VIDEOS</h3>
+    <p>Die Mediathek ist noch leer.</p>
+    <a href="/upload/video/" class="btn-rsl">
+      <i class="bi bi-upload"></i> ERSTES VIDEO HOCHLADEN
+    </a>
+  </div>
 </div>
 
-<div class="container">
-    <!-- Search -->
-    <div class="search-wrapper">
-        <span class="search-icon">🔍</span>
-        <input 
-            type="text" 
-            class="search-input" 
-            id="searchInput" 
-            placeholder="Sendungen durchsuchen..."
-            autocomplete="off"
-        >
-    </div>
-    
-    <!-- Categories -->
-    <div class="category-filter">
-        <div class="category-pills">
-            <span class="category-label">Kategorien:</span>
-            <a href="?kategorie=" class="category-pill {% if not current_category %}active{% endif %}">
-                Alle
-            </a>
-            {% for category in categories %}
-            <a href="?kategorie={{ category.slug }}" class="category-pill {% if current_category == category.slug %}active{% endif %}">
-                {{ category.name }}
-            </a>
-            {% endfor %}
-        </div>
-    </div>
-    
-    <!-- Video Grid -->
-    <div class="video-grid" id="videoGrid">
-        {% for video in videos %}
-        <div class="video-card" 
-             data-title="{{ video.title|lower }}" 
-             data-description="{{ video.description|default:''|lower }}"
-             onclick="playVideo('{{ video.video_url|escapejs }}', '{{ video.title|escapejs }}')">
-            
-            <div class="video-thumbnail-wrapper">
-                {% if video.thumbnail %}
-                    <img src="{{ video.thumbnail.url }}" class="video-thumbnail" alt="{{ video.title }}" loading="lazy">
-                {% else %}
-                    <div class="thumbnail-placeholder">📺</div>
-                    <img src="" class="video-thumbnail auto-thumbnail" data-video-url="{{ video.video_url }}" alt="{{ video.title }}" loading="lazy">
-                {% endif %}
-                
-                {% if video.duration %}
-                <div class="video-duration">{{ video.duration }}</div>
-                {% endif %}
-                
-                <div class="play-button"></div>
-            </div>
-            
-            <div class="video-info">
-                {% if video.category %}
-                <div class="video-category">{{ video.category.name }}</div>
-                {% endif %}
-                
-                <h3 class="video-title">{{ video.title }}</h3>
-                
-                <p class="video-description">{{ video.description|default:"Keine Beschreibung verfügbar" }}</p>
-                
-                <div class="video-meta">
-                    {% if video.created_at %}
-                    <span>📅 {{ video.created_at|date:"d.m.Y" }}</span>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        {% empty %}
-        <div class="empty-state">
-            <div class="empty-state-icon">📺</div>
-            <h3>Keine Videos gefunden</h3>
-            <p>Versuchen Sie eine andere Suche oder Kategorie</p>
-        </div>
-        {% endfor %}
-    </div>
-</div>
-
-<!-- Video Modal -->
-<div class="modal fade" id="videoModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="videoTitle"></h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="video-player-wrapper">
-                    <div id="videoPlayerContainer"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
 <script>
-// Auto-load YouTube Thumbnails
-document.addEventListener('DOMContentLoaded', function() {
-    const autoThumbnails = document.querySelectorAll('.auto-thumbnail');
-    
-    autoThumbnails.forEach(img => {
-        const videoUrl = img.getAttribute('data-video-url');
-        if (!videoUrl) return;
-        
-        const videoId = extractYouTubeId(videoUrl);
-        if (videoId) {
-            const thumbnails = [
-                `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
-                `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-                `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
-            ];
-            
-            let index = 0;
-            const tryLoad = () => {
-                if (index >= thumbnails.length) {
-                    img.style.display = 'none';
-                    return;
-                }
-                img.src = thumbnails[index];
-                img.onerror = () => { index++; tryLoad(); };
-                img.onload = () => {
-                    img.classList.remove('loading');
-                    img.parentElement.querySelector('.thumbnail-placeholder')?.remove();
-                };
-            };
-            tryLoad();
-        }
-    });
-});
+// Demo-Videos (diese werden später von Django ersetzt)
+const videos = [
+  {
+    id: 1,
+    title: 'Willkommen bei RSL TV',
+    category: 'News',
+    date: '12.04.2026',
+    duration: '15:30',
+    thumbnail: 'https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?w=640&auto=format&fit=crop',
+    source: 'upload'
+  },
+  {
+    id: 2,
+    title: 'Sport Highlights der Woche',
+    category: 'Sport',
+    date: '11.04.2026',
+    duration: '22:15',
+    thumbnail: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=640&auto=format&fit=crop',
+    source: 'youtube'
+  },
+  {
+    id: 3,
+    title: 'Tech-News April 2026',
+    category: 'Magazin',
+    date: '10.04.2026',
+    duration: '18:45',
+    thumbnail: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=640&auto=format&fit=crop',
+    source: 'upload'
+  },
+  {
+    id: 4,
+    title: 'Wetter & Verkehr Update',
+    category: 'News',
+    date: '09.04.2026',
+    duration: '8:20',
+    thumbnail: 'https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?w=640&auto=format&fit=crop',
+    source: 'youtube'
+  }
+];
 
-// Video Player
-function playVideo(videoUrl, videoTitle) {
-    const modal = new bootstrap.Modal(document.getElementById('videoModal'));
-    const container = document.getElementById('videoPlayerContainer');
-    const titleEl = document.getElementById('videoTitle');
-    
-    titleEl.textContent = videoTitle;
-    container.innerHTML = '';
-    
-    try {
-        if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
-            const videoId = extractYouTubeId(videoUrl);
-            if (videoId) {
-                const iframe = document.createElement('iframe');
-                iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&modestbranding=1&rel=0`;
-                iframe.allowFullscreen = true;
-                iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-                container.appendChild(iframe);
-            }
-        } else if (videoUrl.includes('twitch.tv')) {
-            const info = extractTwitchInfo(videoUrl);
-            if (info) {
-                const iframe = document.createElement('iframe');
-                iframe.src = info.type === 'video' 
-                    ? `https://player.twitch.tv/?video=${info.id}&parent=${window.location.hostname}&autoplay=true`
-                    : `https://player.twitch.tv/?channel=${info.id}&parent=${window.location.hostname}&autoplay=true`;
-                iframe.allowFullscreen = true;
-                container.appendChild(iframe);
-            }
-        } else {
-            const video = document.createElement('video');
-            video.src = videoUrl;
-            video.controls = true;
-            video.autoplay = true;
-            container.appendChild(video);
-        }
-        modal.show();
-    } catch (e) {
-        alert('Fehler beim Laden: ' + e.message);
-    }
+function renderVideos() {
+  const grid = document.getElementById('videoGrid');
+  const empty = document.getElementById('emptyState');
+  
+  if (videos.length === 0) {
+    grid.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  
+  grid.innerHTML = videos.map(v => `
+    <div class="rsl-card" onclick="playVideo(${v.id})">
+      <div class="card-thumb">
+        <img src="${v.thumbnail}" alt="${v.title}">
+        <div class="card-play-overlay">
+          <div class="play-btn"><i class="bi bi-play-fill"></i></div>
+        </div>
+        <div class="card-badge badge-${v.source}">${v.source === 'upload' ? 'UPLOAD' : 'YOUTUBE'}</div>
+        <div class="card-dur">${v.duration}</div>
+      </div>
+      <div class="card-body">
+        <div class="card-title">${v.title}</div>
+        <div class="card-meta">
+          <div class="card-cat">${v.category}</div>
+          <span style="font-size:.7rem;">${v.date}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
 }
 
-function extractYouTubeId(url) {
-    const patterns = [
-        /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
-        /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-        /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-        /(?:youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/
-    ];
-    for (const p of patterns) {
-        const m = url.match(p);
-        if (m && m[1]) return m[1];
-    }
-    return null;
+function playVideo(id) {
+  // Hier würde zur Video-Player-Seite weitergeleitet
+  window.location.href = `/mediathek/video/${id}/`;
 }
 
-function extractTwitchInfo(url) {
-    if (url.includes('/videos/')) {
-        const m = url.match(/videos\/(\d+)/);
-        if (m) return {type: 'video', id: m[1]};
-    }
-    const m = url.match(/twitch\.tv\/([^/?]+)/);
-    if (m && m[1] !== 'videos') return {type: 'channel', id: m[1]};
-    return null;
-}
-
-// Search
-const searchInput = document.getElementById('searchInput');
-const cards = document.querySelectorAll('.video-card');
-
-searchInput.addEventListener('input', function() {
-    const term = this.value.toLowerCase();
-    cards.forEach(card => {
-        const title = card.getAttribute('data-title') || '';
-        const desc = card.getAttribute('data-description') || '';
-        card.style.display = (title.includes(term) || desc.includes(term)) ? 'block' : 'none';
-    });
-});
-
-// Modal cleanup
-document.getElementById('videoModal').addEventListener('hidden.bs.modal', () => {
-    document.getElementById('videoPlayerContainer').innerHTML = '';
-});
-
-// Keyboard
-document.addEventListener('keydown', e => {
-    if (e.key === '/') {
-        e.preventDefault();
-        searchInput.focus();
-    }
-});
-
-console.log('📺 Mediathek geladen - {{ videos|length }} Videos');
+// Videos beim Laden rendern
+renderVideos();
 </script>
-{% endblock %}
+
+</body>
+</html>

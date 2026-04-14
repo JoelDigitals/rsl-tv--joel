@@ -1,0 +1,73 @@
+{% extends "tv/base.html" %}
+{% load tv_filters %}
+
+{% block title %}Weiterschauen - RSL TV{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold mb-4">▶️ Weiterschauen</h1>
+        <p class="text-gray-400">Deine zuletzt gestarteten Serien</p>
+    </div>
+
+    {% if episodes %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for episode in episodes %}
+        <a href="{% url 'episode_player' episode.season.series.slug episode.season.season_number episode.episode_number %}"
+           class="bg-gray-800 rounded-lg overflow-hidden hover:bg-gray-700 transition-colors group">
+            <!-- Thumbnail -->
+            <div class="relative aspect-video bg-gray-900">
+                {% if episode.thumbnail_url %}
+                <img src="{{ episode.thumbnail_url }}" alt="{{ episode.title }}" 
+                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                {% else %}
+                <div class="w-full h-full flex items-center justify-center text-4xl">
+                    📺
+                </div>
+                {% endif %}
+                
+                <!-- Play Overlay -->
+                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center">
+                        <span class="text-2xl ml-1">▶️</span>
+                    </div>
+                </div>
+
+                <!-- Progress Bar (TODO: Session-tracking implementieren) -->
+                <!-- <div class="absolute bottom-0 left-0 right-0 h-1 bg-gray-700">
+                    <div class="h-full bg-red-600" style="width: 45%"></div>
+                </div> -->
+            </div>
+
+            <!-- Info -->
+            <div class="p-4">
+                <div class="text-sm text-gray-400 mb-1">
+                    {{ episode.season.series.title }}
+                </div>
+                <h3 class="font-semibold mb-2 group-hover:text-red-500 transition-colors">
+                    S{{ episode.season.season_number|stringformat:"02d" }}E{{ episode.episode_number|stringformat:"02d" }} - {{ episode.title }}
+                </h3>
+                
+                <div class="flex items-center gap-3 text-sm text-gray-500">
+                    {% if episode.air_date %}
+                    <span>📅 {{ episode.air_date|date:"d.m.Y" }}</span>
+                    {% endif %}
+                    {% if episode.duration %}
+                    <span>⏱️ {{ episode.duration_display }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-16">
+        <div class="text-6xl mb-4">📺</div>
+        <p class="text-xl text-gray-400 mb-6">Du hast noch keine Serien gestartet</p>
+        <a href="{% url 'series_list' %}" class="inline-block bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg font-semibold transition-colors">
+            Serien entdecken
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,309 +1,209 @@
-{% extends 'base.html' %}
-{% load static %}
-
-{% block title %}Mediathek - RSL TV{% endblock %}
-
-{% block extra_css %}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSL TV – Mediathek</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
-    body {
-        background: #0a0a0a;
-        color: #f0f0f0;
-    }
+:root {
+  --rsl-blue:       #0a6eb4;
+  --rsl-blue-dark:  #073e6e;
+  --rsl-blue-deep:  #041c36;
+  --rsl-blue-light: #1a8fd1;
+  --rsl-steel:      #1d5a82;
+  --rsl-sky:        #5baed4;
+  --rsl-dark:       #070d14;
+  --rsl-darker:     #040810;
+  --rsl-panel:      #0d1a27;
+  --rsl-panel2:     #111f30;
+  --rsl-border:     #162842;
+  --rsl-border2:    #1e3a56;
+  --rsl-text:       #ffffff;
+  --rsl-muted:      #a8c4d9;
+  --rsl-bright:     #ffffff;
+  --rsl-accent:     #00c4ff;
+  --rsl-live:       #e63946;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--rsl-dark);color:var(--rsl-text);font-family:'Barlow',sans-serif;min-height:100vh;overflow-x:hidden;}
 
-    .hero-section {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        padding: 60px 0;
-        margin-bottom: 40px;
-        border-bottom: 3px solid #e94560;
-    }
+/* NAV */
+.rsl-navbar{background:linear-gradient(180deg,var(--rsl-darker) 0%,rgba(4,8,16,0.98) 100%);border-bottom:2px solid var(--rsl-blue);position:sticky;top:0;z-index:300;box-shadow:0 2px 24px rgba(10,110,180,0.35);}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 1.5rem;display:flex;align-items:center;gap:1rem;height:62px;}
+.rsl-logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0;}
+.logo-name{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:2rem;color:#fff;letter-spacing:4px;text-transform:uppercase;line-height:1;}
+.logo-tag{font-size:.55rem;color:var(--rsl-muted);letter-spacing:3px;text-transform:uppercase;display:block;}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:.75rem;}
+.btn-rsl{background:linear-gradient(135deg,var(--rsl-blue-dark),var(--rsl-blue-light));color:#fff;border:none;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;padding:.5rem 1.25rem;border-radius:4px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:.9rem;transition:all .2s;display:inline-flex;align-items:center;gap:.4rem;text-decoration:none;}
+.btn-rsl:hover{background:linear-gradient(135deg,var(--rsl-blue-light),var(--rsl-accent));box-shadow:0 4px 16px rgba(10,110,180,.4);transform:translateY(-1px);}
 
-    .hero-section h1 {
-        font-size: 48px;
-        font-weight: 700;
-        color: #ffffff;
-    }
+.wrap{max-width:1400px;margin:0 auto;padding:2.5rem 1.5rem;}
 
-    .video-card {
-        background: #1a1a1a;
-        border-radius: 12px;
-        overflow: hidden;
-        margin-bottom: 24px;
-        border: 2px solid #333;
-        transition: all 0.3s;
-    }
+/* SECTION */
+.section-title{font-family:'Barlow Condensed',sans-serif;font-size:2.2rem;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#fff;}
+.section-title span{color:var(--rsl-accent);}
+.section-div{width:50px;height:3px;background:linear-gradient(90deg,var(--rsl-blue),var(--rsl-accent));margin:.4rem 0 1.5rem;}
 
-    .video-card:hover {
-        border-color: #e94560;
-        transform: translateY(-4px);
-        box-shadow: 0 8px 24px rgba(233, 69, 96, 0.3);
-    }
+/* GRID */
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem;margin-top:2rem;}
+@media(max-width:1200px){.grid-4{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:900px){.grid-4{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:580px){.grid-4{grid-template-columns:1fr;}}
 
-    .video-thumbnail {
-        width: 100%;
-        height: 200px;
-        object-fit: cover;
-        background: #000;
-    }
+/* CARD */
+.rsl-card{background:var(--rsl-panel);border:1px solid var(--rsl-border);border-radius:6px;overflow:hidden;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s;}
+.rsl-card:hover{transform:translateY(-4px);border-color:var(--rsl-blue);box-shadow:0 8px 28px rgba(10,110,180,.22);}
+.card-thumb{position:relative;aspect-ratio:16/9;background:#040810;overflow:hidden;}
+.card-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s;}
+.rsl-card:hover .card-thumb img{transform:scale(1.04);}
+.card-play-overlay{position:absolute;inset:0;background:rgba(4,8,16,.45);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;}
+.rsl-card:hover .card-play-overlay{opacity:1;}
+.play-btn{width:50px;height:50px;background:linear-gradient(135deg,var(--rsl-blue-dark),var(--rsl-blue-light));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;box-shadow:0 0 20px rgba(10,110,180,.5);}
+.card-badge{position:absolute;top:8px;left:8px;font-size:.62rem;font-weight:800;letter-spacing:1.5px;padding:.25rem .6rem;border-radius:2px;text-transform:uppercase;font-family:'Barlow Condensed',sans-serif;}
+.badge-upload{background:var(--rsl-live);color:#fff;}
+.badge-youtube{background:var(--rsl-blue-dark);color:var(--rsl-accent);border:1px solid var(--rsl-blue);}
+.card-dur{position:absolute;bottom:7px;right:7px;background:rgba(4,8,16,.85);font-size:.72rem;padding:.15rem .45rem;border-radius:2px;font-family:'Barlow Condensed',sans-serif;font-weight:700;}
+.card-body{padding:.9rem 1rem;}
+.card-title{font-weight:600;font-size:.92rem;line-height:1.35;margin-bottom:.35rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.card-meta{font-size:.75rem;color:var(--rsl-muted);display:flex;align-items:center;justify-content:space-between;gap:.5rem;}
+.card-cat{background:rgba(10,110,180,.18);color:var(--rsl-sky);font-size:.65rem;font-weight:700;padding:.15rem .5rem;border-radius:2px;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;}
 
-    .video-info {
-        padding: 20px;
-    }
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:4rem 1.5rem;}
+.empty-state i{font-size:4rem;color:var(--rsl-blue);margin-bottom:1rem;display:block;}
+.empty-state h3{font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:900;letter-spacing:2px;text-transform:uppercase;margin-bottom:.5rem;}
+.empty-state p{color:var(--rsl-muted);font-size:.95rem;margin-bottom:2rem;}
 
-    .video-title {
-        font-size: 20px;
-        font-weight: 700;
-        color: #ffffff;
-        margin-bottom: 8px;
-    }
-
-    .video-description {
-        font-size: 14px;
-        color: #b0b0b0;
-        margin-bottom: 12px;
-    }
-
-    .play-button {
-        background: #e94560;
-        color: white;
-        border: none;
-        padding: 12px 24px;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-
-    .play-button:hover {
-        background: #ff5577;
-        transform: scale(1.05);
-    }
-
-    .modal-content {
-        background: #000;
-        border: none;
-    }
-
-    .modal-header {
-        border-bottom: 1px solid #333;
-    }
-
-    .modal-body {
-        padding: 0;
-    }
-
-    .video-player-container {
-        position: relative;
-        padding-bottom: 56.25%;
-        height: 0;
-        overflow: hidden;
-        background: #000;
-    }
-
-    .video-player-container iframe {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        border: none;
-    }
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:var(--rsl-darker);}
+::-webkit-scrollbar-thumb{background:var(--rsl-blue);border-radius:3px;}
 </style>
-{% endblock %}
+</head>
+<body>
 
-{% block content %}
-<div class="hero-section">
-    <div class="container text-center">
-        <h1>📺 Mediathek</h1>
-        <p class="lead">Alle Videos und Aufzeichnungen</p>
+<!-- NAVBAR -->
+<nav class="rsl-navbar">
+  <div class="nav-inner">
+    <a class="rsl-logo" href="/">
+      <div>
+        <div class="logo-name">RSL</div>
+        <span class="logo-tag">von Joel Digitals</span>
+      </div>
+    </a>
+    <div class="nav-right">
+      <a href="/upload/video/" class="btn-rsl" id="uploadBtn">
+        <i class="bi bi-upload"></i> VIDEO HOCHLADEN
+      </a>
     </div>
+  </div>
+</nav>
+
+<!-- MEDIATHEK -->
+<div class="wrap">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:2rem;gap:1rem;">
+    <div>
+      <div class="section-title">MEDIA<span>THEK</span></div>
+      <div class="section-div"></div>
+    </div>
+  </div>
+
+  <!-- Videos Grid -->
+  <div class="grid-4" id="videoGrid"></div>
+  
+  <!-- Empty State -->
+  <div class="empty-state" id="emptyState" style="display:none;">
+    <i class="bi bi-film"></i>
+    <h3>KEINE VIDEOS</h3>
+    <p>Die Mediathek ist noch leer.</p>
+    <a href="/upload/video/" class="btn-rsl">
+      <i class="bi bi-upload"></i> ERSTES VIDEO HOCHLADEN
+    </a>
+  </div>
 </div>
 
-<div class="container">
-    <div class="row">
-        {% for video in videos %}
-        <div class="col-md-6 col-lg-4">
-            <div class="video-card">
-                {% if video.thumbnail %}
-                <img src="{{ video.thumbnail.url }}" class="video-thumbnail" alt="{{ video.title }}">
-                {% else %}
-                <div class="video-thumbnail" style="display: flex; align-items: center; justify-content: center;">
-                    <span style="font-size: 48px;">🎬</span>
-                </div>
-                {% endif %}
-                
-                <div class="video-info">
-                    <h3 class="video-title">{{ video.title }}</h3>
-                    {% if video.description %}
-                    <p class="video-description">{{ video.description|truncatewords:15 }}</p>
-                    {% endif %}
-                    <button class="play-button" onclick="playVideo('{{ video.id }}', '{{ video.video_url }}')">
-                        ▶️ Abspielen
-                    </button>
-                </div>
-            </div>
-        </div>
-        {% empty %}
-        <div class="col-12">
-            <div class="alert alert-info">
-                Noch keine Videos verfügbar.
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-</div>
-
-<!-- Video Modal -->
-<div class="modal fade" id="videoModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" style="color: white;">Video Player</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="video-player-container">
-                    <iframe id="videoPlayer" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-{% endblock %}
-
-{% block extra_js %}
 <script>
-/**
- * YouTube Video ID Extraktion - Verbesserte Version
- */
-function extractYouTubeId(url) {
-    // Verschiedene YouTube URL-Formate unterstützen
-    const patterns = [
-        /(?:youtube\.com\/watch\?v=)([^&\s]+)/,           // watch?v=...
-        /(?:youtube\.com\/embed\/)([^?&\s]+)/,            // embed/...
-        /(?:youtube\.com\/v\/)([^?&\s]+)/,                // v/...
-        /(?:youtu\.be\/)([^?&\s]+)/,                      // youtu.be/...
-        /(?:youtube\.com\/.*[?&]v=)([^&\s]+)/             // andere Formate mit v=
-    ];
-    
-    for (const pattern of patterns) {
-        const match = url.match(pattern);
-        if (match && match[1]) {
-            return match[1];
-        }
-    }
-    
-    return null;
+// Demo-Videos (diese werden später von Django ersetzt)
+const videos = [
+  {
+    id: 1,
+    title: 'Willkommen bei RSL TV',
+    category: 'News',
+    date: '12.04.2026',
+    duration: '15:30',
+    thumbnail: 'https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?w=640&auto=format&fit=crop',
+    source: 'upload'
+  },
+  {
+    id: 2,
+    title: 'Sport Highlights der Woche',
+    category: 'Sport',
+    date: '11.04.2026',
+    duration: '22:15',
+    thumbnail: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=640&auto=format&fit=crop',
+    source: 'youtube'
+  },
+  {
+    id: 3,
+    title: 'Tech-News April 2026',
+    category: 'Magazin',
+    date: '10.04.2026',
+    duration: '18:45',
+    thumbnail: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=640&auto=format&fit=crop',
+    source: 'upload'
+  },
+  {
+    id: 4,
+    title: 'Wetter & Verkehr Update',
+    category: 'News',
+    date: '09.04.2026',
+    duration: '8:20',
+    thumbnail: 'https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?w=640&auto=format&fit=crop',
+    source: 'youtube'
+  }
+];
+
+function renderVideos() {
+  const grid = document.getElementById('videoGrid');
+  const empty = document.getElementById('emptyState');
+  
+  if (videos.length === 0) {
+    grid.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  
+  grid.innerHTML = videos.map(v => `
+    <div class="rsl-card" onclick="playVideo(${v.id})">
+      <div class="card-thumb">
+        <img src="${v.thumbnail}" alt="${v.title}">
+        <div class="card-play-overlay">
+          <div class="play-btn"><i class="bi bi-play-fill"></i></div>
+        </div>
+        <div class="card-badge badge-${v.source}">${v.source === 'upload' ? 'UPLOAD' : 'YOUTUBE'}</div>
+        <div class="card-dur">${v.duration}</div>
+      </div>
+      <div class="card-body">
+        <div class="card-title">${v.title}</div>
+        <div class="card-meta">
+          <div class="card-cat">${v.category}</div>
+          <span style="font-size:.7rem;">${v.date}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
 }
 
-/**
- * Twitch Video/Channel Extraktion
- */
-function extractTwitchInfo(url) {
-    // Twitch Video
-    if (url.includes('/videos/')) {
-        const match = url.match(/videos\/(\d+)/);
-        if (match) {
-            return { type: 'video', id: match[1] };
-        }
-    }
-    
-    // Twitch Channel (Live)
-    const match = url.match(/twitch\.tv\/([^/?]+)/);
-    if (match && match[1] !== 'videos') {
-        return { type: 'channel', id: match[1] };
-    }
-    
-    return null;
+function playVideo(id) {
+  // Hier würde zur Video-Player-Seite weitergeleitet
+  window.location.href = `/mediathek/video/${id}/`;
 }
 
-/**
- * Video abspielen - Verbesserte Version
- */
-function playVideo(videoId, videoUrl) {
-    console.log('🎬 Playing video:', videoUrl);
-    
-    const modal = new bootstrap.Modal(document.getElementById('videoModal'));
-    const player = document.getElementById('videoPlayer');
-    
-    // URL säubern
-    const url = videoUrl.trim();
-    
-    try {
-        // YouTube
-        if (url.includes('youtube.com') || url.includes('youtu.be')) {
-            const ytId = extractYouTubeId(url);
-            
-            if (ytId) {
-                // Verwende youtube-nocookie.com für bessere Privacy und weniger Probleme
-                const embedUrl = `https://www.youtube-nocookie.com/embed/${ytId}?` + new URLSearchParams({
-                    autoplay: '1',
-                    modestbranding: '1',
-                    rel: '0',
-                    origin: window.location.origin
-                }).toString();
-                
-                player.src = embedUrl;
-                console.log('✅ YouTube embed:', embedUrl);
-            } else {
-                console.error('❌ Konnte YouTube Video-ID nicht extrahieren:', url);
-                alert('Fehler beim Laden des YouTube-Videos. Bitte überprüfen Sie die URL.');
-                return;
-            }
-        }
-        // Twitch
-        else if (url.includes('twitch.tv')) {
-            const twitchInfo = extractTwitchInfo(url);
-            
-            if (twitchInfo) {
-                let embedUrl;
-                
-                if (twitchInfo.type === 'video') {
-                    embedUrl = `https://player.twitch.tv/?video=${twitchInfo.id}&parent=${window.location.hostname}&autoplay=true`;
-                } else {
-                    embedUrl = `https://player.twitch.tv/?channel=${twitchInfo.id}&parent=${window.location.hostname}&autoplay=true`;
-                }
-                
-                player.src = embedUrl;
-                console.log('✅ Twitch embed:', embedUrl);
-            } else {
-                console.error('❌ Konnte Twitch-Informationen nicht extrahieren:', url);
-                alert('Fehler beim Laden des Twitch-Videos. Bitte überprüfen Sie die URL.');
-                return;
-            }
-        }
-        // Direktes Video (MP4, WebM, etc.)
-        else if (url.match(/\.(mp4|webm|ogg)(\?|$)/i)) {
-            // Für direkte Videos verwenden wir <video> statt <iframe>
-            player.src = url;
-            console.log('✅ Direkte Video-URL:', url);
-        }
-        // Andere Embeds
-        else {
-            player.src = url;
-            console.log('ℹ️  Generischer Embed:', url);
-        }
-        
-        modal.show();
-        
-    } catch (error) {
-        console.error('❌ Fehler beim Laden des Videos:', error);
-        alert('Fehler beim Laden des Videos: ' + error.message);
-    }
-}
-
-/**
- * Player beim Schließen stoppen
- */
-document.getElementById('videoModal').addEventListener('hidden.bs.modal', function () {
-    const player = document.getElementById('videoPlayer');
-    player.src = '';
-    console.log('🛑 Video gestoppt');
-});
-
-/**
- * Debug: Zeige alle verfügbaren Videos
- */
-console.log('📺 Mediathek geladen');
+// Videos beim Laden rendern
+renderVideos();
 </script>
-{% endblock %}
+
+</body>
+</html>

@@ -1,0 +1,198 @@
+{% extends "tv/base.html" %}
+
+{% block title %}Video Hochladen - RSL TV{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-3xl mx-auto">
+        <h1 class="text-4xl font-bold text-white mb-2">Video Hochladen</h1>
+        <p class="text-gray-400 mb-8">Laden Sie Ihr Video direkt zur JDS Cloud hoch</p>
+
+        <div class="bg-gray-800 rounded-lg p-6 shadow-xl">
+            <form method="post" enctype="multipart/form-data" id="uploadForm">
+                {% csrf_token %}
+                
+                <!-- Video Datei -->
+                <div class="mb-6">
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="video_file">
+                        Video Datei *
+                    </label>
+                    <div class="relative border-2 border-dashed border-gray-600 rounded-lg p-8 text-center hover:border-red-500 transition-colors">
+                        <input 
+                            type="file" 
+                            id="video_file" 
+                            name="video_file" 
+                            accept="video/*"
+                            required
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            onchange="updateFileName(this)"
+                        >
+                        <div id="file-info">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <p class="mt-1 text-sm text-gray-400">
+                                Video hierher ziehen oder klicken zum Auswählen
+                            </p>
+                            <p class="text-xs text-gray-500 mt-2">
+                                MP4, MOV, AVI, MKV, WebM - Keine Größenbeschränkung
+                            </p>
+                        </div>
+                        <div id="file-name" class="hidden text-green-400 font-semibold"></div>
+                    </div>
+                </div>
+
+                <!-- Titel -->
+                <div class="mb-6">
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="title">
+                        Titel *
+                    </label>
+                    <input 
+                        type="text" 
+                        id="title" 
+                        name="title" 
+                        required
+                        class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500"
+                        placeholder="Mein Video-Titel"
+                    >
+                </div>
+
+                <!-- Beschreibung -->
+                <div class="mb-6">
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="description">
+                        Beschreibung
+                    </label>
+                    <textarea 
+                        id="description" 
+                        name="description" 
+                        rows="4"
+                        class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500"
+                        placeholder="Video-Beschreibung..."
+                    ></textarea>
+                </div>
+
+                <!-- Kategorie -->
+                <div class="mb-6">
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="category">
+                        Kategorie
+                    </label>
+                    <select 
+                        id="category" 
+                        name="category"
+                        class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500"
+                    >
+                        <option value="">-- Keine Kategorie --</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Tags -->
+                <div class="mb-6">
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="tags">
+                        Tags
+                    </label>
+                    <input 
+                        type="text" 
+                        id="tags" 
+                        name="tags"
+                        class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500"
+                        placeholder="sport, fußball, highlights"
+                    >
+                    <p class="text-xs text-gray-500 mt-1">Mit Komma getrennt</p>
+                </div>
+
+                <!-- Mediathek -->
+                <div class="mb-6">
+                    <label class="flex items-center">
+                        <input 
+                            type="checkbox" 
+                            name="allow_in_mediathek" 
+                            checked
+                            class="w-4 h-4 text-red-600 bg-gray-700 border-gray-600 rounded focus:ring-red-500"
+                        >
+                        <span class="ml-2 text-gray-300">In Mediathek anzeigen</span>
+                    </label>
+                </div>
+
+                <!-- Progress Bar -->
+                <div id="progress-container" class="hidden mb-6">
+                    <div class="bg-gray-700 rounded-full h-4 overflow-hidden">
+                        <div id="progress-bar" class="bg-red-600 h-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p id="progress-text" class="text-sm text-gray-400 mt-2 text-center">Upload läuft...</p>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="flex gap-4">
+                    <button 
+                        type="submit" 
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                    >
+                        📤 Video Hochladen
+                    </button>
+                    <a 
+                        href="{% url 'mediathek' %}" 
+                        class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                    >
+                        Abbrechen
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Info Box -->
+        <div class="mt-8 bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+            <h3 class="text-blue-400 font-bold mb-2">ℹ️ Upload-Informationen</h3>
+            <ul class="text-sm text-gray-300 space-y-1">
+                <li>✅ Unterstützte Formate: MP4, MOV, AVI, MKV, WebM, und mehr</li>
+                <li>✅ Keine Größenbeschränkung - laden Sie beliebig große Dateien hoch</li>
+                <li>✅ Dateien werden sicher zur JDS Cloud hochgeladen</li>
+                <li>✅ Videos sind sofort nach dem Upload in der Mediathek verfügbar</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateFileName(input) {
+    const fileInfo = document.getElementById('file-info');
+    const fileName = document.getElementById('file-name');
+    const titleInput = document.getElementById('title');
+    
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const size = (file.size / (1024 * 1024)).toFixed(2);
+        
+        fileInfo.classList.add('hidden');
+        fileName.classList.remove('hidden');
+        fileName.innerHTML = `
+            <p class="text-lg">${file.name}</p>
+            <p class="text-sm text-gray-400">${size} MB</p>
+        `;
+        
+        // Auto-fill title if empty
+        if (!titleInput.value) {
+            titleInput.value = file.name.replace(/\.[^/.]+$/, "");
+        }
+    }
+}
+
+// Optional: AJAX Upload with Progress
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    const fileInput = document.getElementById('video_file');
+    if (fileInput.files.length === 0) {
+        e.preventDefault();
+        alert('Bitte wählen Sie eine Datei aus');
+        return;
+    }
+    
+    // Show progress bar
+    const progressContainer = document.getElementById('progress-container');
+    progressContainer.classList.remove('hidden');
+    
+    // You can implement AJAX upload here if needed
+});
+</script>
+{% endblock %}

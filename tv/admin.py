@@ -14,7 +14,8 @@ from .models import (
     PlaylistItem, PlaylistEntry, NewsItem, ContactMessage,
     Camera, LiveDirector, DirectorRoom, StandbyImage, DirectorRoomCamera,
     ProgramRoom, PauseScreen, StreamOverlay, CutOutGraphic, StreamPreset,
-    ContentSegment, ShowRundown
+    ContentSegment, ShowRundown,
+    Series, Season, Episode
 )
 from .mail import send_booking_confirmation, send_invoice, send_booking_approved, send_new_booking_admin
 
@@ -110,14 +111,43 @@ class CategoryAdmin(admin.ModelAdmin):
 # ── Videos ────────────────────────────────────────────────────────────────
 @admin.register(Video)
 class VideoAdmin(admin.ModelAdmin):
-    list_display = ['title', 'source_type', 'duration_display', 'category', 'allow_in_mediathek', 'is_active']
+    list_display = ['title', 'source_type', 'file_info_display', 'duration_display', 'category', 'allow_in_mediathek', 'is_active']
     list_filter = ['source_type', 'category', 'is_active', 'allow_in_mediathek']
-    search_fields = ['title']
+    search_fields = ['title', 'uploaded_file_name']
     list_editable = ['is_active', 'allow_in_mediathek']
+    
+    fieldsets = (
+        ('Allgemein', {
+            'fields': ('title', 'description', 'category', 'tags', 'allow_in_mediathek', 'is_active')
+        }),
+        ('Quelle', {
+            'fields': ('source_type', 'source_url', 'thumbnail_url', 'duration'),
+            'description': 'URL-basierte Quellen (YouTube, Dropbox, etc.)'
+        }),
+        ('Upload-Informationen', {
+            'fields': ('uploaded_file_id', 'uploaded_file_url', 'uploaded_file_download_url', 
+                      'uploaded_file_name', 'uploaded_file_size', 'uploaded_file_type'),
+            'classes': ('collapse',),
+            'description': 'Automatisch ausgefüllt bei JDS Cloud Uploads'
+        }),
+    )
+    readonly_fields = ['uploaded_file_id', 'uploaded_file_url', 'uploaded_file_download_url', 
+                      'uploaded_file_name', 'uploaded_file_size', 'uploaded_file_type']
 
     def duration_display(self, obj):
         return obj.duration_display()
     duration_display.short_description = 'Dauer'
+    
+    def file_info_display(self, obj):
+        if obj.source_type == 'upload' and obj.uploaded_file_size:
+            size_mb = obj.uploaded_file_size / (1024 * 1024)
+            if size_mb < 1024:
+                return format_html('<span title="{}">📁 {:.1f} MB</span>', obj.uploaded_file_name, size_mb)
+            else:
+                size_gb = size_mb / 1024
+                return format_html('<span title="{}">📁 {:.2f} GB</span>', obj.uploaded_file_name, size_gb)
+        return "–"
+    file_info_display.short_description = 'Dateigröße'
 
 
 # ── Werbevideos ───────────────────────────────────────────────────────────
@@ -719,3 +749,186 @@ class ShowRundownAdmin(admin.ModelAdmin):
             rundown.calculate_total_duration()
         self.message_user(request, f'{queryset.count()} Rundown(s) aktualisiert')
     recalculate_duration.short_description = "Dauer neu berechnen"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SERIEN-SYSTEM ADMIN
+# ══════════════════════════════════════════════════════════════════════════════
+
+class SeasonInline(admin.TabularInline):
+    model = Season
+    extra = 0
+    fields = ['season_number', 'title', 'year', 'is_active']
+    show_change_link = True
+
+
+class EpisodeInline(admin.TabularInline):
+    model = Episode
+    extra = 0
+    fields = ['episode_number', 'title', 'duration', 'air_date', 'is_active']
+    readonly_fields = ['duration']
+    show_change_link = True
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('season', 'video')
+
+
+@admin.register(Series)
+class SeriesAdmin(admin.ModelAdmin):
+    list_display = ['title', 'category', 'year', 'rating', 'seasons_count', 'episodes_count', 'is_active', 'created_at']
+    list_filter = ['is_active', 'category', 'year', 'created_at']
+    list_editable = ['is_active']
+    search_fields = ['title', 'description', 'tags']
+    prepopulated_fields = {'slug': ('title',)}
+    inlines = [SeasonInline]
+    
+    fieldsets = (
+        ('Grundinformationen', {
+            'fields': ('title', 'slug', 'description', 'category', 'tags')
+        }),
+        ('Medien', {
+            'fields': ('poster_url', 'banner_url')
+        }),
+        ('Metadaten', {
+            'fields': ('year', 'rating', 'is_active')
+        }),
+        ('Zeitstempel', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    readonly_fields = ['created_at', 'updated_at']
+    
+    def seasons_count(self, obj):
+        count = obj.get_seasons_count()
+        return format_html(
+            '<span style="background: #457b9d; color: white; padding: 2px 8px; border-radius: 10px;">{} Staffel{}</span>',
+            count,
+            'n' if count != 1 else ''
+        )
+    seasons_count.short_description = 'Staffeln'
+    
+    def episodes_count(self, obj):
+        count = obj.get_episodes_count()
+        return format_html(
+            '<span style="background: #2a9d8f; color: white; padding: 2px 8px; border-radius: 10px;">{} Episode{}</span>',
+            count,
+            'n' if count != 1 else ''
+        )
+    episodes_count.short_description = 'Episoden'
+
+
+@admin.register(Season)
+class SeasonAdmin(admin.ModelAdmin):
+    list_display = ['__str__', 'series', 'season_number', 'year', 'episodes_count', 'is_active', 'created_at']
+    list_filter = ['is_active', 'series', 'year', 'created_at']
+    list_editable = ['is_active']
+    search_fields = ['title', 'description', 'series__title']
+    inlines = [EpisodeInline]
+    autocomplete_fields = ['series']
+    
+    fieldsets = (
+        ('Zuordnung', {
+            'fields': ('series', 'season_number')
+        }),
+        ('Details', {
+            'fields': ('title', 'description', 'year')
+        }),
+        ('Medien', {
+            'fields': ('poster_url',)
+        }),
+        ('Status', {
+            'fields': ('is_active', 'created_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    readonly_fields = ['created_at']
+    
+    def episodes_count(self, obj):
+        count = obj.get_episodes_count()
+        return format_html(
+            '<span style="background: #2a9d8f; color: white; padding: 2px 8px; border-radius: 10px;">{}</span>',
+            count
+        )
+    episodes_count.short_description = 'Episoden'
+
+
+@admin.register(Episode)
+class EpisodeAdmin(admin.ModelAdmin):
+    list_display = ['episode_code', 'title', 'season', 'duration_display', 'air_date', 'video_source', 'is_active', 'created_at']
+    list_filter = ['is_active', 'season__series', 'season', 'air_date', 'source_type']
+    list_editable = ['is_active']
+    search_fields = ['title', 'description', 'season__series__title', 'season__title']
+    autocomplete_fields = ['season', 'video']
+    date_hierarchy = 'air_date'
+    
+    fieldsets = (
+        ('Episode-Info', {
+            'fields': ('season', 'episode_number', 'title', 'description')
+        }),
+        ('Video-Quelle (Option 1: Verknüpftes Video)', {
+            'fields': ('video',),
+            'description': 'Wähle ein vorhandenes Video aus der Mediathek'
+        }),
+        ('Video-Quelle (Option 2: Eigene Quelle)', {
+            'fields': ('source_type', 'source_url'),
+            'description': 'Oder gib eine eigene Video-Quelle an'
+        }),
+        ('Upload-Daten (automatisch)', {
+            'fields': (
+                'uploaded_file_id', 'uploaded_file_url', 'uploaded_file_download_url',
+                'uploaded_file_name', 'uploaded_file_size', 'uploaded_file_type'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Medien & Meta', {
+            'fields': ('thumbnail_url', 'duration', 'air_date')
+        }),
+        ('Status', {
+            'fields': ('is_active', 'created_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    readonly_fields = ['created_at', 'uploaded_file_id', 'uploaded_file_url', 
+                      'uploaded_file_download_url', 'uploaded_file_name', 
+                      'uploaded_file_size', 'uploaded_file_type']
+    
+    def episode_code(self, obj):
+        return format_html(
+            '<code style="background: #1d3557; color: #f1faee; padding: 3px 8px; border-radius: 4px; font-weight: 600;">S{:02d}E{:02d}</code>',
+            obj.season.season_number,
+            obj.episode_number
+        )
+    episode_code.short_description = 'Code'
+    
+    def video_source(self, obj):
+        if obj.video:
+            return format_html(
+                '<span style="background: #457b9d; color: white; padding: 2px 8px; border-radius: 10px;">📹 Verknüpft</span>'
+            )
+        elif obj.source_type:
+            source_icons = {
+                'youtube': '▶️ YouTube',
+                'upload': '📤 Upload',
+                'gdrive': '☁️ Drive',
+                'dropbox': '📦 Dropbox',
+                'direct': '🔗 Direkt',
+            }
+            return format_html(
+                '<span style="background: #e63946; color: white; padding: 2px 8px; border-radius: 10px;">{}</span>',
+                source_icons.get(obj.source_type, obj.source_type)
+            )
+        return format_html('<span style="color: #999;">Keine Quelle</span>')
+    video_source.short_description = 'Quelle'
+    
+    def save_model(self, request, obj, form, change):
+        # Wenn ein Video verknüpft ist, übernehme dessen Daten
+        if obj.video and not obj.duration:
+            obj.duration = obj.video.duration
+            if not obj.thumbnail_url:
+                obj.thumbnail_url = obj.video.thumbnail_url
+        super().save_model(request, obj, form, change)

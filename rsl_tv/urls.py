@@ -10,4 +10,5 @@ admin.site.index_title = "Senderverwaltung"
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('tv.urls')),
+    path('mediathek/', include('mediathek_app.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

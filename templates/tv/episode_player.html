@@ -1,0 +1,154 @@
+{% extends "tv/base.html" %}
+{% load tv_filters %}
+
+{% block title %}{{ episode.title }} - {{ series.title }} - RSL TV{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Back Navigation -->
+    <div class="mb-6">
+        <a href="{% url 'series_detail' series.slug %}" 
+           class="text-gray-400 hover:text-white transition flex items-center gap-2">
+            ← Zurück zu {{ series.title }}
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Main Video Area -->
+        <div class="lg:col-span-2">
+            <!-- Video Player -->
+            <div class="bg-gray-900 rounded-lg overflow-hidden mb-6">
+                <div class="aspect-video bg-black">
+                    {% if episode.video %}
+                        <!-- Wenn Episode ein verknüpftes Video hat -->
+                        {% if episode.video.source_type == 'upload' %}
+                        <video controls class="w-full h-full" 
+                               poster="{% if episode.thumbnail_url %}{{ episode.thumbnail_url }}{% endif %}">
+                            <source src="{{ episode.video.uploaded_file_download_url }}" 
+                                    type="{{ episode.video.uploaded_file_type|default:'video/mp4' }}">
+                        </video>
+                        {% elif episode.video.source_type == 'youtube' %}
+                        <iframe src="https://www.youtube.com/embed/{{ episode.video.source_url|cut:'https://youtu.be/'|cut:'https://www.youtube.com/watch?v=' }}?autoplay=0" 
+                                class="w-full h-full" frameborder="0" allowfullscreen></iframe>
+                        {% else %}
+                        <video controls class="w-full h-full">
+                            <source src="{{ episode.video.get_stream_url }}">
+                        </video>
+                        {% endif %}
+                    {% else %}
+                        <!-- Eigene Episode-Video-Felder -->
+                        {% if episode.source_type == 'upload' %}
+                        <video controls class="w-full h-full"
+                               poster="{% if episode.thumbnail_url %}{{ episode.thumbnail_url }}{% endif %}">
+                            <source src="{{ episode.uploaded_file_download_url }}" 
+                                    type="{{ episode.uploaded_file_type|default:'video/mp4' }}">
+                        </video>
+                        {% elif episode.source_type == 'youtube' %}
+                        <iframe src="https://www.youtube.com/embed/{{ episode.source_url|cut:'https://youtu.be/'|cut:'https://www.youtube.com/watch?v=' }}?autoplay=0"
+                                class="w-full h-full" frameborder="0" allowfullscreen></iframe>
+                        {% else %}
+                        <video controls class="w-full h-full">
+                            <source src="{{ stream_url }}">
+                        </video>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Episode Info -->
+            <div class="bg-gray-800 rounded-lg p-6">
+                <div class="flex items-start justify-between mb-4">
+                    <div>
+                        <div class="text-sm text-gray-400 mb-2">
+                            {{ series.title }} · Staffel {{ season.season_number }} · Episode {{ episode.episode_number }}
+                        </div>
+                        <h1 class="text-3xl font-bold mb-2">{{ episode.title }}</h1>
+                        
+                        <div class="flex items-center gap-4 text-sm text-gray-400">
+                            {% if episode.air_date %}
+                            <span>📅 {{ episode.air_date|date:"d.m.Y" }}</span>
+                            {% endif %}
+                            {% if episode.duration %}
+                            <span>⏱️ {{ episode.duration_display }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                {% if episode.description %}
+                <div class="border-t border-gray-700 pt-4 mt-4">
+                    <h3 class="font-semibold mb-2">Beschreibung</h3>
+                    <p class="text-gray-300 whitespace-pre-line">{{ episode.description }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Navigation Buttons -->
+                <div class="border-t border-gray-700 pt-4 mt-4 flex gap-3">
+                    {% if prev_episode %}
+                    <a href="{% url 'episode_player' series.slug prev_episode.season.season_number prev_episode.episode_number %}"
+                       class="flex-1 bg-gray-700 hover:bg-gray-600 px-4 py-3 rounded-lg text-center transition-colors">
+                        ← Vorherige Episode
+                    </a>
+                    {% endif %}
+                    
+                    {% if next_episode %}
+                    <a href="{% url 'episode_player' series.slug next_episode.season.season_number next_episode.episode_number %}"
+                       class="flex-1 bg-red-600 hover:bg-red-700 px-4 py-3 rounded-lg text-center transition-colors">
+                        Nächste Episode →
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="lg:col-span-1">
+            <!-- Andere Episoden dieser Staffel -->
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h3 class="font-semibold mb-4">Weitere Episoden</h3>
+                
+                <div class="space-y-3">
+                    {% for ep in other_episodes %}
+                    <a href="{% url 'episode_player' series.slug season.season_number ep.episode_number %}"
+                       class="flex gap-3 bg-gray-900 rounded-lg overflow-hidden hover:bg-gray-700 transition-colors group">
+                        <!-- Thumbnail -->
+                        <div class="w-24 h-16 bg-gray-800 flex-shrink-0">
+                            {% if ep.thumbnail_url %}
+                            <img src="{{ ep.thumbnail_url }}" alt="{{ ep.title }}" 
+                                 class="w-full h-full object-cover">
+                            {% else %}
+                            <div class="w-full h-full flex items-center justify-center text-xl">
+                                📺
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Info -->
+                        <div class="flex-1 py-2 pr-2 min-w-0">
+                            <div class="text-xs text-gray-400 mb-1">
+                                Episode {{ ep.episode_number }}
+                            </div>
+                            <h4 class="font-medium text-sm line-clamp-2 group-hover:text-red-500 transition-colors">
+                                {{ ep.title }}
+                            </h4>
+                            {% if ep.duration %}
+                            <div class="text-xs text-gray-500 mt-1">
+                                {{ ep.duration_display }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </a>
+                    {% empty %}
+                    <p class="text-sm text-gray-400">Keine weiteren Episoden</p>
+                    {% endfor %}
+                </div>
+
+                <a href="{% url 'season_detail' series.slug season.season_number %}"
+                   class="block mt-4 text-center py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+                    Alle Episoden anzeigen →
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

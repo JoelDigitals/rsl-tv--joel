@@ -1,0 +1,95 @@
+{% extends "tv/base.html" %}
+{% load tv_filters %}
+
+{% block title %}Serien - RSL TV{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold mb-4">📺 Serien</h1>
+        <p class="text-gray-400">Entdecke unsere Serien-Bibliothek</p>
+    </div>
+
+    <!-- Filter & Suche -->
+    <div class="bg-gray-800 rounded-lg p-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Suche -->
+            <form method="get" class="relative">
+                <input 
+                    type="text" 
+                    name="q" 
+                    value="{{ search_query|default:'' }}"
+                    placeholder="Serie suchen..." 
+                    class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 pr-12 focus:outline-none focus:border-red-500"
+                >
+                <button type="submit" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
+                    🔍
+                </button>
+            </form>
+
+            <!-- Kategorie-Filter -->
+            <div class="flex flex-wrap gap-2">
+                <a href="{% url 'series_list' %}" 
+                   class="px-4 py-2 rounded-lg {% if not current_category %}bg-red-600{% else %}bg-gray-700 hover:bg-gray-600{% endif %}">
+                    Alle
+                </a>
+                {% for cat in categories %}
+                <a href="?category={{ cat.slug }}" 
+                   class="px-4 py-2 rounded-lg {% if current_category == cat.slug %}bg-red-600{% else %}bg-gray-700 hover:bg-gray-600{% endif %}">
+                    {{ cat.name }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Serien Grid -->
+    {% if series %}
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+        {% for s in series %}
+        <a href="{% url 'series_detail' s.slug %}" class="group">
+            <div class="relative aspect-[2/3] rounded-lg overflow-hidden bg-gray-800 mb-3">
+                {% if s.poster_url %}
+                <img src="{{ s.poster_url }}" alt="{{ s.title }}" 
+                     class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300">
+                {% else %}
+                <div class="w-full h-full flex items-center justify-center text-6xl">
+                    📺
+                </div>
+                {% endif %}
+                
+                <!-- Overlay mit Info -->
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div class="absolute bottom-0 left-0 right-0 p-4">
+                        {% if s.rating %}
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-yellow-400">⭐</span>
+                            <span class="font-semibold">{{ s.rating }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="text-sm text-gray-300">
+                            {{ s.get_seasons_count }} Staffel{{ s.get_seasons_count|pluralize:"n" }} · 
+                            {{ s.get_episodes_count }} Episode{{ s.get_episodes_count|pluralize:"n" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <h3 class="font-semibold group-hover:text-red-500 transition-colors line-clamp-2">
+                {{ s.title }}
+            </h3>
+            {% if s.year %}
+            <p class="text-sm text-gray-400">{{ s.year }}</p>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-16">
+        <div class="text-6xl mb-4">📺</div>
+        <p class="text-xl text-gray-400">Keine Serien gefunden</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

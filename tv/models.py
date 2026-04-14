@@ -77,12 +77,22 @@ class Video(models.Model):
         ('dropbox', 'Dropbox'),
         ('direct', 'Direkt-URL'),
         ('twitch', 'Twitch VOD'),
+        ('upload', 'Hochgeladene Datei'),  # NEU: Für echte Uploads
     ]
 
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     source_type = models.CharField(max_length=20, choices=SOURCE_CHOICES, default='youtube')
-    source_url = models.URLField(max_length=500)
+    source_url = models.URLField(max_length=500, blank=True)  # Jetzt optional für Uploads
+    
+    # NEU: Felder für echte Datei-Uploads
+    uploaded_file_id = models.CharField(max_length=255, blank=True, help_text="JDS Cloud File ID")
+    uploaded_file_url = models.URLField(max_length=1000, blank=True, help_text="JDS Cloud View URL")
+    uploaded_file_download_url = models.URLField(max_length=1000, blank=True, help_text="JDS Cloud Download URL")
+    uploaded_file_name = models.CharField(max_length=500, blank=True, help_text="Original Dateiname")
+    uploaded_file_size = models.BigIntegerField(default=0, help_text="Dateigröße in Bytes")
+    uploaded_file_type = models.CharField(max_length=100, blank=True, help_text="MIME Type")
+    
     thumbnail_url = models.URLField(blank=True)
     duration = models.IntegerField(default=0, help_text="Sekunden")
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)
@@ -107,7 +117,10 @@ class Video(models.Model):
         return f"{m}:{s:02d}"
 
     def get_stream_url(self):
-        if self.source_type == 'gdrive' and 'drive.google.com/file/d/' in self.source_url:
+        # NEU: Wenn es ein Upload ist, verwende die Download-URL
+        if self.source_type == 'upload' and self.uploaded_file_download_url:
+            return self.uploaded_file_download_url
+        elif self.source_type == 'gdrive' and 'drive.google.com/file/d/' in self.source_url:
             file_id = self.source_url.split('/d/')[1].split('/')[0]
             return f"https://drive.google.com/uc?export=download&id={file_id}"
         elif self.source_type == 'dropbox':
@@ -1464,3 +1477,179 @@ class StreamPreset(models.Model):
         StreamPreset.objects.all().update(is_active=False)
         self.is_active = True
         self.save()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SERIEN-SYSTEM (Series, Seasons, Episodes)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class Series(models.Model):
+    """TV-Serie mit mehreren Staffeln"""
+    title = models.CharField(max_length=255, verbose_name="Serientitel")
+    slug = models.SlugField(unique=True)
+    description = models.TextField(blank=True, verbose_name="Beschreibung")
+    poster_url = models.URLField(blank=True, verbose_name="Poster-Bild")
+    banner_url = models.URLField(blank=True, verbose_name="Banner-Bild")
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)
+    tags = models.CharField(max_length=500, blank=True)
+    year = models.IntegerField(null=True, blank=True, verbose_name="Erscheinungsjahr")
+    rating = models.DecimalField(max_digits=3, decimal_places=1, null=True, blank=True, verbose_name="Bewertung (0-10)")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Serie"
+        verbose_name_plural = "Serien"
+        ordering = ['title']
+
+    def __str__(self):
+        return self.title
+
+    def get_seasons_count(self):
+        return self.seasons.count()
+
+    def get_episodes_count(self):
+        return Episode.objects.filter(season__series=self).count()
+
+    def get_latest_episode(self):
+        return Episode.objects.filter(season__series=self).order_by('-created_at').first()
+
+
+class Season(models.Model):
+    """Staffel einer Serie"""
+    series = models.ForeignKey(Series, on_delete=models.CASCADE, related_name='seasons')
+    season_number = models.IntegerField(verbose_name="Staffel-Nummer")
+    title = models.CharField(max_length=255, blank=True, verbose_name="Staffel-Titel")
+    description = models.TextField(blank=True)
+    poster_url = models.URLField(blank=True)
+    year = models.IntegerField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Staffel"
+        verbose_name_plural = "Staffeln"
+        ordering = ['series', 'season_number']
+        unique_together = ['series', 'season_number']
+
+    def __str__(self):
+        if self.title:
+            return f"{self.series.title} - Staffel {self.season_number}: {self.title}"
+        return f"{self.series.title} - Staffel {self.season_number}"
+
+    def get_episodes_count(self):
+        return self.episodes.count()
+
+
+class Episode(models.Model):
+    """Einzelne Episode einer Staffel"""
+    season = models.ForeignKey(Season, on_delete=models.CASCADE, related_name='episodes')
+    episode_number = models.IntegerField(verbose_name="Episoden-Nummer")
+    title = models.CharField(max_length=255, verbose_name="Episoden-Titel")
+    description = models.TextField(blank=True)
+    
+    # Video-Referenz (kann entweder ein vorhandenes Video oder eigene Upload-Felder sein)
+    video = models.ForeignKey(Video, on_delete=models.SET_NULL, null=True, blank=True, related_name='episodes')
+    
+    # Alternative: Eigene Video-Felder für Episoden
+    source_type = models.CharField(max_length=20, choices=Video.SOURCE_CHOICES, blank=True)
+    source_url = models.URLField(max_length=500, blank=True)
+    uploaded_file_id = models.CharField(max_length=255, blank=True)
+    uploaded_file_url = models.URLField(max_length=1000, blank=True)
+    uploaded_file_download_url = models.URLField(max_length=1000, blank=True)
+    uploaded_file_name = models.CharField(max_length=500, blank=True)
+    uploaded_file_size = models.BigIntegerField(default=0)
+    uploaded_file_type = models.CharField(max_length=100, blank=True)
+    
+    thumbnail_url = models.URLField(blank=True)
+    duration = models.IntegerField(default=0, help_text="Sekunden")
+    air_date = models.DateField(null=True, blank=True, verbose_name="Erstausstrahlung")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Episode"
+        verbose_name_plural = "Episoden"
+        ordering = ['season', 'episode_number']
+        unique_together = ['season', 'episode_number']
+
+    def __str__(self):
+        return f"{self.season.series.title} S{self.season.season_number:02d}E{self.episode_number:02d} - {self.title}"
+
+    def get_stream_url(self):
+        """Gibt die Stream-URL zurück (entweder vom verknüpften Video oder eigene Felder)"""
+        if self.video:
+            return self.video.get_stream_url()
+        
+        # Eigene Video-Felder
+        if self.source_type == 'upload' and self.uploaded_file_download_url:
+            return self.uploaded_file_download_url
+        elif self.source_type == 'gdrive' and 'drive.google.com/file/d/' in self.source_url:
+            file_id = self.source_url.split('/d/')[1].split('/')[0]
+            return f"https://drive.google.com/uc?export=download&id={file_id}"
+        elif self.source_type == 'dropbox':
+            return self.source_url.replace('?dl=0', '?dl=1')
+        return self.source_url
+
+    def duration_display(self):
+        """Formatierte Dauer-Anzeige"""
+        m, s = divmod(self.duration, 60)
+        h, m = divmod(m, 60)
+        if h:
+            return f"{h}:{m:02d}:{s:02d}"
+        return f"{m}:{s:02d}"
+
+    def get_next_episode(self):
+        """Gibt die nächste Episode zurück"""
+        # Nächste Episode in dieser Staffel
+        next_ep = Episode.objects.filter(
+            season=self.season,
+            episode_number__gt=self.episode_number,
+            is_active=True
+        ).order_by('episode_number').first()
+        
+        if next_ep:
+            return next_ep
+        
+        # Erste Episode der nächsten Staffel
+        next_season = Season.objects.filter(
+            series=self.season.series,
+            season_number__gt=self.season.season_number,
+            is_active=True
+        ).order_by('season_number').first()
+        
+        if next_season:
+            return Episode.objects.filter(
+                season=next_season,
+                is_active=True
+            ).order_by('episode_number').first()
+        
+        return None
+
+    def get_previous_episode(self):
+        """Gibt die vorherige Episode zurück"""
+        # Vorherige Episode in dieser Staffel
+        prev_ep = Episode.objects.filter(
+            season=self.season,
+            episode_number__lt=self.episode_number,
+            is_active=True
+        ).order_by('-episode_number').first()
+        
+        if prev_ep:
+            return prev_ep
+        
+        # Letzte Episode der vorherigen Staffel
+        prev_season = Season.objects.filter(
+            series=self.season.series,
+            season_number__lt=self.season.season_number,
+            is_active=True
+        ).order_by('-season_number').first()
+        
+        if prev_season:
+            return Episode.objects.filter(
+                season=prev_season,
+                is_active=True
+            ).order_by('-episode_number').first()
+        
+        return None

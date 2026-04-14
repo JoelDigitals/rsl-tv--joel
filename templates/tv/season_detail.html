@@ -1,0 +1,120 @@
+{% extends "tv/base.html" %}
+{% load tv_filters %}
+
+{% block title %}Staffel {{ season.season_number }} - {{ series.title }} - RSL TV{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Back Navigation -->
+    <div class="mb-6">
+        <a href="{% url 'series_detail' series.slug %}" 
+           class="text-gray-400 hover:text-white transition flex items-center gap-2">
+            ← Zurück zu {{ series.title }}
+        </a>
+    </div>
+
+    <!-- Season Header -->
+    <div class="bg-gray-800 rounded-lg p-8 mb-8">
+        <div class="flex items-start gap-6">
+            {% if season.poster_url %}
+            <img src="{{ season.poster_url }}" alt="Staffel {{ season.season_number }}" 
+                 class="w-48 rounded-lg hidden md:block">
+            {% endif %}
+            
+            <div class="flex-1">
+                <h1 class="text-4xl font-bold mb-2">
+                    Staffel {{ season.season_number }}
+                    {% if season.title %} - {{ season.title }}{% endif %}
+                </h1>
+                <p class="text-xl text-gray-400 mb-4">{{ series.title }}</p>
+                
+                <div class="flex items-center gap-4 text-gray-300">
+                    {% if season.year %}
+                    <span>{{ season.year }}</span>
+                    {% endif %}
+                    <span>{{ episodes|length }} Episode{{ episodes|length|pluralize:"n" }}</span>
+                </div>
+                
+                {% if season.description %}
+                <p class="text-gray-300 mt-4 leading-relaxed">{{ season.description }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Season Navigation -->
+        <div class="flex gap-3 mt-6">
+            {% if prev_season %}
+            <a href="{% url 'season_detail' series.slug prev_season.season_number %}"
+               class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+                ← Staffel {{ prev_season.season_number }}
+            </a>
+            {% endif %}
+            
+            {% if next_season %}
+            <a href="{% url 'season_detail' series.slug next_season.season_number %}"
+               class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+                Staffel {{ next_season.season_number }} →
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Episodes List -->
+    <div>
+        <h2 class="text-2xl font-bold mb-6">Episoden</h2>
+        
+        {% if episodes %}
+        <div class="grid grid-cols-1 gap-4">
+            {% for episode in episodes %}
+            <a href="{% url 'episode_player' series.slug season.season_number episode.episode_number %}"
+               class="bg-gray-800 rounded-lg overflow-hidden hover:bg-gray-700 transition-colors group flex">
+                <!-- Thumbnail -->
+                <div class="w-64 h-36 bg-gray-900 flex-shrink-0">
+                    {% if episode.thumbnail_url %}
+                    <img src="{{ episode.thumbnail_url }}" alt="{{ episode.title }}" 
+                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    {% else %}
+                    <div class="w-full h-full flex items-center justify-center text-4xl">
+                        📺
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Episode Info -->
+                <div class="flex-1 p-6">
+                    <div class="flex items-start justify-between mb-2">
+                        <div>
+                            <div class="text-sm text-gray-400 mb-1">
+                                Episode {{ episode.episode_number }}
+                            </div>
+                            <h3 class="text-xl font-semibold group-hover:text-red-500 transition-colors">
+                                {{ episode.title }}
+                            </h3>
+                        </div>
+                        
+                        <div class="flex items-center gap-3 text-sm text-gray-400">
+                            {% if episode.air_date %}
+                            <span>📅 {{ episode.air_date|date:"d.m.Y" }}</span>
+                            {% endif %}
+                            {% if episode.duration %}
+                            <span>⏱️ {{ episode.duration_display }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if episode.description %}
+                    <p class="text-gray-300 line-clamp-2 mt-2">{{ episode.description }}</p>
+                    {% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-16">
+            <div class="text-6xl mb-4">📺</div>
+            <p class="text-xl text-gray-400">Noch keine Episoden verfügbar</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

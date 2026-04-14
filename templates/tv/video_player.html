@@ -1,0 +1,197 @@
+{% extends "tv/base.html" %}
+{% load tv_filters %}
+
+{% block title %}{{ video.title }} - RSL TV{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Back Button -->
+    <div class="mb-6">
+        <a href="{% url 'mediathek' %}" class="text-gray-400 hover:text-white transition flex items-center gap-2">
+            ← Zurück zur Mediathek
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Main Video Area -->
+        <div class="lg:col-span-2">
+            <!-- Video Player -->
+            <div class="bg-gray-900 rounded-lg overflow-hidden mb-6">
+                <div class="aspect-video bg-black">
+                    {% if video.source_type == 'upload' %}
+                        <!-- Hochgeladenes Video -->
+                        <video 
+                            controls 
+                            class="w-full h-full"
+                            poster="{% if video.thumbnail_url %}{{ video.thumbnail_url }}{% endif %}"
+                        >
+                            <source src="{{ video.uploaded_file_download_url }}" type="{{ video.uploaded_file_type|default:'video/mp4' }}">
+                            Ihr Browser unterstützt das Video-Tag nicht.
+                        </video>
+                    {% elif video.source_type == 'youtube' %}
+                        <!-- YouTube Embed -->
+                        {% if 'watch?v=' in video.source_url %}
+                            <iframe 
+                                src="https://www.youtube.com/embed/{{ video.source_url|slice:'watch?v='|slice:':11' }}?autoplay=0" 
+                                class="w-full h-full" 
+                                frameborder="0" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                allowfullscreen
+                            ></iframe>
+                        {% elif 'youtu.be/' in video.source_url %}
+                            <iframe 
+                                src="https://www.youtube.com/embed/{{ video.source_url|cut:'https://youtu.be/' }}?autoplay=0" 
+                                class="w-full h-full" 
+                                frameborder="0" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                allowfullscreen
+                            ></iframe>
+                        {% endif %}
+                    {% elif video.source_type == 'direct' or video.source_type == 'gdrive' or video.source_type == 'dropbox' %}
+                        <!-- Direkter Stream -->
+                        <video 
+                            controls 
+                            class="w-full h-full"
+                            poster="{% if video.thumbnail_url %}{{ video.thumbnail_url }}{% endif %}"
+                        >
+                            <source src="{{ video.get_stream_url }}" type="video/mp4">
+                            Ihr Browser unterstützt das Video-Tag nicht.
+                        </video>
+                    {% else %}
+                        <!-- Fallback -->
+                        <div class="w-full h-full flex items-center justify-center text-gray-400">
+                            <div class="text-center">
+                                <p class="mb-4">Video-Typ wird nicht unterstützt</p>
+                                <a href="{{ video.source_url }}" target="_blank" class="text-red-400 hover:text-red-300">
+                                    Video extern öffnen →
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Video Info -->
+            <div class="bg-gray-800 rounded-lg p-6">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                        <h1 class="text-3xl font-bold text-white mb-2">{{ video.title }}</h1>
+                        <div class="flex items-center gap-4 text-sm text-gray-400">
+                            {% if video.category %}
+                            <span class="bg-gray-700 px-3 py-1 rounded">{{ video.category.name }}</span>
+                            {% endif %}
+                            
+                            {% if video.duration %}
+                            <span>⏱️ {{ video.duration_display }}</span>
+                            {% endif %}
+                            
+                            <span>📅 {{ video.created_at|date:"d.m.Y" }}</span>
+                            
+                            {% if video.source_type == 'upload' %}
+                            <span class="bg-green-900/30 text-green-400 px-2 py-1 rounded text-xs">
+                                📁 Hochgeladen
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if user.is_staff %}
+                    <a href="/admin/tv/video/{{ video.id }}/change/" 
+                       class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg transition text-sm">
+                        ✏️ Bearbeiten
+                    </a>
+                    {% endif %}
+                </div>
+
+                {% if video.description %}
+                <div class="border-t border-gray-700 pt-4 mt-4">
+                    <h3 class="font-semibold mb-2">Beschreibung</h3>
+                    <p class="text-gray-300 whitespace-pre-line">{{ video.description }}</p>
+                </div>
+                {% endif %}
+
+                {% if video.tags %}
+                <div class="border-t border-gray-700 pt-4 mt-4">
+                    <h3 class="font-semibold mb-2">Tags</h3>
+                    <div class="flex flex-wrap gap-2">
+                        {% for tag in video.tags|split:"," %}
+                        <span class="bg-gray-700 px-3 py-1 rounded-full text-sm">
+                            #{{ tag|trim }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Upload Info -->
+                {% if video.source_type == 'upload' and video.uploaded_file_size %}
+                <div class="border-t border-gray-700 pt-4 mt-4">
+                    <h3 class="font-semibold mb-2">Datei-Informationen</h3>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="text-gray-400">Dateiname:</span>
+                            <p class="font-mono text-xs">{{ video.uploaded_file_name }}</p>
+                        </div>
+                        <div>
+                            <span class="text-gray-400">Größe:</span>
+                            <p>{{ video.uploaded_file_size|filesizeformat }}</p>
+                        </div>
+                        <div>
+                            <span class="text-gray-400">Format:</span>
+                            <p>{{ video.uploaded_file_type|default:"video/mp4" }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="lg:col-span-1">
+            <h2 class="text-2xl font-bold mb-4">Weitere Videos</h2>
+            <div class="space-y-4">
+                {% for rel_video in related_videos %}
+                <a href="{% url 'video_player' rel_video.id %}" 
+                   class="block bg-gray-800 rounded-lg overflow-hidden hover:ring-2 hover:ring-red-500 transition">
+                    <div class="grid grid-cols-5 gap-3">
+                        <div class="col-span-2 aspect-video bg-gray-700 relative">
+                            {% if rel_video.thumbnail_url %}
+                            <img src="{{ rel_video.thumbnail_url }}" alt="{{ rel_video.title }}" class="w-full h-full object-cover">
+                            {% else %}
+                            <div class="w-full h-full flex items-center justify-center text-3xl">🎬</div>
+                            {% endif %}
+                            
+                            {% if rel_video.duration %}
+                            <div class="absolute bottom-1 right-1 bg-black/80 px-1 text-xs rounded">
+                                {{ rel_video.duration_display }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-span-3 p-3 flex flex-col justify-center">
+                            <h3 class="font-semibold text-sm line-clamp-2 mb-1">
+                                {{ rel_video.title }}
+                            </h3>
+                            {% if rel_video.category %}
+                            <p class="text-xs text-gray-400">{{ rel_video.category.name }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+                {% empty %}
+                <p class="text-gray-400 text-sm">Keine weiteren Videos verfügbar</p>
+                {% endfor %}
+            </div>
+
+            <!-- Upload Button -->
+            {% if user.is_authenticated %}
+            <div class="mt-8">
+                <a href="{% url 'upload_video' %}" 
+                   class="block w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition text-center">
+                    📤 Weiteres Video hochladen
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

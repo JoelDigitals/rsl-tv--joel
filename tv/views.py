@@ -29,7 +29,9 @@ from .models import (
     DirectorRoom, DirectorRoomCamera, Camera, AudioSource, Scene, SceneAudioMix,
     Transition, ContentSegment, ShowRundown, ReplayClip, ReplayPlaylist, 
     ReplayPlaylistItem, ProgramRoom, VideoCache, StreamProcess, LiveDirector,
-    PauseScreen, StreamOverlay, CutOutGraphic, StreamPreset
+    PauseScreen, StreamOverlay, CutOutGraphic, StreamPreset,
+    # Serien-System
+    Series, Season, Episode
 )
 from .forms import AdBookingForm, ContactForm
 from .serializers import VideoSerializer, ScheduleSerializer, LiveStreamSerializer
@@ -116,7 +118,7 @@ def live(request):
 def mediathek(request):
     category_slug = request.GET.get('kategorie')
     search = request.GET.get('q', '')
-    videos = Video.objects.filter(is_active=True, allow_in_mediathek=True)
+    videos = Video.objects.filter(is_active=True, allow_in_mediathek=True).order_by('-created_at')
     if category_slug:
         videos = videos.filter(category__slug=category_slug)
     if search:
@@ -125,6 +127,21 @@ def mediathek(request):
     return render(request, 'tv/mediathek.html', {
         'videos': videos, 'categories': categories,
         'current_category': category_slug, 'search': search, 'page': 'mediathek'
+    })
+
+
+def video_player(request, video_id):
+    """Video-Player-Seite"""
+    video = get_object_or_404(Video, id=video_id, is_active=True)
+    related_videos = Video.objects.filter(
+        is_active=True, 
+        allow_in_mediathek=True
+    ).exclude(id=video_id).order_by('-created_at')[:6]
+    
+    return render(request, 'tv/video_player.html', {
+        'video': video,
+        'related_videos': related_videos,
+        'page': 'mediathek'
     })
 
 
@@ -3197,3 +3214,131 @@ def run_ffmpeg_setup(request):
             "status": "error",
             "message": str(e)
         })
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SERIEN-SYSTEM VIEWS
+# ══════════════════════════════════════════════════════════════════════════════
+
+def series_list(request):
+    """Zeigt alle aktiven Serien"""
+    series = Series.objects.filter(is_active=True).order_by('-created_at')
+    categories = Category.objects.all()
+    
+    # Filter nach Kategorie
+    category_slug = request.GET.get('category')
+    if category_slug:
+        series = series.filter(category__slug=category_slug)
+    
+    # Suche
+    query = request.GET.get('q')
+    if query:
+        series = series.filter(
+            DQ(title__icontains=query) | 
+            DQ(description__icontains=query) |
+            DQ(tags__icontains=query)
+        )
+    
+    return render(request, 'tv/series_list.html', {
+        'series': series,
+        'categories': categories,
+        'current_category': category_slug,
+        'search_query': query,
+        'page': 'series'
+    })
+
+
+def series_detail(request, slug):
+    """Zeigt Details einer Serie mit allen Staffeln und Episoden"""
+    series = get_object_or_404(Series, slug=slug, is_active=True)
+    seasons = series.seasons.filter(is_active=True).order_by('season_number').prefetch_related('episodes')
+    
+    # Statistiken
+    total_episodes = Episode.objects.filter(season__series=series, is_active=True).count()
+    total_duration = Episode.objects.filter(season__series=series, is_active=True).aggregate(
+        total=Sum('duration')
+    )['total'] or 0
+    
+    latest_episode = series.get_latest_episode()
+    
+    return render(request, 'tv/series_detail.html', {
+        'series': series,
+        'seasons': seasons,
+        'total_episodes': total_episodes,
+        'total_duration': total_duration,
+        'latest_episode': latest_episode,
+        'page': 'series'
+    })
+
+
+def season_detail(request, series_slug, season_number):
+    """Zeigt alle Episoden einer Staffel"""
+    series = get_object_or_404(Series, slug=series_slug, is_active=True)
+    season = get_object_or_404(Season, series=series, season_number=season_number, is_active=True)
+    episodes = season.episodes.filter(is_active=True).order_by('episode_number')
+    
+    # Navigation zu anderen Staffeln
+    prev_season = Season.objects.filter(
+        series=series, 
+        season_number__lt=season_number,
+        is_active=True
+    ).order_by('-season_number').first()
+    
+    next_season = Season.objects.filter(
+        series=series,
+        season_number__gt=season_number,
+        is_active=True
+    ).order_by('season_number').first()
+    
+    return render(request, 'tv/season_detail.html', {
+        'series': series,
+        'season': season,
+        'episodes': episodes,
+        'prev_season': prev_season,
+        'next_season': next_season,
+        'page': 'series'
+    })
+
+
+def episode_player(request, series_slug, season_number, episode_number):
+    """Spielt eine Episode ab"""
+    series = get_object_or_404(Series, slug=series_slug, is_active=True)
+    season = get_object_or_404(Season, series=series, season_number=season_number, is_active=True)
+    episode = get_object_or_404(Episode, season=season, episode_number=episode_number, is_active=True)
+    
+    # Navigation
+    next_episode = episode.get_next_episode()
+    prev_episode = episode.get_previous_episode()
+    
+    # Andere Episoden dieser Staffel
+    other_episodes = season.episodes.filter(is_active=True).exclude(id=episode.id).order_by('episode_number')[:6]
+    
+    # Streaming-URL bestimmen
+    stream_url = episode.get_stream_url()
+    
+    return render(request, 'tv/episode_player.html', {
+        'series': series,
+        'season': season,
+        'episode': episode,
+        'stream_url': stream_url,
+        'next_episode': next_episode,
+        'prev_episode': prev_episode,
+        'other_episodes': other_episodes,
+        'page': 'series'
+    })
+
+
+def continue_watching(request):
+    """Zeigt fortgesetzte/letzte gesehene Episoden (benötigt Session/Cookie-Tracking)"""
+    # TODO: Session-basiertes oder User-basiertes Tracking implementieren
+    # Für jetzt: Zeige neueste Episoden
+    recent_episodes = Episode.objects.filter(
+        is_active=True,
+        season__is_active=True,
+        season__series__is_active=True
+    ).select_related('season', 'season__series').order_by('-created_at')[:12]
+    
+    return render(request, 'tv/continue_watching.html', {
+        'episodes': recent_episodes,
+        'page': 'series'
+    })

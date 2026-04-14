@@ -1,0 +1,125 @@
+{% extends "tv/base.html" %}
+
+{% block title %}Upload Center - RSL TV{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">📤 Upload Center</h1>
+            <p class="text-gray-400">Laden Sie Videos, Bilder und Streams zur JDS Cloud hoch</p>
+        </div>
+
+        <!-- Upload Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            
+            <!-- Video Upload -->
+            <div class="bg-gradient-to-br from-red-900/30 to-red-800/20 border border-red-500/30 rounded-xl p-6 hover:border-red-500/60 transition-all duration-300 hover:shadow-lg hover:shadow-red-500/20">
+                <div class="text-4xl mb-4">🎬</div>
+                <h3 class="text-xl font-bold text-white mb-2">Video hochladen</h3>
+                <p class="text-gray-400 text-sm mb-4">
+                    Laden Sie Videos für die Mediathek hoch. Unterstützt alle gängigen Formate ohne Größenbeschränkung.
+                </p>
+                <a href="{% url 'upload_video' %}" 
+                   class="block w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-center">
+                    Video hochladen
+                </a>
+            </div>
+
+            <!-- Live Stream Recording -->
+            <div class="bg-gradient-to-br from-purple-900/30 to-purple-800/20 border border-purple-500/30 rounded-xl p-6 hover:border-purple-500/60 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20">
+                <div class="text-4xl mb-4">🔴</div>
+                <h3 class="text-xl font-bold text-white mb-2">Live-Stream Recording</h3>
+                <p class="text-gray-400 text-sm mb-4">
+                    Laden Sie aufgezeichnete Live-Streams hoch und machen Sie sie in der Mediathek verfügbar.
+                </p>
+                <a href="{% url 'upload_live_stream' %}" 
+                   class="block w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-center">
+                    Recording hochladen
+                </a>
+            </div>
+
+            <!-- Thumbnail/Image Upload -->
+            <div class="bg-gradient-to-br from-blue-900/30 to-blue-800/20 border border-blue-500/30 rounded-xl p-6 hover:border-blue-500/60 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20">
+                <div class="text-4xl mb-4">🖼️</div>
+                <h3 class="text-xl font-bold text-white mb-2">Bild hochladen</h3>
+                <p class="text-gray-400 text-sm mb-4">
+                    Laden Sie Thumbnails, Logos oder andere Bilder hoch. PNG, JPG, GIF, WebP, SVG.
+                </p>
+                <a href="{% url 'upload_thumbnail' %}" 
+                   class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-center">
+                    Bild hochladen
+                </a>
+            </div>
+        </div>
+
+        <!-- Upload Features -->
+        <div class="bg-gray-800 rounded-xl p-6 mb-8">
+            <h2 class="text-2xl font-bold text-white mb-4">✨ Upload-Features</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex items-start gap-3">
+                    <div class="text-2xl">⚡</div>
+                    <div>
+                        <h4 class="text-white font-semibold">Schneller Upload</h4>
+                        <p class="text-gray-400 text-sm">Direkt zur JDS Cloud - optimiert für große Dateien</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="text-2xl">♾️</div>
+                    <div>
+                        <h4 class="text-white font-semibold">Keine Limits</h4>
+                        <p class="text-gray-400 text-sm">Laden Sie Dateien jeder Größe hoch</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="text-2xl">🔒</div>
+                    <div>
+                        <h4 class="text-white font-semibold">Sicher & Zuverlässig</h4>
+                        <p class="text-gray-400 text-sm">Verschlüsselte Übertragung zur Cloud</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="text-2xl">🎥</div>
+                    <div>
+                        <h4 class="text-white font-semibold">Alle Formate</h4>
+                        <p class="text-gray-400 text-sm">MP4, MKV, MOV, WebM, und viele mehr</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Uploads (if logged in) -->
+        {% if user.is_authenticated %}
+        <div class="bg-gray-800 rounded-xl p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-bold text-white">📊 Letzte Uploads</h2>
+                <a href="{% url 'mediathek' %}" class="text-red-400 hover:text-red-300 text-sm">
+                    Alle ansehen →
+                </a>
+            </div>
+            <div class="text-gray-400 text-center py-8">
+                <p>Ihre hochgeladenen Dateien erscheinen hier</p>
+                <p class="text-sm mt-2">Beginnen Sie mit dem Upload Ihrer ersten Datei!</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Info Box -->
+        <div class="mt-8 bg-green-900/20 border border-green-500/30 rounded-lg p-4">
+            <div class="flex items-start gap-3">
+                <div class="text-2xl">💡</div>
+                <div>
+                    <h3 class="text-green-400 font-bold mb-2">Upload-Tipps</h3>
+                    <ul class="text-sm text-gray-300 space-y-1">
+                        <li>✅ Verwenden Sie aussagekräftige Dateinamen</li>
+                        <li>✅ Fügen Sie Beschreibungen und Tags hinzu für bessere Auffindbarkeit</li>
+                        <li>✅ Wählen Sie die passende Kategorie aus</li>
+                        <li>✅ Videos werden automatisch in der Mediathek veröffentlicht</li>
+                        <li>✅ Sie können die Sichtbarkeit jederzeit im Admin-Panel ändern</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

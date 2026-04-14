@@ -3,6 +3,8 @@ RSL TV – URLs (vereinigt)
 """
 from django.urls import path
 from . import views
+from . import upload_views  # NEU: Upload Views
+from .upload_center_view import upload_center  # NEU: Upload Center
 
 urlpatterns = [
     # ══════════════════════════════════════════════════════════════════════════
@@ -11,11 +13,23 @@ urlpatterns = [
     path('', views.index, name='home'),
     path('programm/', views.program, name='program'),
     path('live/', views.live, name='live'),
-    path('mediathek/', views.mediathek, name='mediathek'),
+    path('mediathek-1/', views.mediathek, name='mediathek'),
+    path('mediathek-1/video/<int:video_id>/', views.video_player, name='video_player'),
     path('ueber-uns/', views.ueber_uns, name='ueber_uns'),
     path('kontakt/', views.kontakt, name='kontakt'),
     path('impressum/', views.impressum, name='impressum'),
     path('datenschutz/', views.datenschutz, name='datenschutz'),
+    
+    # ══════════════════════════════════════════════════════════════════════════
+    # FILE UPLOADS (NEU - JDS Cloud Integration)
+    # ══════════════════════════════════════════════════════════════════════════
+    path('upload/', upload_center, name='upload_center'),  # Upload Dashboard
+    path('upload/video/', upload_views.upload_video, name='upload_video'),
+    path('upload/video/ajax/', upload_views.upload_video_ajax, name='upload_video_ajax'),
+    path('upload/thumbnail/', upload_views.upload_thumbnail, name='upload_thumbnail'),
+    path('upload/ad-video/', upload_views.upload_ad_video, name='upload_ad_video'),
+    path('upload/logo/', upload_views.upload_logo, name='upload_logo'),
+    path('upload/livestream/', upload_views.upload_live_stream, name='upload_live_stream'),
     
     # ══════════════════════════════════════════════════════════════════════════
     # WERBUNG
@@ -147,6 +161,15 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # SERIEN-SYSTEM
+    # ══════════════════════════════════════════════════════════════════════════
+    path('serien/', views.series_list, name='series_list'),
+    path('serien/<slug:slug>/', views.series_detail, name='series_detail'),
+    path('serien/<slug:series_slug>/staffel-<int:season_number>/', views.season_detail, name='season_detail'),
+    path('serien/<slug:series_slug>/staffel-<int:season_number>/episode-<int:episode_number>/', views.episode_player, name='episode_player'),
+    path('weiterschauen/', views.continue_watching, name='continue_watching'),
 
     path("setup-ffmpeg/", views.run_ffmpeg_setup, name="setup_ffmpeg"),
 ]

@@ -1,0 +1,124 @@
+{% extends "tv/base.html" %}
+
+{% block title %}Bild Hochladen - RSL TV{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-4xl font-bold text-white mb-2">Bild Hochladen</h1>
+        <p class="text-gray-400 mb-8">Thumbnails, Logos und andere Bilder zur JDS Cloud hochladen</p>
+
+        {% if uploaded_image %}
+        <div class="bg-green-900/30 border border-green-500/50 rounded-lg p-6 mb-6">
+            <h3 class="text-green-400 font-bold mb-3">✅ Bild erfolgreich hochgeladen!</h3>
+            <div class="mb-4">
+                <img src="{{ uploaded_image.view_url }}" alt="Uploaded" class="max-w-full rounded-lg shadow-lg">
+            </div>
+            <div class="space-y-2 text-sm">
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-400">Dateiname:</span>
+                    <span class="text-white font-mono">{{ uploaded_image.name }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-400">Größe:</span>
+                    <span class="text-white">{{ uploaded_image.size|filesizeformat }}</span>
+                </div>
+                <div class="bg-gray-800 p-3 rounded mt-3">
+                    <p class="text-gray-400 text-xs mb-1">Ansichts-URL:</p>
+                    <input 
+                        type="text" 
+                        value="{{ uploaded_image.view_url }}" 
+                        readonly
+                        class="w-full px-2 py-1 bg-gray-700 text-white text-xs font-mono rounded"
+                        onclick="this.select()"
+                    >
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="bg-gray-800 rounded-lg p-6 shadow-xl">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="mb-6">
+                    <label class="block text-gray-300 text-sm font-bold mb-2">
+                        Bilddatei
+                    </label>
+                    <div class="relative border-2 border-dashed border-gray-600 rounded-lg p-8 text-center hover:border-red-500 transition-colors">
+                        <input 
+                            type="file" 
+                            name="image_file" 
+                            accept="image/*"
+                            required
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            onchange="previewImage(this)"
+                        >
+                        <div id="upload-prompt">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6 6l-3.172 3.172a4 4 0 01-5.656 0L2 20m32-10l3.172-3.172a4 4 0 015.656 0L46 10M36 26l-3.172-3.172a4 4 0 00-5.656 0L24 26m0 0l-5 5m5-5l3.172-3.172a4 4 0 015.656 0L36 26M8 40h32a4 4 0 004-4V12a4 4 0 00-4-4H8a4 4 0 00-4 4v24a4 4 0 004 4z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <p class="mt-1 text-sm text-gray-400">
+                                Bild hierher ziehen oder klicken
+                            </p>
+                            <p class="text-xs text-gray-500 mt-2">
+                                JPG, PNG, GIF, WebP, SVG
+                            </p>
+                        </div>
+                        <div id="image-preview" class="hidden">
+                            <img id="preview-img" src="" alt="Vorschau" class="max-w-full max-h-64 mx-auto rounded-lg">
+                            <p id="preview-name" class="text-sm text-gray-400 mt-2"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <button 
+                        type="submit" 
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                    >
+                        📤 Bild Hochladen
+                    </button>
+                    <a 
+                        href="{% url 'home' %}" 
+                        class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                    >
+                        Zurück
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <div class="mt-6 bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+            <h3 class="text-blue-400 font-bold mb-2">💡 Verwendung</h3>
+            <p class="text-sm text-gray-300">
+                Hochgeladene Bilder können als Thumbnails für Videos, Logos, Sender-Wasserzeichen 
+                oder Stream-Overlays verwendet werden. Die URL wird nach dem Upload angezeigt.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+function previewImage(input) {
+    const uploadPrompt = document.getElementById('upload-prompt');
+    const imagePreview = document.getElementById('image-preview');
+    const previewImg = document.getElementById('preview-img');
+    const previewName = document.getElementById('preview-name');
+    
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            uploadPrompt.classList.add('hidden');
+            imagePreview.classList.remove('hidden');
+            previewImg.src = e.target.result;
+            previewName.textContent = `${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+        };
+        
+        reader.readAsDataURL(file);
+    }
+}
+</script>
+{% endblock %}

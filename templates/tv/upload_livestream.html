@@ -1,0 +1,128 @@
+{% extends "tv/base.html" %}
+
+{% block title %}Live-Stream Recording Hochladen - RSL TV{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-3xl mx-auto">
+        <h1 class="text-4xl font-bold text-white mb-2">🔴 Live-Stream Recording</h1>
+        <p class="text-gray-400 mb-8">Laden Sie aufgezeichnete Live-Streams zur Mediathek hoch</p>
+
+        <div class="bg-gray-800 rounded-lg p-6 shadow-xl">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <!-- Stream File -->
+                <div class="mb-6">
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="stream_file">
+                        Recording-Datei *
+                    </label>
+                    <div class="relative border-2 border-dashed border-gray-600 rounded-lg p-8 text-center hover:border-red-500 transition-colors">
+                        <input 
+                            type="file" 
+                            id="stream_file" 
+                            name="stream_file" 
+                            accept="video/*"
+                            required
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            onchange="updateFileName(this)"
+                        >
+                        <div id="file-info">
+                            <svg class="mx-auto h-12 w-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            <p class="mt-1 text-sm text-gray-400">
+                                Stream-Recording hierher ziehen oder klicken
+                            </p>
+                            <p class="text-xs text-gray-500 mt-2">
+                                MP4, MKV, MOV, TS - Live-Stream Recordings
+                            </p>
+                        </div>
+                        <div id="file-name" class="hidden text-green-400 font-semibold"></div>
+                    </div>
+                </div>
+
+                <!-- Title -->
+                <div class="mb-6">
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="title">
+                        Stream-Titel *
+                    </label>
+                    <input 
+                        type="text" 
+                        id="title" 
+                        name="title" 
+                        required
+                        class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500"
+                        placeholder="Live-Stream vom 12.04.2026"
+                    >
+                </div>
+
+                <!-- Description -->
+                <div class="mb-6">
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="description">
+                        Beschreibung
+                    </label>
+                    <textarea 
+                        id="description" 
+                        name="description" 
+                        rows="4"
+                        class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500"
+                        placeholder="Was wurde gestreamt? Highlights, besondere Momente..."
+                    ></textarea>
+                </div>
+
+                <!-- Submit -->
+                <div class="flex gap-4">
+                    <button 
+                        type="submit" 
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                    >
+                        🔴 Recording Hochladen
+                    </button>
+                    <a 
+                        href="{% url 'live' %}" 
+                        class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                    >
+                        Abbrechen
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Info -->
+        <div class="mt-8 bg-red-900/20 border border-red-500/30 rounded-lg p-4">
+            <h3 class="text-red-400 font-bold mb-2">📼 Recording-Infos</h3>
+            <ul class="text-sm text-gray-300 space-y-1">
+                <li>✅ Laden Sie Live-Stream-Aufnahmen zur späteren Wiedergabe hoch</li>
+                <li>✅ Videos werden automatisch in der Mediathek verfügbar gemacht</li>
+                <li>✅ Ideal für: vergangene Live-Events, Stream-Highlights, Best-of-Compilations</li>
+                <li>✅ Keine Größenlimitierung - laden Sie komplette Streams hoch</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateFileName(input) {
+    const fileInfo = document.getElementById('file-info');
+    const fileName = document.getElementById('file-name');
+    const titleInput = document.getElementById('title');
+    
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const size = (file.size / (1024 * 1024)).toFixed(2);
+        
+        fileInfo.classList.add('hidden');
+        fileName.classList.remove('hidden');
+        fileName.innerHTML = `
+            <p class="text-lg">🔴 ${file.name}</p>
+            <p class="text-sm text-gray-400">${size} MB</p>
+        `;
+        
+        if (!titleInput.value) {
+            titleInput.value = file.name.replace(/\.[^/.]+$/, "");
+        }
+    }
+}
+</script>
+{% endblock %}

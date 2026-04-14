@@ -2,262 +2,547 @@
 
 {% block title %}RSL – Live TV | Dein Sender. Deine Welt.{% endblock %}
 
+{% block extra_css %}
+<style>
+@keyframes rslSpin { to { transform: rotate(360deg); } }
+
+/* ── HERO ── */
+.hero-section {
+    background: linear-gradient(180deg, var(--rsl-darker) 0%, var(--rsl-panel) 100%);
+    padding: 1.5rem 0 2rem;
+    border-bottom: 1px solid var(--rsl-border);
+}
+
+/* ── PLAYER ── */
+.player-wrap {
+    position: relative;
+    background: #000;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid var(--rsl-border);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.player-ratio {
+    position: relative;
+    padding-bottom: 56.25%;
+    height: 0;
+    overflow: hidden;
+}
+.player-ratio > * {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    border: 0;
+}
+
+/* KEIN Overlay über dem Video */
+
+.player-live-badge {
+    position: absolute; 
+    top: 12px; 
+    right: 12px; 
+    z-index: 5;
+    pointer-events: none;
+}
+
+/* Vollbild-Button - OBEN RECHTS, ausgeblendet, erscheint bei Hover */
+.fs-btn-custom {
+    position: absolute;
+    top: 12px;           /* Oben wie Live-Badge */
+    right: 70px;         /* Links neben der Live-Badge */
+    z-index: 15;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #fff;
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    opacity: 0;          /* Standard: unsichtbar */
+    visibility: hidden;
+    transition: all 0.3s ease;
+    pointer-events: auto;
+}
+
+/* Bei Hover über den Player WRAP erscheint der Button */
+.player-wrap:hover .fs-btn-custom {
+    opacity: 1;
+    visibility: visible;
+}
+
+.fs-btn-custom:hover {
+    background: rgba(0,0,0,0.9);
+    border-color: var(--rsl-accent);
+    transform: scale(1.1);
+}
+
+/* Werbepause */
+#ad-overlay {
+    display: none;
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.96);
+    z-index: 200;
+    align-items: center; justify-content: center; flex-direction: column; gap: .75rem;
+}
+.ad-headline {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 2.8rem; font-weight: 900;
+    color: var(--rsl-accent) !important;
+    letter-spacing: 4px; text-transform: uppercase;
+}
+.ad-sub { color: rgba(255,255,255,.7) !important; font-size: .9rem; }
+.ad-timer {
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.15);
+    border-radius: 6px; padding: 4px 18px;
+    color: #fff !important; font-size: .85rem;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; letter-spacing: 1px;
+}
+
+/* Fortschrittsbalken */
+.player-progress { height: 3px; background: var(--rsl-border); overflow: hidden; }
+.player-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--rsl-blue), var(--rsl-accent));
+    transition: width 10s linear;
+}
+
+/* Infobar */
+.player-infobar {
+    background: var(--rsl-panel);
+    border-top: 1px solid var(--rsl-border);
+    padding: .75rem 1rem;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: .5rem;
+    position: relative;
+    z-index: 10;
+}
+.infobar-show { display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1; }
+.infobar-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800; font-size: 1.05rem;
+    color: #fff !important;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.infobar-sub {
+    font-size: .72rem; color: var(--rsl-muted) !important;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-top: 1px;
+}
+
+/* ── SIDEBAR ── */
+.prog-sidebar-wrap {
+    background: var(--rsl-panel);
+    border-radius: 10px;
+    border: 1px solid var(--rsl-border);
+    height: 100%; max-height: 525px;
+    display: flex; flex-direction: column; overflow: hidden;
+}
+.prog-sidebar-head {
+    background: linear-gradient(90deg, var(--rsl-blue-dark), var(--rsl-blue));
+    padding: .75rem 1rem;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+}
+.prog-sidebar-head h6 {
+    color: #fff !important; font-weight: 700;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .9rem; letter-spacing: 1.5px; text-transform: uppercase; margin: 0;
+}
+.live-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #28a745;
+    animation: livePulse 2s infinite; flex-shrink: 0;
+}
+.prog-sidebar-body {
+    overflow-y: auto; flex: 1;
+    scrollbar-width: thin; scrollbar-color: var(--rsl-blue) var(--rsl-darker);
+}
+.prog-sidebar-body::-webkit-scrollbar { width: 4px; }
+.prog-sidebar-body::-webkit-scrollbar-track { background: var(--rsl-darker); }
+.prog-sidebar-body::-webkit-scrollbar-thumb { background: var(--rsl-blue); border-radius: 2px; }
+
+.prog-row {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: .6rem 1rem;
+    border-bottom: 1px solid var(--rsl-border);
+    transition: background .15s;
+}
+.prog-row:last-child { border-bottom: none; }
+.prog-row:hover { background: rgba(10,110,180,.07); }
+.prog-row.prog-current {
+    background: rgba(230,57,70,.07);
+    border-left: 3px solid var(--rsl-live);
+}
+.prog-time {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800; font-size: 1rem;
+    color: var(--rsl-accent) !important;
+    white-space: nowrap; min-width: 44px; flex-shrink: 0; line-height: 1.4;
+}
+.prog-title {
+    font-size: .88rem; font-weight: 600;
+    color: #fff !important;
+    line-height: 1.3; display: block; margin-bottom: 1px;
+}
+.prog-desc {
+    font-size: .72rem; color: var(--rsl-muted) !important;
+    line-height: 1.4; display: block; margin-bottom: 2px;
+    overflow: hidden;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.prog-cat {
+    font-size: .6rem; font-weight: 700;
+    padding: 1px 6px; border-radius: 3px;
+    text-transform: uppercase; letter-spacing: .5px;
+    font-family: 'Barlow Condensed', sans-serif;
+    color: #fff !important; display: inline-block; margin-top: 3px;
+}
+.prog-meta {
+    font-size: .68rem; color: var(--rsl-muted) !important; margin-top: 2px;
+}
+.prog-meta i { color: var(--rsl-blue-light); margin-right: 2px; }
+.prog-progress { height: 2px; background: var(--rsl-border); border-radius: 1px; margin-top: 5px; overflow: hidden; }
+.prog-progress-bar { height: 100%; background: var(--rsl-live); border-radius: 1px; }
+.prog-now-badge {
+    font-size: .58rem; font-weight: 800; padding: 1px 5px; border-radius: 3px;
+    background: var(--rsl-live); color: #fff !important;
+    letter-spacing: 1px; text-transform: uppercase;
+    font-family: 'Barlow Condensed', sans-serif;
+    animation: livePulse 1.5s infinite; display: inline-block;
+    vertical-align: middle; margin-right: 4px;
+}
+.prog-sidebar-foot {
+    padding: .75rem; border-top: 1px solid var(--rsl-border); flex-shrink: 0;
+}
+
+/* ── INFO STRIP ── */
+.info-strip {
+    background: linear-gradient(90deg, var(--rsl-blue-dark), var(--rsl-steel), var(--rsl-blue-dark));
+    padding: .75rem 0; border-top: 1px solid var(--rsl-border);
+}
+.info-strip .col, .info-strip strong { color: #fff !important; }
+.info-strip i { color: var(--rsl-accent); }
+
+/* ── STATS ── */
+.stats-band {
+    background: var(--rsl-panel);
+    border-top: 1px solid var(--rsl-border);
+    border-bottom: 1px solid var(--rsl-border);
+    padding: 1.5rem 0;
+}
+.stat-num {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 900;
+    font-size: 2.2rem; color: var(--rsl-accent) !important;
+    line-height: 1; display: block;
+}
+.stat-label {
+    font-size: .75rem; color: var(--rsl-muted) !important;
+    text-transform: uppercase; letter-spacing: 1.5px;
+    margin-top: 3px; display: block;
+}
+
+/* ── FEATURES ── */
+.feature-card {
+    background: var(--rsl-panel); border: 1px solid var(--rsl-border);
+    border-radius: 10px; padding: 1.75rem 1.25rem; text-align: center; height: 100%;
+    transition: border-color .2s, transform .2s, box-shadow .2s;
+}
+.feature-card:hover {
+    border-color: var(--rsl-blue); transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(10,110,180,.18);
+}
+.feature-icon { font-size: 2.4rem; margin-bottom: 1rem; display: block; }
+.feature-card h5 { color: #fff !important; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 1.1rem; margin-bottom: .5rem; }
+.feature-card p { color: var(--rsl-muted) !important; font-size: .85rem; margin: 0; line-height: 1.6; }
+
+/* ── CTA ── */
+.cta-section {
+    background: linear-gradient(135deg, var(--rsl-blue-deep), var(--rsl-blue-dark) 50%, var(--rsl-panel));
+    padding: 4rem 0; position: relative; overflow: hidden;
+}
+.cta-section::before {
+    content: ''; position: absolute; top: -40%; right: -10%;
+    width: 500px; height: 500px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,196,255,.06) 0%, transparent 70%);
+    pointer-events: none;
+}
+.cta-section h2, .cta-section p { color: #fff !important; }
+.cta-section .section-title { color: #fff !important; }
+
+/* Allgemeine weiße Text-Sicherung */
+section h1, section h2, section h3, section h4, section h5, section h6 { color: #fff !important; }
+</style>
+{% endblock %}
+
+
 {% block content %}
 
-<!-- HERO / PLAYER BEREICH -->
-<section style="background: var(--rsl-darker); padding: 2rem 0;">
+<!-- ══════════════════════════════════════════
+     HERO: PLAYER + SIDEBAR
+══════════════════════════════════════════ -->
+<section class="hero-section">
     <div class="container-fluid px-lg-4">
-        <div class="row g-3">
+        <div class="row g-3 align-items-stretch">
 
             <!-- HAUPTPLAYER -->
             <div class="col-lg-8">
-                <div style="position:relative;background:#000;border-radius:8px;overflow:hidden;border:2px solid var(--rsl-border);">
+                <div class="player-wrap" id="main-player-wrap">
+                    <div class="player-ratio" id="player-container">
 
-                    <!-- Custom Video Player (NICHT ANKLINKBAR / NICHT SPULBAR) -->
-                    <div style="position:relative;padding-bottom:56.25%;height:0;">
                         {% if live_stream %}
-                            <!-- Live Stream Player -->
-                            <div id="live-player" style="position:absolute;top:0;left:0;width:100%;height:100%;background:#000;">
-                                {% if live_stream.source_type == 'youtube' %}
-                                <!-- RSL Studio Live Embed (ersetzt YouTube-Widget) -->
-                                <iframe
-                                    src="https://rsl-studio-live.lovable.app/embed"
-                                    style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;pointer-events:none;"
-                                    allowfullscreen
-                                    allow="autoplay; fullscreen">
-                                </iframe>
-                                {% elif live_stream.source_type == 'twitch' %}
-                                <!-- Twitch Embed ohne Kontrollen -->
-                                <iframe 
-                                    src="{{ live_stream.get_embed_url }}&parent={{ request.get_host }}&controls=false"
-                                    style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;pointer-events:none;"
-                                    allowfullscreen>
-                                </iframe>
-                                {% else %}
-                                <!-- Custom Video Player für direkte URLs -->
-                                <video id="video-player" 
-                                       style="width:100%;height:100%;object-fit:contain;background:#000;"
-                                       autoplay 
-                                       muted
-                                       playsinline>
-                                    <source src="{{ live_stream.stream_url }}" type="application/x-mpegURL">
-                                </video>
-                                <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-                                <script>
-                                    var video = document.getElementById('video-player');
-                                    var videoSrc = '{{ live_stream.stream_url }}';
-                                    
-                                    if (Hls.isSupported()) {
-                                        var hls = new Hls({
-                                            enableWorker: true,
-                                            lowLatencyMode: true,
-                                        });
-                                        hls.loadSource(videoSrc);
-                                        hls.attachMedia(video);
-                                        hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                                            video.play();
-                                        });
-                                    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                                        video.src = videoSrc;
-                                        video.addEventListener('loadedmetadata', function() {
-                                            video.play();
-                                        });
-                                    }
-                                    
-                                    // Verhindere Kontrollen
-                                    video.controls = false;
-                                    video.addEventListener('contextmenu', e => e.preventDefault());
-                                </script>
-                                {% endif %}
-                            </div>
+                            {% if live_stream.source_type == 'youtube' %}
+                            <iframe
+                                id="yt-player"
+                                src="https://rsl-studio-live.lovable.app/embed?autoplay=1&mute=1&controls=1"
+                                allowfullscreen
+                                allow="autoplay; fullscreen; picture-in-picture">
+                            </iframe>
+
+                            {% elif live_stream.source_type == 'twitch' %}
+                            <iframe
+                                src="{{ live_stream.get_embed_url }}&parent={{ request.get_host }}&controls=true"
+                                allowfullscreen
+                                allow="autoplay; fullscreen">
+                            </iframe>
+
+                            {% else %}
+                            <video id="video-player"
+                                   style="background:#000;object-fit:contain;"
+                                   autoplay muted playsinline controls>
+                                <source src="{{ live_stream.stream_url }}" type="application/x-mpegURL">
+                            </video>
+                            <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+                            <script>
+                            (function(){
+                                var v  = document.getElementById('video-player');
+                                var src = '{{ live_stream.stream_url }}';
+                                if (Hls.isSupported()) {
+                                    var hls = new Hls({ enableWorker:true, lowLatencyMode:true });
+                                    hls.loadSource(src); hls.attachMedia(v);
+                                    hls.on(Hls.Events.MANIFEST_PARSED, function(){ v.play(); });
+                                } else if (v.canPlayType('application/vnd.apple.mpegurl')) {
+                                    v.src = src;
+                                    v.addEventListener('loadedmetadata', function(){ v.play(); });
+                                }
+                            })();
+                            </script>
+                            {% endif %}
+
                         {% elif youtube_channel %}
-                        <!-- RSL Studio Live Embed (ersetzt YouTube-Kanal-Widget) -->
                         <iframe
-                            src="https://rsl-studio-live.lovable.app/embed"
-                            style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;pointer-events:none;"
+                            id="yt-player"
+                            src="https://rsl-studio-live.lovable.app/embed?autoplay=1&mute=1&controls=1"
                             allowfullscreen
-                            allow="autoplay; fullscreen">
+                            allow="autoplay; fullscreen; picture-in-picture">
                         </iframe>
+
                         {% else %}
-                        <!-- Placeholder wenn kein Stream -->
-                        <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;background:linear-gradient(135deg,#0a0a0f,#1a1a2e);">
+                        <div style="background:linear-gradient(135deg,#040810,#0d1a27);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1rem;">
                             {% load static %}
-                            <img src="{% static 'tv/img/logo-nobg.png' %}" alt="RSL Logo" style="max-width:300px;margin-bottom:2rem;opacity:0.8;">
-                            <p style="color:#FFFFFF;letter-spacing:4px;font-size:0.9rem;text-transform:uppercase;">Sender startet gleich</p>
-                            <div class="mt-3">
-                                <span class="live-badge">🔴 LIVE</span>
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        <!-- Werbeunterbrechung Overlay -->
-                        <div id="ad-overlay" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:10;align-items:center;justify-content:center;flex-direction:column;">
-                            <div style="font-family:'Barlow Condensed',sans-serif;font-size:3rem;color:var(--rsl-accent);letter-spacing:4px;">WERBEPAUSE</div>
-                            <p style="color:#FFFFFF;">Gleich geht es weiter mit RSL</p>
-                            <div id="ad-container"></div>
-                            <div class="mt-3" style="color:#FFFFFF;font-size:0.85rem;">Weiter in <span id="ad-countdown">30</span> Sekunden</div>
-                        </div>
-
-                        <!-- Logo Wasserzeichen im Player (IMMER WEISS) -->
-                        <div style="position:absolute;top:15px;left:15px;pointer-events:none;z-index:5;opacity:0.85;">
-                            {% load static %}
-                            <img src="{% static 'tv/img/logo-nobg.png' %}" alt="RSL" style="height:50px;filter:brightness(0) invert(1);">
-                        </div>
-                        
-                        <!-- Live Badge im Player -->
-                        {% if live_stream %}
-                        <div style="position:absolute;top:15px;left:15px;z-index:5;">
+                            <img src="{% static 'tv/img/logo-nobg.png' %}" alt="RSL"
+                                 style="max-width:220px;opacity:.75;filter:drop-shadow(0 0 20px rgba(0,196,255,.3));">
+                            <p style="color:rgba(255,255,255,.5);letter-spacing:3px;font-size:.8rem;text-transform:uppercase;margin:0;">Sender startet gleich</p>
                             <span class="live-badge">🔴 LIVE</span>
                         </div>
                         {% endif %}
+
+                        <!-- Vollbild-Button - OBEN RECHTS, neben Live-Badge -->
+                        <button class="fs-btn-custom" id="fs-btn" title="Vollbild">
+                            <i class="bi bi-fullscreen" id="fs-icon"></i>
+                        </button>
+
+                        <!-- Werbepause-Overlay -->
+                        <div id="ad-overlay">
+                            <div class="ad-headline">WERBEPAUSE</div>
+                            <div class="ad-sub">Gleich geht es weiter mit RSL</div>
+                            <div id="ad-container"></div>
+                            <div class="ad-timer">Weiter in <span id="ad-countdown">30</span> Sekunden</div>
+                        </div>
+
+                        <!-- Live-Badge oben rechts -->
+                        {% if live_stream %}
+                        <div class="player-live-badge">
+                            <span class="live-badge">🔴 LIVE</span>
+                        </div>
+                        {% endif %}
+
+                    </div><!-- /player-ratio -->
+
+                    <!-- Fortschrittsbalken -->
+                    <div class="player-progress">
+                        <div class="player-progress-bar" id="player-prog-bar" style="width:0%"></div>
                     </div>
 
-                    <!-- Player Infobar (WEISSE SCHRIFT) -->
-                    <div style="background:var(--rsl-panel);padding:0.8rem 1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
-                        <div>
+                    <!-- Infobar -->
+                    <div class="player-infobar">
+                        <div class="infobar-show">
                             {% if live_stream %}
-                            <span class="live-badge me-2">🔴 LIVE</span>
-                            <strong style="color:#FFFFFF;">{{ live_stream.title }}</strong>
+                                <span class="live-badge flex-shrink-0">🔴 LIVE</span>
+                                <div style="min-width:0;">
+                                    <div class="infobar-title">{{ live_stream.title }}</div>
+                                    {% if live_stream.description %}
+                                    <div class="infobar-sub">{{ live_stream.description|truncatewords:12 }}</div>
+                                    {% endif %}
+                                </div>
                             {% elif current_show %}
-                            <i class="bi bi-play-circle-fill me-2" style="color:var(--rsl-accent);"></i>
-                            <strong style="color:#FFFFFF;">{{ current_show.title }}</strong>
+                                <i class="bi bi-play-circle-fill flex-shrink-0" style="color:var(--rsl-accent);font-size:1.1rem;"></i>
+                                <div style="min-width:0;">
+                                    <div class="infobar-title" id="infobar-title">{{ current_show.title }}</div>
+                                    <div class="infobar-sub" id="infobar-sub">
+                                        {% if current_show.start_time and current_show.end_time %}
+                                            {{ current_show.start_time|time:"H:i" }} – {{ current_show.end_time|time:"H:i" }} Uhr
+                                            {% if current_show.category %} · {{ current_show.category.name }}{% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
                             {% else %}
-                            <i class="bi bi-tv me-2" style="color:var(--rsl-accent);"></i>
-                            <strong style="color:#FFFFFF;">RSL 24/7</strong>
+                                <i class="bi bi-tv flex-shrink-0" style="color:var(--rsl-accent);font-size:1.1rem;"></i>
+                                <div style="min-width:0;">
+                                    <div class="infobar-title" id="infobar-title">RSL 24/7</div>
+                                    <div class="infobar-sub" id="infobar-sub">Dein Sender. Deine Welt.</div>
+                                </div>
                             {% endif %}
                         </div>
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 flex-shrink-0">
                             {% if youtube_channel %}
                             <a href="{{ youtube_channel }}" target="_blank" class="btn btn-sm btn-outline-light">
-                                <i class="bi bi-youtube me-1"></i>YouTube öffnen
+                                <i class="bi bi-youtube me-1"></i>YouTube
                             </a>
                             {% endif %}
                             {% if twitch_channel %}
-                            <a href="https://twitch.tv/{{ twitch_channel }}" target="_blank" class="btn btn-sm" style="background:#9147ff;color:white;">
+                            <a href="https://twitch.tv/{{ twitch_channel }}" target="_blank"
+                               class="btn btn-sm" style="background:#9147ff;color:#fff;border:none;">
                                 <i class="bi bi-twitch me-1"></i>Twitch
                             </a>
                             {% endif %}
                         </div>
-                    </div>
-                </div>
-            </div>
+                    </div><!-- /player-infobar -->
+                </div><!-- /player-wrap -->
+            </div><!-- /col-lg-8 -->
 
-            <!-- SEITENLEISTE: PROGRAMM (WEISSE SCHRIFT) -->
+            <!-- PROGRAMM SIDEBAR -->
             <div class="col-lg-4">
-                <div style="background:var(--rsl-panel);border-radius:8px;border:1px solid var(--rsl-border);height:100%;max-height:500px;display:flex;flex-direction:column;">
-                    <div style="background:var(--rsl-blue);padding:0.8rem 1rem;">
-                        <h6 class="mb-0" style="color:#FFFFFF;font-weight:700;letter-spacing:1px;"><i class="bi bi-calendar3 me-2"></i>JETZT IM PROGRAMM</h6>
+                <div class="prog-sidebar-wrap">
+                    <div class="prog-sidebar-head">
+                        <h6><i class="bi bi-calendar3 me-2"></i>JETZT IM PROGRAMM</h6>
+                        <span class="live-dot" id="prog-live-dot"></span>
                     </div>
-                    <div style="overflow-y:auto;flex:1;">
-                        {% if current_show %}
-                        <div class="program-row current">
-                            <div class="program-time" style="color:#FFFFFF;">{{ current_show.start_time|time:"H:i" }}</div>
-                            <div class="ms-3 flex-grow-1">
-                                <span class="live-badge mb-1">JETZT</span>
-                                <div class="fw-bold" style="color:#FFFFFF;">{{ current_show.title }}</div>
-                                {% if current_show.category %}
-                                <small class="badge" style="background:{{ current_show.category.color }};">{{ current_show.category.name }}</small>
-                                {% endif %}
-                            </div>
+                    <div class="prog-sidebar-body" id="prog-sidebar">
+                        <div style="display:flex;align-items:center;justify-content:center;padding:2.5rem;gap:10px;color:var(--rsl-muted);font-size:.85rem;">
+                            <div style="width:18px;height:18px;border:2px solid var(--rsl-border);border-top-color:var(--rsl-accent);border-radius:50%;animation:rslSpin .8s linear infinite;flex-shrink:0;"></div>
+                            Programm wird geladen…
                         </div>
-                        {% endif %}
-
-                        {% for show in upcoming %}
-                        <div class="program-row">
-                            <div class="program-time" style="color:#FFFFFF;">{{ show.start_time|time:"H:i" }}</div>
-                            <div class="ms-3 flex-grow-1">
-                                <div class="fw-semibold" style="font-size:0.95rem;color:#FFFFFF;">{{ show.title }}</div>
-                                {% if show.category %}
-                                <small class="badge" style="background:{{ show.category.color }};">{{ show.category.name }}</small>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% empty %}
-                        <div class="p-3 text-center" style="color:#FFFFFF;">
-                            <i class="bi bi-calendar-x d-block fs-3 mb-2"></i>
-                            Kein Programm eingetragen
-                        </div>
-                        {% endfor %}
                     </div>
-                    <div style="padding:0.8rem;border-top:1px solid var(--rsl-border);">
+                    <div class="prog-sidebar-foot">
                         <a href="/programm/" class="btn btn-rsl w-100 btn-sm">
-                            <i class="bi bi-calendar-week me-2"></i>Vollständiges Programm
+                            <i class="bi bi-calendar-week me-2"></i>Vollständiges Programm – 17 Tage
                         </a>
                     </div>
                 </div>
             </div>
-        </div>
+
+        </div><!-- /row -->
     </div>
 </section>
 
-<!-- INFO STREIFEN -->
-<section style="background:linear-gradient(135deg, var(--rsl-blue), var(--rsl-steel));padding:0.8rem 0;">
+
+<!-- INFO STRIP -->
+<div class="info-strip">
     <div class="container">
-        <div class="row text-center g-3" style="color:#FFFFFF;">
-            <div class="col-md-4">
-                <i class="bi bi-broadcast me-2"></i><strong>24/7 Live TV</strong>
+        <div class="row text-center g-2">
+            <div class="col-md-4 col-6"><i class="bi bi-broadcast me-2"></i><strong>24/7 Live TV</strong></div>
+            <div class="col-md-4 col-6"><i class="bi bi-globe me-2"></i><strong>Weltweit verfügbar</strong></div>
+            <div class="col-md-4 col-12"><i class="bi bi-camera-video me-2"></i><strong>Live-Events &amp; Sendungen</strong></div>
+        </div>
+    </div>
+</div>
+
+
+<!-- STATS BAND -->
+<div class="stats-band">
+    <div class="container">
+        <div class="row g-3 text-center">
+            <div class="col-6 col-md-3">
+                <span class="stat-num">24/7</span><span class="stat-label">Nonstop Programm</span>
             </div>
-            <div class="col-md-4">
-                <i class="bi bi-globe me-2"></i><strong>Überall verfügbar</strong>
+            <div class="col-6 col-md-3">
+                <span class="stat-num">HD</span><span class="stat-label">Stream-Qualität</span>
             </div>
-            <div class="col-md-4">
-                <i class="bi bi-camera-video me-2"></i><strong>Live-Events &amp; Sendungen</strong>
+            <div class="col-6 col-md-3">
+                <span class="stat-num">17</span><span class="stat-label">Tage Vorschau</span>
+            </div>
+            <div class="col-6 col-md-3">
+                <span class="stat-num">0 €</span><span class="stat-label">Kostenlos schauen</span>
             </div>
         </div>
     </div>
-</section>
+</div>
 
-<!-- HIGHLIGHTS / FEATURES -->
+
+<!-- WAS IST RSL? -->
 <section class="py-5">
     <div class="container">
-        <div class="section-title text-center" style="color:#FFFFFF;">Was ist <span style="color:var(--rsl-accent);">RSL</span>?</div>
-        <div class="section-divider mx-auto"></div>
-
-        <div class="row g-4 mt-2">
-            <div class="col-md-3">
-                <div class="rsl-card p-4 text-center h-100">
-                    <div style="font-size:2.5rem;margin-bottom:1rem;">📺</div>
-                    <h5 class="fw-bold" style="color:#FFFFFF;">24/7 Live TV</h5>
-                    <p style="color:#FFFFFF;opacity:0.85;" class="small mb-0">RSL läuft rund um die Uhr mit automatischem Programm und Live-Events.</p>
+        <div class="text-center mb-5">
+            <div class="section-title">Was ist <span style="color:var(--rsl-accent);">RSL</span>?</div>
+            <div class="section-divider mx-auto"></div>
+            <p style="color:var(--rsl-muted);max-width:580px;margin:0 auto;font-size:.92rem;line-height:1.7;">
+                RSL ist ein vollautomatischer 24/7 Fernsehsender von Joel Digitals –
+                mit eigenem Programm, Live-Events, Mediathek und
+                der Möglichkeit, Werbung direkt zu buchen.
+            </p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-3 col-sm-6">
+                <div class="feature-card">
+                    <span class="feature-icon">📺</span>
+                    <h5>24/7 Live TV</h5>
+                    <p>RSL sendet rund um die Uhr. Das Programm wechselt automatisch, Live-Events werden nahtlos eingeblendet.</p>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="rsl-card p-4 text-center h-100">
-                    <div style="font-size:2.5rem;margin-bottom:1rem;">🔴</div>
-                    <h5 class="fw-bold" style="color:#FFFFFF;">Live-Sendungen</h5>
-                    <p style="color:#FFFFFF;opacity:0.85;" class="small mb-0">Live-Events und Übertragungen direkt auf RSL.</p>
+            <div class="col-md-3 col-sm-6">
+                <div class="feature-card">
+                    <span class="feature-icon">🔴</span>
+                    <h5>Live-Sendungen</h5>
+                    <p>Exklusive Events, Sondersendungen und Breaking News – direkt auf RSL, live und ohne Verzögerung.</p>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="rsl-card p-4 text-center h-100">
-                    <div style="font-size:2.5rem;margin-bottom:1rem;">📱</div>
-                    <h5 class="fw-bold" style="color:#FFFFFF;">Überall schauen</h5>
-                    <p style="color:#FFFFFF;opacity:0.85;" class="small mb-0">Auf Handy, Tablet, PC oder Smart TV per IPTV.</p>
+            <div class="col-md-3 col-sm-6">
+                <div class="feature-card">
+                    <span class="feature-icon">📱</span>
+                    <h5>Überall schauen</h5>
+                    <p>Browser, Handy, Tablet, Smart TV – RSL läuft auf allen Geräten. IPTV-Support für den TV inklusive.</p>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="rsl-card p-4 text-center h-100">
-                    <div style="font-size:2.5rem;margin-bottom:1rem;">💰</div>
-                    <h5 class="fw-bold" style="color:#FFFFFF;">Werbung schalten</h5>
-                    <p style="color:#FFFFFF;opacity:0.85;" class="small mb-0">Ihre Werbung auf RSL – einfach online buchen.</p>
+            <div class="col-md-3 col-sm-6">
+                <div class="feature-card">
+                    <span class="feature-icon">💰</span>
+                    <h5>Werbung schalten</h5>
+                    <p>Ihr Produkt vor einem echten TV-Publikum. Online buchbar, Zeitslot wählbar – Pakete ab 49 €.</p>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
+
 <!-- WERBUNG CTA -->
-<section style="background:linear-gradient(135deg,var(--rsl-panel),var(--rsl-blue-dark));padding:4rem 0;">
-    <div class="container text-center">
-        <h2 class="section-title" style="color:#FFFFFF;">Werbung auf <span style="color:var(--rsl-accent);">RSL</span> schalten</h2>
+<section class="cta-section">
+    <div class="container text-center" style="position:relative;z-index:1;">
+        <div class="section-title">Werbung auf <span style="color:var(--rsl-accent);">RSL</span> schalten</div>
         <div class="section-divider mx-auto"></div>
-        <p style="color:#FFFFFF;opacity:0.85;" class="mb-4">Erreichen Sie tausende Zuschauer mit Ihrer Werbung auf RSL.</p>
+        <p class="mb-4" style="max-width:560px;margin-left:auto;margin-right:auto;opacity:.85;">
+            Täglich tausende Zuschauer – Ihre Werbebotschaft direkt im Programm.
+            Transparent, messbar und flexibel ab 49 €.
+        </p>
         <div class="d-flex gap-3 justify-content-center flex-wrap">
             <a href="/werbung/" class="btn btn-rsl btn-lg">
                 <i class="bi bi-megaphone me-2"></i>Werbemöglichkeiten ansehen
             </a>
             <a href="/werbung/buchen/" class="btn btn-outline-rsl btn-lg">
-                Jetzt buchen
+                Jetzt Werbung buchen
             </a>
         </div>
     </div>
@@ -265,66 +550,267 @@
 
 {% endblock %}
 
+
 {% block extra_js %}
 <script>
-// Werbepause System mit Video-Pause
-let mainVideo = document.getElementById('video-player');
-let adOverlay = document.getElementById('ad-overlay');
-let adCountdown = document.getElementById('ad-countdown');
+/* ════════════════════════════════════════
+   VOLLBILD FUNKTION
+════════════════════════════════════════ */
+var _fsBtn = document.getElementById('fs-btn');
+var _fsIcon = document.getElementById('fs-icon');
+var _playerWrap = document.getElementById('main-player-wrap');
 
-function checkStreamStatus() {
-    fetch('/api/current/')
-        .then(r => r.json())
-        .then(data => {
-            // Wenn Werbepause aktiv ist
-            if (data.ad_break_active) {
-                showAdBreak(data.ad_duration || 30);
+if (_fsBtn && _playerWrap) {
+    _fsBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        var isFullscreen = document.fullscreenElement || 
+                          document.webkitFullscreenElement || 
+                          document.mozFullScreenElement || 
+                          document.msFullscreenElement;
+        
+        if (!isFullscreen) {
+            // Vollbild aktivieren
+            var requestMethod = _playerWrap.requestFullscreen || 
+                               _playerWrap.webkitRequestFullscreen || 
+                               _playerWrap.mozRequestFullScreen || 
+                               _playerWrap.msRequestFullscreen;
+            
+            if (requestMethod) {
+                requestMethod.call(_playerWrap).catch(function(err) {
+                    console.log('Vollbild Fehler:', err);
+                });
             }
-        })
-        .catch(err => console.error('Stream status check failed:', err));
+        } else {
+            // Vollbild beenden
+            var exitMethod = document.exitFullscreen || 
+                            document.webkitExitFullscreen || 
+                            document.mozCancelFullScreen || 
+                            document.msExitFullscreen;
+            
+            if (exitMethod) {
+                exitMethod.call(document);
+            }
+        }
+    });
 }
 
-function showAdBreak(duration) {
-    // Pausiere Hauptvideo
-    if (mainVideo && !mainVideo.paused) {
-        mainVideo.pause();
+// Icon aktualisieren bei Vollbild-Wechsel
+function updateFsIcon() {
+    if (!_fsIcon) return;
+    var isFullscreen = document.fullscreenElement || 
+                      document.webkitFullscreenElement;
+    _fsIcon.className = isFullscreen ? 'bi bi-fullscreen-exit' : 'bi bi-fullscreen';
+}
+
+document.addEventListener('fullscreenchange', updateFsIcon);
+document.addEventListener('webkitfullscreenchange', updateFsIcon);
+document.addEventListener('mozfullscreenchange', updateFsIcon);
+document.addEventListener('MSFullscreenChange', updateFsIcon);
+
+/* ════════════════════════════════════════
+   WERBEPAUSE
+════════════════════════════════════════ */
+var _vid = document.getElementById('video-player');
+var _ytPlayer = document.getElementById('yt-player');
+var _adOv = document.getElementById('ad-overlay');
+var _adCt = document.getElementById('ad-countdown');
+
+function _showAd(dur) {
+    if (_vid && !_vid.paused) _vid.pause();
+    if (_ytPlayer) {
+        try {
+            _ytPlayer.contentWindow.postMessage(JSON.stringify({
+                event: 'command',
+                func: 'pauseVideo'
+            }), '*');
+        } catch(e) {}
     }
-    
-    // Zeige Werbepausen-Overlay
-    adOverlay.style.display = 'flex';
-    
-    // Countdown
-    let countdown = duration;
-    adCountdown.textContent = countdown;
-    
-    const interval = setInterval(() => {
-        countdown--;
-        adCountdown.textContent = countdown;
-        
-        if (countdown <= 0) {
-            clearInterval(interval);
-            hideAdBreak();
-        }
+    _adOv.style.display = 'flex';
+    var c = dur;
+    _adCt.textContent = c;
+    var iv = setInterval(function() {
+        _adCt.textContent = --c;
+        if (c <= 0) { clearInterval(iv); _hideAd(); }
     }, 1000);
 }
-
-function hideAdBreak() {
-    // Verstecke Overlay
-    adOverlay.style.display = 'none';
-    
-    // Setze Hauptvideo fort
-    if (mainVideo) {
-        mainVideo.play();
+function _hideAd() {
+    _adOv.style.display = 'none';
+    if (_vid) _vid.play();
+    if (_ytPlayer) {
+        try {
+            _ytPlayer.contentWindow.postMessage(JSON.stringify({
+                event: 'command',
+                func: 'playVideo'
+            }), '*');
+        } catch(e) {}
     }
 }
-
-// Prüfe alle 5 Sekunden
-setInterval(checkStreamStatus, 5000);
-checkStreamStatus();
-
-// Verhindere Rechtsklick auf Video
-if (mainVideo) {
-    mainVideo.addEventListener('contextmenu', e => e.preventDefault());
+function _checkAd() {
+    fetch('/api/current/')
+        .then(function(r){ return r.json(); })
+        .then(function(d){ if (d.ad_break_active) _showAd(d.ad_duration || 30); })
+        .catch(function(){});
 }
+setInterval(_checkAd, 5000);
+_checkAd();
+
+/* ════════════════════════════════════════
+   ZEITHELFER
+════════════════════════════════════════ */
+function _p2(n) { return String(n).padStart(2,'0'); }
+function _today() {
+    var d = new Date();
+    return d.getFullYear()+'-'+_p2(d.getMonth()+1)+'-'+_p2(d.getDate());
+}
+
+function _toD(val) {
+    if (!val) return null;
+    var s = String(val);
+    if (s.indexOf('T') !== -1) {
+        var d = new Date(s);
+        return isNaN(d.getTime()) ? null : d;
+    }
+    var d = new Date(_today() + 'T' + s);
+    return isNaN(d.getTime()) ? null : d;
+}
+
+function _fmt(val) {
+    var d = _toD(val);
+    if (d) return _p2(d.getHours()) + ':' + _p2(d.getMinutes());
+    return val ? String(val).slice(0,5) : '';
+}
+
+function _isNow(s) {
+    var a = _toD(s.start_time), b = _toD(s.end_time), n = new Date();
+    return a && b && n >= a && n < b;
+}
+
+function _pct(s) {
+    var a = _toD(s.start_time), b = _toD(s.end_time), n = new Date();
+    if (!a || !b) return 0;
+    return Math.max(0, Math.min(100, (n - a) / (b - a) * 100));
+}
+
+function _dur(s) {
+    if (s.duration) return s.duration + ' Min.';
+    var a = _toD(s.start_time), b = _toD(s.end_time);
+    if (a && b && b > a) return Math.round((b - a) / 60000) + ' Min.';
+    return null;
+}
+
+function _title(s) {
+    return s.title
+        || s.name
+        || s.show_title
+        || s.program_title
+        || (s.video   && (s.video.title   || s.video.name))
+        || (s.program && s.program.title)
+        || '—';
+}
+
+function _esc(str) {
+    return String(str || '')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ════════════════════════════════════════
+   SIDEBAR RENDERN
+════════════════════════════════════════ */
+function _render(shows) {
+    var el = document.getElementById('prog-sidebar');
+    if (!shows || !shows.length) {
+        el.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--rsl-muted);">'
+            + '<i class="bi bi-calendar-x d-block" style="font-size:2rem;margin-bottom:.5rem;opacity:.4;"></i>'
+            + 'Kein Programm eingetragen</div>';
+        return;
+    }
+
+    var now = new Date();
+    var seen = {};
+    var uniq = shows.filter(function(s) {
+        var k = s.id ? String(s.id) : ((s.start_time||'') + '__' + _title(s));
+        if (seen[k]) return false;
+        seen[k] = true;
+        return true;
+    });
+
+    uniq.sort(function(a, b) {
+        return (_toD(a.start_time) || 0) - (_toD(b.start_time) || 0);
+    });
+
+    var vis = uniq.filter(function(s) {
+        var e = _toD(s.end_time);
+        return !e || e.getTime() > now.getTime() - 60000;
+    }).slice(0, 14);
+
+    var html = '';
+    vis.forEach(function(s) {
+        var cur   = _isNow(s);
+        var pct   = cur ? _pct(s).toFixed(1) : 0;
+        var title = _title(s);
+        var dur   = _dur(s);
+        var desc  = s.description || (s.video && s.video.description) || '';
+        var cat   = s.category || (s.video && s.video.category) || null;
+
+        var catHtml = cat
+            ? '<span class="prog-cat" style="background:' + _esc(cat.color||'#1d5a82') + ';">'
+              + _esc(cat.name || String(cat)) + '</span>'
+            : '';
+
+        var metaParts = [];
+        if (dur) metaParts.push('<i class="bi bi-clock"></i>' + _esc(dur));
+        if (s.channel_id) metaParts.push('<i class="bi bi-broadcast"></i>Kanal ' + _esc(String(s.channel_id)));
+        var metaHtml = metaParts.length
+            ? '<div class="prog-meta">' + metaParts.join(' &nbsp;·&nbsp; ') + '</div>'
+            : '';
+
+        html += '<div class="prog-row' + (cur ? ' prog-current' : '') + '">'
+            + '<div class="prog-time">' + _esc(_fmt(s.start_time)) + '</div>'
+            + '<div style="flex:1;min-width:0;">'
+            + (cur ? '<span class="prog-now-badge">JETZT</span>' : '')
+            + '<span class="prog-title">' + _esc(title) + '</span>'
+            + (desc ? '<span class="prog-desc">' + _esc(desc.slice(0,90)) + (desc.length>90?'…':'') + '</span>' : '')
+            + catHtml
+            + metaHtml
+            + (cur ? '<div class="prog-progress"><div class="prog-progress-bar" style="width:'+pct+'%"></div></div>' : '')
+            + '</div></div>';
+    });
+
+    el.innerHTML = html;
+
+    var cur = vis.find(function(s){ return _isNow(s); });
+    if (cur) document.getElementById('player-prog-bar').style.width = _pct(cur).toFixed(1) + '%';
+}
+
+/* ════════════════════════════════════════
+   API + AUTO-REFRESH
+════════════════════════════════════════ */
+var _API = 'https://wknwmmjnecnrffucrprd.supabase.co/functions/v1/schedule-api';
+
+function _load() {
+    fetch(_API + '?date=' + _today())
+        .then(function(r){ return r.json(); })
+        .then(function(data) {
+            _render(data.schedule || []);
+        })
+        .catch(function() {
+            document.getElementById('prog-sidebar').innerHTML =
+                '<div style="padding:1.5rem;text-align:center;">'
+                + '<i class="bi bi-wifi-off" style="font-size:1.8rem;color:#e63946;display:block;margin-bottom:.5rem;"></i>'
+                + '<span style="color:#ff6b6b;font-size:.82rem;">Programm momentan nicht verfügbar</span>'
+                + '</div>';
+        });
+}
+
+_load();
+
+(function _sched() {
+    var n = new Date(), nx = new Date(n);
+    nx.setHours(n.getHours() + 1, 0, 0, 0);
+    setTimeout(function(){ _load(); _sched(); }, nx - n);
+})();
 </script>
 {% endblock %}
