@@ -1,0 +1,19 @@
+{% extends "mediathek/base.html" %}
+
+{% block mediathek_content %}
+<header class="page-head">
+    <div class="wrap">
+        <nav class="breadcrumbs" aria-label="Brotkrumen"><a href="{% url 'mediathek:home' %}">Mediathek</a><span>/</span><span>Kategorie</span></nav>
+        <h1>{{ category.name }}</h1>
+    </div>
+</header>
+<section class="section">
+    <div class="wrap">
+        {% if videos %}
+        <div class="grid">{% for v in videos %}{% include "mediathek/partials/card_video.html" %}{% endfor %}</div>
+        {% else %}
+        <div class="empty-state"><i class="bi bi-folder2-open"></i>In dieser Kategorie gibt es noch keine Videos.</div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

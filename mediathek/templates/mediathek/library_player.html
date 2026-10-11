@@ -1,0 +1,45 @@
+{% extends "mediathek/base.html" %}
+
+{% block mediathek_content %}
+<section class="section">
+    <div class="wrap">
+        <nav class="breadcrumbs" aria-label="Brotkrumen">
+            <a href="{% url 'mediathek:home' %}">Mediathek</a><span>/</span><a href="{% url 'mediathek:library_list' %}">Sendung verpasst</a>
+        </nav>
+        <div class="layout-side">
+            <div>
+                <div class="player">
+                    {% if item.embed_url %}
+                    <iframe src="{{ item.embed_url }}" title="{{ item.title }}" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
+                    {% elif item.program.youtube_id %}
+                    <iframe src="https://www.youtube-nocookie.com/embed/{{ item.program.youtube_id }}?rel=0" title="{{ item.title }}" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
+                    {% else %}
+                    <div class="player-empty"><i class="bi bi-camera-video-off"></i><p class="mb-0">Diese Ausgabe ist nicht mehr verfügbar.</p></div>
+                    {% endif %}
+                </div>
+                <h1 class="watch-title">{{ item.short_title }}</h1>
+                <div class="meta-line mb-3">
+                    {% if item.series_title %}<span><i class="bi bi-film"></i>{{ item.series_title }}</span>{% endif %}
+                    {% if item.aired_at %}<span><i class="bi bi-calendar3"></i>Gesendet am {{ item.aired_at|date:"l, d.m.Y" }} um {{ item.aired_at|time:"H:i" }} Uhr</span>{% endif %}
+                    {% if item.duration_display %}<span><i class="bi bi-clock"></i>{{ item.duration_display }}</span>{% endif %}
+                </div>
+                {% if item.program.description %}<div class="prose"><p>{{ item.program.description }}</p></div>{% endif %}
+                {% if item.program.series_slug %}
+                <a href="{% url 'mediathek:api_series_detail' item.program.series_slug %}" class="btn btn-ghost mt-2"><i class="bi bi-collection-play"></i>Alle Folgen von „{{ item.series_title }}“</a>
+                {% endif %}
+            </div>
+            {% if more %}
+            <aside class="panel" aria-label="Weitere Sendungen">
+                <div class="panel-head"><h2>Weitere Sendungen</h2><a href="{% url 'mediathek:library_list' %}" class="section-link" style="font-size:.92rem">Alle</a></div>
+                {% for i in more %}
+                <a href="{% url 'mediathek:library_player' i.id %}" class="list-row">
+                    <span class="thumb">{% if i.thumbnail %}<img src="{{ i.thumbnail }}" alt="" loading="lazy">{% endif %}</span>
+                    <span class="info"><span class="title">{{ i.short_title }}</span><span class="sub">{{ i.aired_at|date:"d.m. · H:i" }} Uhr</span></span>
+                </a>
+                {% endfor %}
+            </aside>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

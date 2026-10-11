@@ -1,0 +1,106 @@
+{% extends "mediathek/admin/base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">📝 Manueller Video-Import</div>
+    
+    <div style="padding:1rem 0;">
+        <p style="color:var(--rsl-muted); margin-bottom:1.5rem;">
+            Wenn der automatische Import nicht funktioniert, kannst du Videos auch manuell hinzufügen.
+            Füge einfach die YouTube-URLs ein (eine pro Zeile).
+        </p>
+    </div>
+    
+    <form method="post" style="padding:1rem 0;">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label class="form-label">Playlist auswählen *</label>
+            <select name="playlist_id" class="form-select" required>
+                <option value="">-- Playlist wählen --</option>
+                {% for playlist in playlists %}
+                <option value="{{ playlist.id }}">{{ playlist.title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Video-URLs (eine pro Zeile) *</label>
+            <textarea name="video_urls" class="form-textarea" rows="15" placeholder="https://www.youtube.com/watch?v=xxxxx
+https://www.youtube.com/watch?v=yyyyy
+https://www.youtube.com/watch?v=zzzzz" required></textarea>
+            <small style="color:var(--rsl-muted); display:block; margin-top:0.5rem;">
+                💡 Tipp: Öffne deine Playlist in YouTube, kopiere die URLs der Videos hier rein
+            </small>
+        </div>
+        
+        <button type="submit" class="btn btn-success">
+            <i class="bi bi-cloud-upload"></i> Videos importieren
+        </button>
+    </form>
+</div>
+
+<div class="card" style="margin-top:2rem;">
+    <div class="card-header">💡 So funktioniert's</div>
+    <div style="padding:1rem 0;">
+        <h3 style="color:var(--rsl-accent); margin-bottom:1rem;">Schritt-für-Schritt:</h3>
+        
+        <ol style="line-height:2.5; color:var(--rsl-muted);">
+            <li>
+                <strong style="color:var(--rsl-text);">Öffne deine YouTube Playlist im Browser</strong><br>
+                <small>z.B. https://www.youtube.com/playlist?list=VLPL...</small>
+            </li>
+            
+            <li>
+                <strong style="color:var(--rsl-text);">Öffne das erste Video</strong><br>
+                <small>Klicke auf das erste Video in der Liste</small>
+            </li>
+            
+            <li>
+                <strong style="color:var(--rsl-text);">Kopiere die URL</strong><br>
+                <small>Aus der Adresszeile: https://www.youtube.com/watch?v=xxxxx</small>
+            </li>
+            
+            <li>
+                <strong style="color:var(--rsl-text);">Klicke auf "Nächstes Video"</strong><br>
+                <small>Nutze die Autoplay-Funktion oder klicke auf das nächste Video rechts</small>
+            </li>
+            
+            <li>
+                <strong style="color:var(--rsl-text);">Wiederhole für alle Videos</strong><br>
+                <small>Kopiere jede URL und füge sie oben ein</small>
+            </li>
+            
+            <li>
+                <strong style="color:var(--rsl-text);">Importiere!</strong><br>
+                <small>Klicke auf "Videos importieren" - fertig! ✅</small>
+            </li>
+        </ol>
+    </div>
+</div>
+
+<div class="card" style="margin-top:2rem;">
+    <div class="card-header">⚡ Schneller Trick</div>
+    <div style="padding:1rem 0;">
+        <p style="color:var(--rsl-muted); margin-bottom:1rem;">
+            Nutze die Browser-Konsole um alle Video-URLs automatisch zu kopieren:
+        </p>
+        
+        <div style="background:var(--rsl-panel2); padding:1rem; border-radius:4px; border-left:4px solid var(--rsl-accent);">
+            <strong style="color:var(--rsl-accent);">JavaScript-Code (in YouTube-Playlist-Seite):</strong>
+            <pre style="margin-top:0.5rem; color:var(--rsl-text); overflow-x:auto;"><code>// F12 drücken → Konsole öffnen → Diesen Code einfügen:
+let urls = [];
+document.querySelectorAll('a#video-title').forEach(a => {
+  if(a.href) urls.push(a.href.split('&')[0]);
+});
+console.log(urls.join('\n'));
+copy(urls.join('\n'));  // Kopiert automatisch in Zwischenablage!
+alert('URLs kopiert! Jetzt hier einfügen.');</code></pre>
+            
+            <small style="color:var(--rsl-muted); display:block; margin-top:1rem;">
+                ✅ Kopiert alle Video-URLs automatisch → Einfach hier einfügen!
+            </small>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "mediathek/admin/base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">🔍 YouTube Playlist Debugger</div>
+    
+    <form method="post" style="padding:1rem 0;">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label class="form-label">YouTube Playlist URL testen</label>
+            <input type="url" name="test_url" class="form-input" placeholder="https://www.youtube.com/playlist?list=PLxxxxx" required>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-search"></i> URL Testen
+        </button>
+    </form>
+    
+    {% if test_result %}
+    <div style="margin-top:2rem; padding:1.5rem; background:var(--rsl-panel2); border-radius:8px;">
+        <h3 style="color:var(--rsl-accent); margin-bottom:1rem;">Ergebnis:</h3>
+        
+        <div style="margin-bottom:1rem;">
+            <strong>URL:</strong> {{ test_result.url }}
+        </div>
+        
+        <div style="margin-bottom:1rem;">
+            <strong>Playlist-ID:</strong> 
+            {% if test_result.playlist_id %}
+                <span style="color:var(--rsl-success);">{{ test_result.playlist_id }} ✅</span>
+            {% else %}
+                <span style="color:var(--rsl-live);">Nicht gefunden ❌</span>
+            {% endif %}
+        </div>
+        
+        <div style="margin-bottom:1rem;">
+            <strong>Videos gefunden:</strong> 
+            <span style="color:{% if test_result.video_count > 0 %}var(--rsl-success){% else %}var(--rsl-live){% endif %}; font-size:1.5rem; font-weight:700;">
+                {{ test_result.video_count }}
+            </span>
+        </div>
+        
+        {% if test_result.videos %}
+        <div style="margin-top:2rem;">
+            <h4 style="color:var(--rsl-accent); margin-bottom:1rem;">Videos:</h4>
+            <div style="display:grid; gap:1rem;">
+                {% for video in test_result.videos %}
+                <div style="display:flex; gap:1rem; padding:1rem; background:var(--rsl-panel); border-radius:4px; border:1px solid var(--rsl-border);">
+                    <img src="{{ video.thumbnail }}" style="width:120px; height:68px; object-fit:cover; border-radius:4px;" onerror="this.src='https://placehold.co/120x68/0a6eb4/ffffff?text=VIDEO'">
+                    <div style="flex:1;">
+                        <div style="font-weight:700; margin-bottom:0.5rem;">{{ video.title }}</div>
+                        <div style="font-size:0.85rem; color:var(--rsl-muted);">
+                            Video-ID: <code>{{ video.video_id }}</code>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if test_result.errors %}
+        <div style="margin-top:2rem;">
+            <h4 style="color:var(--rsl-live); margin-bottom:1rem;">Fehler:</h4>
+            <div style="padding:1rem; background:rgba(230,57,70,0.1); border-left:4px solid var(--rsl-live); border-radius:4px;">
+                {% for error in test_result.errors %}
+                <div>❌ {{ error }}</div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<div class="card" style="margin-top:2rem;">
+    <div class="card-header">💡 Tipps</div>
+    <div style="padding:1rem 0;">
+        <ul style="line-height:2; color:var(--rsl-muted); padding-left:1.5rem;">
+            <li>Playlist muss <strong>öffentlich</strong> sein</li>
+            <li>URL-Format: <code>https://www.youtube.com/playlist?list=PLxxxxx</code></li>
+            <li>Oder: <code>https://www.youtube.com/watch?v=xxxxx&list=PLxxxxx</code></li>
+            <li>Bei 0 Videos: Playlist-Link im Browser testen</li>
+            <li>Funktioniert mit öffentlichen Playlists (nicht privat/unlisted)</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

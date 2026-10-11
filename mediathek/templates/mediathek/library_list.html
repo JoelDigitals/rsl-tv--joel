@@ -1,0 +1,27 @@
+{% extends "mediathek/base.html" %}
+
+{% block mediathek_content %}
+<header class="page-head">
+    <div class="wrap">
+        <h1>Sendung verpasst?</h1>
+        <p class="lead">Alles, was zuletzt bei RSL lief – zum Nachschauen, so lange es verfügbar ist.</p>
+    </div>
+</header>
+<section class="section">
+    <div class="wrap">
+        {% if reihen %}
+        <div class="chips mb-4" aria-label="Nach Reihe filtern">
+            <a class="chip{% if not current_reihe %} active{% endif %}" href="{% url 'mediathek:library_list' %}">Alle</a>
+            {% for r in reihen %}<a class="chip{% if current_reihe == r.slug %} active{% endif %}" href="?reihe={{ r.slug }}">{{ r.name }}</a>{% endfor %}
+        </div>
+        {% endif %}
+        {% if items %}
+        <div class="grid">
+            {% for i in items %}{% include "mediathek/partials/card_library.html" %}{% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state"><i class="bi bi-clock-history"></i>Gerade sind keine Sendungen zum Nachschauen verfügbar.</div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

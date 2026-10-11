@@ -1,0 +1,39 @@
+{% extends "mediathek/base.html" %}
+
+{% block mediathek_content %}
+<header class="page-head">
+    <div class="wrap">
+        <h1>Suche</h1>
+        <form action="{% url 'mediathek:search' %}" method="get" role="search" class="d-flex gap-2 mt-3" style="max-width:640px">
+            <input type="search" name="q" value="{{ search_query }}" class="form-control form-control-lg" placeholder="Serie, Sendung, Thema …" aria-label="Suchbegriff">
+            <button class="btn btn-rsl btn-lg" type="submit"><i class="bi bi-search"></i><span class="d-none d-sm-inline">Suchen</span></button>
+        </form>
+        {% if search_query %}<p class="mt-3 mb-0">{{ total }} Treffer für „<strong style="color:var(--text)">{{ search_query }}</strong>“</p>{% endif %}
+    </div>
+</header>
+
+{% if series_cards %}
+<section class="section"><div class="wrap">
+    <div class="section-head"><h2>Serien</h2></div>
+    {% include "mediathek/partials/series_grid.html" with cards=series_cards %}
+</div></section>
+{% endif %}
+
+{% if programs %}
+<section class="section"><div class="wrap">
+    <div class="section-head"><h2>Sendungen &amp; Folgen</h2></div>
+    <div class="grid">{% for p in programs %}{% include "mediathek/partials/card_program.html" %}{% endfor %}</div>
+</div></section>
+{% endif %}
+
+{% if videos %}
+<section class="section"><div class="wrap">
+    <div class="section-head"><h2>Videos</h2></div>
+    <div class="grid">{% for v in videos %}{% include "mediathek/partials/card_video.html" %}{% endfor %}</div>
+</div></section>
+{% endif %}
+
+{% if search_query and not total %}
+<section class="section"><div class="wrap"><div class="empty-state"><i class="bi bi-search"></i>Leider nichts gefunden. Versuch es mit einem anderen Begriff oder stöbere in den <a href="{% url 'mediathek:series_list' %}">Serien</a>.</div></div></section>
+{% endif %}
+{% endblock %}

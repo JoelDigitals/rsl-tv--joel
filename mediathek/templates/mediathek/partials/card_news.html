@@ -1,0 +1,13 @@
+{# Nachrichten-Ausgabe: n #}
+<a href="{% url 'mediathek:edition_detail' n.id %}" class="media-card">
+    <div class="media-thumb">
+        {% if n.thumbnail %}<img src="{{ n.thumbnail }}" alt="" loading="lazy">{% else %}<div class="placeholder"><i class="bi bi-newspaper"></i>{{ n.title }}</div>{% endif %}
+        <div class="play"><i class="bi bi-play-fill"></i></div>
+        <div class="tag-row">{% if n.duration_display %}<span class="pill">{{ n.duration_display }}</span>{% endif %}</div>
+    </div>
+    <div class="media-body">
+        <span class="media-kicker">Nachrichten</span>
+        <span class="media-title">{{ n.title }}</span>
+        {% if n.created_at %}<div class="media-meta"><span><i class="bi bi-clock me-1"></i>{{ n.created_at|date:"D, d.m.Y · H:i" }} Uhr</span></div>{% endif %}
+    </div>
+</a>

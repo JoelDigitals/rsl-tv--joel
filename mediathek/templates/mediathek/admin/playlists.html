@@ -1,0 +1,104 @@
+{% extends "mediathek/admin/base.html" %}
+
+{% block content %}
+<div style="margin-bottom:2rem; display:flex; justify-content:space-between; align-items:center;">
+    <div></div>
+    <a href="{% url 'mediathek:custom_admin_playlist_edit' %}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Neue Playlist
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header">📋 Alle Playlists</div>
+    
+    {% if playlists %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Titel</th>
+                <th>Videos</th>
+                <th>YouTube</th>
+                <th>Letzter Import</th>
+                <th>Status</th>
+                <th>Aktionen</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for playlist in playlists %}
+            <tr>
+                <td style="font-weight:700;">{{ playlist.title }}</td>
+                <td>{{ playlist.items.count }} Videos</td>
+                <td>
+                    {% if playlist.youtube_playlist_url %}
+                        {% if playlist.auto_import %}
+                            <span class="badge badge-success">✅ Auto-Import</span>
+                        {% else %}
+                            <span class="badge badge-info">📋 Manuell</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="badge" style="background:#666;">➕ Manuelle Playlist</span>
+                    {% endif %}
+                </td>
+                <td style="color:var(--rsl-muted); font-size:0.9rem;">
+                    {% if playlist.last_import %}
+                        {{ playlist.last_import|date:"d.m.Y H:i" }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if playlist.is_active %}
+                        <span class="badge badge-success">Aktiv</span>
+                    {% else %}
+                        <span class="badge badge-danger">Inaktiv</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div style="display:flex; gap:0.5rem;">
+                        <a href="{% url 'mediathek:custom_admin_playlist_edit' playlist.id %}" class="btn btn-primary" style="padding:0.4rem 0.8rem; font-size:0.85rem;">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        
+                        {% if playlist.youtube_playlist_url %}
+                        <a href="{% url 'mediathek:custom_admin_youtube_import' playlist.id %}" class="btn btn-success" style="padding:0.4rem 0.8rem; font-size:0.85rem;">
+                            <i class="bi bi-youtube"></i> Import
+                        </a>
+                        {% endif %}
+                        
+                        <a href="{% url 'mediathek:playlist_detail' playlist.slug %}" class="btn btn-outline" style="padding:0.4rem 0.8rem; font-size:0.85rem;" target="_blank">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="padding:3rem; text-align:center; color:var(--rsl-muted);">
+        <i class="bi bi-inbox" style="font-size:3rem; display:block; margin-bottom:1rem;"></i>
+        Noch keine Playlists vorhanden
+    </div>
+    {% endif %}
+</div>
+
+<div class="card" style="margin-top:2rem;">
+    <div class="card-header">🎬 YouTube Playlist Import</div>
+    <div style="padding:1rem 0;">
+        <h3 style="color:var(--rsl-accent); margin-bottom:1rem;">So funktioniert's:</h3>
+        <ol style="line-height:2; color:var(--rsl-muted);">
+            <li>Erstelle eine neue Playlist</li>
+            <li>Füge die YouTube Playlist-URL ein (z.B. <code>https://www.youtube.com/playlist?list=PLxxxxx</code>)</li>
+            <li>Optional: Aktiviere "Auto-Import" für regelmäßige Updates</li>
+            <li>Klicke auf <strong>"Import"</strong> - Die Videos werden automatisch hinzugefügt!</li>
+        </ol>
+        
+        <div style="margin-top:1.5rem; padding:1rem; background:var(--rsl-panel2); border-left:4px solid var(--rsl-accent); border-radius:4px;">
+            <strong style="color:var(--rsl-accent);">✨ Funktioniert OHNE API-Key!</strong><br>
+            <span style="color:var(--rsl-muted); font-size:0.9rem;">
+                Der Import nutzt öffentliche YouTube-Daten. Keine API-Konfiguration nötig!
+            </span>
+        </div>
+    </div>
+</div>
+{% endblock %}

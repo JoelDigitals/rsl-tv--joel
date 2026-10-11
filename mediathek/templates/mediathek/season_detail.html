@@ -1,0 +1,32 @@
+{% extends "mediathek/base.html" %}
+{% load mediathek_tags %}
+
+{% block mediathek_content %}
+<header class="page-head">
+    <div class="wrap">
+        <nav class="breadcrumbs" aria-label="Brotkrumen"><a href="{% url 'mediathek:home' %}">Mediathek</a><span>/</span><a href="{% url 'mediathek:series_list' %}">Serien</a><span>/</span><a href="{% url 'mediathek:series_detail' series.slug %}">{{ series.title }}</a></nav>
+        <h1>{{ series.title }} – Staffel {{ season.season_number }}</h1>
+        {% if season.title %}<p class="lead">{{ season.title }}</p>{% endif %}
+        {% if seasons|length > 1 %}
+        <div class="chips mt-3" aria-label="Staffel wählen">
+            {% for s in seasons %}<a class="chip{% if s.pk == season.pk %} active{% endif %}" href="{% url 'mediathek:season_detail' series.slug s.season_number %}">Staffel {{ s.season_number }}</a>{% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</header>
+<section class="section">
+    <div class="wrap">
+        <div class="grid">
+            {% for ep in episodes %}
+            <a href="{% url 'mediathek:episode_player' series.slug season.season_number ep.episode_number %}" class="media-card">
+                <div class="media-thumb"><img src="{{ ep.get_thumbnail }}" alt="" loading="lazy"><div class="play"><i class="bi bi-play-fill"></i></div>
+                    <div class="tag-row"><span class="pill">Folge {{ ep.episode_number }}</span>{% if ep.duration %}<span class="pill">{{ ep.duration|minutes }}</span>{% endif %}</div></div>
+                <div class="media-body"><span class="media-title">{{ ep.title }}</span>{% if ep.description %}<p class="media-desc">{{ ep.description }}</p>{% endif %}</div>
+            </a>
+            {% empty %}
+            <div class="empty-state" style="grid-column:1/-1"><i class="bi bi-film"></i>Noch keine Folgen in dieser Staffel.</div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

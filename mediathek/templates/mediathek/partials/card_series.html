@@ -1,0 +1,12 @@
+{# Serie – lokal (Mediathek), Sender-Serie (tv) oder API-Reihe. Erwartet: href, title, image, sub, badge #}
+<a href="{{ href }}" class="media-card">
+    <div class="media-thumb">
+        {% if image %}<img src="{{ image }}" alt="" loading="lazy">{% else %}<div class="placeholder"><i class="bi bi-film"></i>{{ title }}</div>{% endif %}
+        <div class="play"><i class="bi bi-play-fill"></i></div>
+        {% if badge %}<div class="tag-row top"><span class="pill accent">{{ badge }}</span></div>{% endif %}
+    </div>
+    <div class="media-body">
+        <span class="media-title">{{ title }}</span>
+        {% if sub %}<div class="media-meta"><span>{{ sub }}</span></div>{% endif %}
+    </div>
+</a>

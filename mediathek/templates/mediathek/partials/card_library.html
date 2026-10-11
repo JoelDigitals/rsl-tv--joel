@@ -1,0 +1,15 @@
+{# Ausgestrahlte Sendung (library): i #}
+<a href="{% url 'mediathek:library_player' i.id %}" class="media-card">
+    <div class="media-thumb">
+        {% if i.thumbnail %}<img src="{{ i.thumbnail }}" alt="" loading="lazy">{% else %}<div class="placeholder"><i class="bi bi-tv"></i>RSL</div>{% endif %}
+        <div class="play"><i class="bi bi-play-fill"></i></div>
+        <div class="tag-row">
+            {% if i.duration_display %}<span class="pill">{{ i.duration_display }}</span>{% endif %}
+        </div>
+    </div>
+    <div class="media-body">
+        {% if i.series_title %}<span class="media-kicker">{{ i.series_title }}</span>{% endif %}
+        <span class="media-title">{{ i.short_title }}</span>
+        {% if i.aired_at %}<div class="media-meta"><span><i class="bi bi-calendar3 me-1"></i>{{ i.aired_at|date:"D, d.m. · H:i" }} Uhr</span></div>{% endif %}
+    </div>
+</a>

@@ -1,0 +1,16 @@
+{# Programm aus der Broadcast-API: p #}
+<a href="{% url 'mediathek:program_player' p.id %}" class="media-card">
+    <div class="media-thumb">
+        {% if p.thumbnail %}<img src="{{ p.thumbnail }}" alt="" loading="lazy">{% else %}<div class="placeholder"><i class="bi bi-play-circle"></i>{{ p.category|default:"RSL" }}</div>{% endif %}
+        <div class="play"><i class="bi bi-play-fill"></i></div>
+        <div class="tag-row">
+            {% if p.episode_number and p.series_title %}<span class="pill">Folge {{ p.episode_number }}</span>{% endif %}
+            {% if p.duration_display %}<span class="pill">{{ p.duration_display }}</span>{% endif %}
+        </div>
+    </div>
+    <div class="media-body">
+        <span class="media-kicker">{% if p.series_title and not hide_series %}{{ p.series_title }}{% else %}{{ p.category|default:"Sendung" }}{% endif %}</span>
+        <span class="media-title">{% if p.series_title %}{{ p.short_title }}{% else %}{{ p.title }}{% endif %}</span>
+        {% if p.description %}<p class="media-desc">{{ p.description }}</p>{% endif %}
+    </div>
+</a>

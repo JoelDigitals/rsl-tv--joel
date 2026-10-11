@@ -1,865 +1,118 @@
 {% extends 'base.html' %}
-{% block title %}TV Guide – RSL{% endblock %}
-{% block meta_description %}Der komplette RSL TV-Guide – 17 Tage Programm im Überblick.{% endblock %}
+{% block title %}Programm – RSL{% endblock %}
+{% block meta_description %}Das RSL Fernsehprogramm für die nächsten Tage – alle Sendungen mit Uhrzeit im Überblick.{% endblock %}
 
 {% block extra_css %}
 <style>
-/* ═══════════════════════════════════
-   RESET – alles weiß auf dunklem BG
-═══════════════════════════════════ */
-* { box-sizing: border-box; }
-body, section, .container, .page-header { color: #fff !important; }
-p, span, div, li, dt, dd, label, small, h1, h2, h3, h4, h5, h6, strong, em, a {
-    color: inherit;
-}
-.text-muted { color: var(--rsl-muted) !important; }
-
-/* ═══════════════════════════════════
-   PAGE HEADER
-═══════════════════════════════════ */
-.guide-page-header {
-    background: linear-gradient(135deg, var(--rsl-darker) 0%, var(--rsl-panel) 60%, var(--rsl-blue-deep) 100%);
-    border-bottom: 2px solid var(--rsl-border);
-    padding: 1.75rem 0 1.25rem;
-    position: relative;
-    overflow: hidden;
-}
-.guide-page-header::after {
-    content: '';
-    position: absolute; right: 0; top: 0; width: 35%; height: 100%;
-    background: radial-gradient(ellipse at right, rgba(10,110,180,.12) 0%, transparent 70%);
-    pointer-events: none;
-}
-.guide-page-header h1 {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 2.4rem; font-weight: 900;
-    letter-spacing: 3px; text-transform: uppercase;
-    color: #fff !important; margin: 0 0 .2rem;
-}
-.guide-page-header p { color: var(--rsl-muted) !important; font-size: .88rem; margin: 0; }
-
-/* ═══════════════════════════════════
-   UPDATE BADGE
-═══════════════════════════════════ */
-.upd-badge {
-    display: inline-flex; align-items: center; gap: 5px;
-    font-size: .7rem; color: var(--rsl-muted) !important;
-    padding: 3px 10px; border-radius: 20px;
-    background: rgba(255,255,255,.04); border: 1px solid var(--rsl-border);
-}
-.upd-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: #28a745; flex-shrink: 0;
-    animation: gPulse 2s infinite;
-}
-@keyframes gPulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-
-/* ═══════════════════════════════════
-   DAY STRIP – sticky unter Navbar+Ticker
-═══════════════════════════════════ */
-.day-strip {
-    background: var(--rsl-panel);
-    border-bottom: 2px solid var(--rsl-blue);
-    position: sticky;
-    top: 96px;          /* Navbar ~62px + Ticker ~34px */
-    z-index: 90;
-    overflow-x: auto;
-    scrollbar-width: none;
-}
-.day-strip::-webkit-scrollbar { display: none; }
-.day-strip-inner { display: flex; min-width: max-content; }
-
-.day-btn {
-    padding: .55rem .9rem;
-    cursor: pointer;
-    border: none;
-    border-bottom: 3px solid transparent;
-    background: transparent;
-    color: var(--rsl-muted);
-    font-family: 'Barlow Condensed', sans-serif;
-    transition: all .18s;
-    text-align: center;
-    min-width: 64px;
-    position: relative;
-    outline: none;
-}
-.day-btn:hover { color: #fff !important; background: rgba(10,110,180,.1); }
-.day-btn.active {
-    color: var(--rsl-accent) !important;
-    border-bottom-color: var(--rsl-accent);
-    background: rgba(0,196,255,.06);
-}
-.day-btn .dn {
-    display: block; font-size: 1.45rem; font-weight: 900; line-height: 1;
-    color: inherit;
-}
-.day-btn .dd {
-    display: block; font-size: .56rem;
-    text-transform: uppercase; letter-spacing: 1px; opacity: .8;
-    color: inherit;
-}
-.day-btn .dm {
-    display: block; font-size: .54rem; opacity: .5;
-    color: inherit;
-}
-.day-btn.active .dn { color: var(--rsl-accent) !important; }
-.today-dot {
-    position: absolute; top: 4px; right: 6px;
-    width: 5px; height: 5px; border-radius: 50%;
-    background: var(--rsl-live);
-    animation: gPulse 1.5s infinite;
-}
-
-/* ═══════════════════════════════════
-   ZEITFILTER BAR
-═══════════════════════════════════ */
-.time-filter-bar {
-    background: rgba(13,26,39,.8);
-    border-bottom: 1px solid var(--rsl-border);
-    padding: .5rem 0;
-    position: sticky;
-    top: 148px;        /* day-strip (52px) + 96px */
-    z-index: 89;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-}
-.time-filter-inner {
-    display: flex; align-items: center; gap: 6px;
-    overflow-x: auto; scrollbar-width: none;
-    padding: 0 1rem;
-}
-.time-filter-inner::-webkit-scrollbar { display: none; }
-.time-filter-label {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: .72rem; font-weight: 700;
-    color: var(--rsl-muted) !important;
-    letter-spacing: 1px; text-transform: uppercase;
-    white-space: nowrap; flex-shrink: 0;
-}
-.tf-btn {
-    background: var(--rsl-panel);
-    border: 1px solid var(--rsl-border);
-    border-radius: 20px;
-    color: var(--rsl-muted) !important;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: .78rem; font-weight: 700;
-    padding: 3px 12px;
-    cursor: pointer;
-    white-space: nowrap; flex-shrink: 0;
-    transition: all .15s;
-    outline: none;
-}
-.tf-btn:hover { background: rgba(10,110,180,.15); color: #fff !important; border-color: var(--rsl-blue-light); }
-.tf-btn.active {
-    background: var(--rsl-blue);
-    border-color: var(--rsl-blue-light);
-    color: #fff !important;
-}
-
-/* ═══════════════════════════════════
-   NOW BAR
-═══════════════════════════════════ */
-.now-bar {
-    background: rgba(230,57,70,.07);
-    border: 1px solid rgba(230,57,70,.2);
-    border-radius: 10px;
-    padding: .85rem 1rem;
-    display: flex; align-items: center; gap: 12px;
-    margin-bottom: 1rem; flex-wrap: wrap;
-}
-.now-bar-thumb {
-    width: 88px; height: 50px;
-    object-fit: cover; border-radius: 5px;
-    flex-shrink: 0; border: 1px solid var(--rsl-border);
-}
-.now-bar-info { flex: 1; min-width: 0; }
-.now-bar-title {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 800; font-size: 1.1rem;
-    color: #fff !important;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.now-bar-time {
-    font-size: .76rem; color: var(--rsl-muted) !important; margin-top: 1px;
-}
-.now-bar-desc {
-    font-size: .76rem; color: var(--rsl-muted) !important;
-    overflow: hidden; display: -webkit-box;
-    -webkit-line-clamp: 1; -webkit-box-orient: vertical;
-    margin-top: 2px;
-}
-.now-prog { height: 3px; background: rgba(255,255,255,.1); border-radius: 2px; overflow: hidden; margin-top: 6px; }
-.now-prog-bar { height: 100%; background: var(--rsl-live); border-radius: 2px; }
-
-/* ═══════════════════════════════════
-   GUIDE CARDS
-═══════════════════════════════════ */
-.guide-card {
-    display: grid;
-    grid-template-columns: 150px 1fr;
-    background: var(--rsl-panel);
-    border: 1px solid var(--rsl-border);
-    border-radius: 10px;
-    overflow: hidden;
-    margin-bottom: 8px;
-    cursor: pointer;
-    transition: border-color .2s, box-shadow .2s, transform .15s;
-    position: relative;
-    color: #fff !important;
-}
-.guide-card:hover {
-    border-color: var(--rsl-blue-light);
-    box-shadow: 0 4px 20px rgba(10,110,180,.22);
-    transform: translateX(3px);
-}
-.guide-card.is-current {
-    border-left: 4px solid var(--rsl-live) !important;
-    background: rgba(230,57,70,.04);
-}
-.guide-card.is-past { opacity: .38; }
-.guide-card.is-expanded {
-    border-color: var(--rsl-blue) !important;
-    box-shadow: 0 6px 28px rgba(10,110,180,.3);
-}
-/* Kein transform beim ausklappen */
-.guide-card.is-expanded:hover { transform: none; }
-
-/* Thumbnail */
-.gc-thumb {
-    position: relative; width: 150px;
-    overflow: hidden; background: var(--rsl-darker);
-    aspect-ratio: 16/9; flex-shrink: 0;
-}
-.gc-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s; }
-.guide-card:hover .gc-thumb img { transform: scale(1.05); }
-.gc-thumb-ph {
-    width: 100%; height: 100%;
-    display: flex; align-items: center; justify-content: center;
-    color: var(--rsl-border2) !important; font-size: 2rem;
-}
-.gc-dur {
-    position: absolute; bottom: 4px; right: 5px;
-    background: rgba(0,0,0,.8); color: var(--rsl-muted) !important;
-    font-size: .6rem; font-weight: 700;
-    padding: 1px 5px; border-radius: 3px;
-    font-family: 'Barlow Condensed', sans-serif;
-}
-
-/* Card body */
-.gc-body {
-    padding: .65rem .9rem;
-    display: flex; flex-direction: column; justify-content: space-between;
-    min-width: 0; color: #fff !important;
-}
-.gc-top { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 4px; }
-
-.gc-time {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 800; font-size: 1.05rem;
-    color: var(--rsl-accent) !important;
-    white-space: nowrap; line-height: 1;
-}
-.gc-time-sep { color: var(--rsl-muted) !important; font-size: .85em; margin: 0 1px; }
-.gc-time-end { color: var(--rsl-muted) !important; font-size: .85em; }
-
-.gc-now {
-    font-size: .58rem; font-weight: 800;
-    padding: 2px 7px; border-radius: 3px;
-    background: var(--rsl-live); color: #fff !important;
-    letter-spacing: 1.5px; text-transform: uppercase;
-    font-family: 'Barlow Condensed', sans-serif;
-    animation: gPulse 1.5s infinite; flex-shrink: 0;
-}
-.gc-cat {
-    font-size: .6rem; font-weight: 700;
-    padding: 2px 7px; border-radius: 4px;
-    text-transform: uppercase; letter-spacing: .5px;
-    font-family: 'Barlow Condensed', sans-serif;
-    color: #fff !important; flex-shrink: 0;
-}
-
-.gc-title {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 800; font-size: 1.1rem;
-    color: #fff !important;
-    margin: 0 0 3px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.gc-desc {
-    font-size: .78rem; color: var(--rsl-muted) !important;
-    line-height: 1.5; margin: 0;
-    overflow: hidden; display: -webkit-box;
-    -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-}
-.gc-meta {
-    display: flex; align-items: center; gap: 10px;
-    font-size: .68rem; color: var(--rsl-muted) !important;
-    margin-top: 5px; flex-wrap: wrap;
-}
-.gc-meta span { color: var(--rsl-muted) !important; }
-.gc-meta i { color: var(--rsl-blue-light) !important; margin-right: 2px; }
-.gc-prog { height: 3px; background: var(--rsl-border); border-radius: 2px; overflow: hidden; margin-top: 6px; }
-.gc-prog-bar { height: 100%; background: var(--rsl-live); border-radius: 2px; }
-
-/* Chevron */
-.gc-chevron {
-    position: absolute; bottom: 8px; right: 10px;
-    color: var(--rsl-border2) !important; font-size: .8rem;
-    transition: transform .2s;
-}
-.guide-card.is-expanded .gc-chevron { transform: rotate(180deg); color: var(--rsl-accent) !important; }
-
-/* Expand-Panel */
-.gc-expand {
-    display: none;
-    grid-column: 1 / -1;
-    border-top: 1px solid var(--rsl-border);
-    background: rgba(4,8,16,.7);
-    padding: 1rem;
-    color: #fff !important;
-}
-.gc-expand.open { display: block; }
-.gc-expand-grid { display: grid; grid-template-columns: 220px 1fr; gap: 1rem; align-items: start; }
-.gc-expand-img {
-    width: 100%; aspect-ratio: 16/9; object-fit: cover;
-    border-radius: 7px; border: 1px solid var(--rsl-border);
-}
-.gc-expand-ph {
-    width: 100%; aspect-ratio: 16/9;
-    background: var(--rsl-border); border-radius: 7px;
-    display: flex; align-items: center; justify-content: center;
-    color: var(--rsl-border2) !important; font-size: 2.5rem;
-}
-.gc-exp-title {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 800; font-size: 1.1rem;
-    color: #fff !important; margin: 0 0 8px;
-}
-.gc-exp-desc {
-    font-size: .83rem; color: var(--rsl-muted) !important;
-    line-height: 1.65; margin: 0 0 10px;
-}
-.gc-dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font-size: .78rem; }
-.gc-dl dt { color: var(--rsl-muted) !important; white-space: nowrap; font-weight: 600; }
-.gc-dl dd { color: #fff !important; margin: 0; word-break: break-all; }
-.gc-video-btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    font-size: .78rem; color: var(--rsl-accent) !important;
-    background: rgba(0,196,255,.08); border: 1px solid rgba(0,196,255,.22);
-    border-radius: 5px; padding: 4px 12px; margin-top: 8px;
-    text-decoration: none; transition: background .15s;
-}
-.gc-video-btn:hover { background: rgba(0,196,255,.18); }
-
-/* ═══════════════════════════════════
-   LEER / LADE-STATES
-═══════════════════════════════════ */
-.guide-loading {
-    display: flex; align-items: center; justify-content: center;
-    padding: 4rem; gap: 12px;
-    color: var(--rsl-muted) !important;
-}
-.rsl-spin {
-    width: 22px; height: 22px;
-    border: 3px solid var(--rsl-border); border-top-color: var(--rsl-accent);
-    border-radius: 50%; animation: rslSpin .75s linear infinite; flex-shrink: 0;
-}
-@keyframes rslSpin { to { transform: rotate(360deg); } }
-.guide-empty {
-    text-align: center; padding: 3rem;
-    color: var(--rsl-muted) !important;
-}
-.guide-empty i { font-size: 2.8rem; display: block; margin-bottom: .8rem; opacity: .35; color: var(--rsl-muted) !important; }
-.guide-empty p { color: var(--rsl-muted) !important; }
-
-/* ═══════════════════════════════════
-   SECTION DIVIDER
-═══════════════════════════════════ */
-.time-group-label {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: .7rem; font-weight: 800;
-    color: var(--rsl-muted) !important;
-    text-transform: uppercase; letter-spacing: 2px;
-    padding: .4rem 0 .5rem;
-    border-bottom: 1px solid var(--rsl-border);
-    margin: 1rem 0 .6rem;
-    display: flex; align-items: center; gap: 8px;
-}
-.time-group-label::before {
-    content: '';
-    width: 3px; height: 14px;
-    background: var(--rsl-blue);
-    border-radius: 2px; flex-shrink: 0;
-}
-
-@media (max-width: 600px) {
-    .guide-card { grid-template-columns: 90px 1fr; }
-    .gc-thumb { width: 90px; }
-    .gc-title { font-size: 1rem; white-space: normal; }
-    .gc-expand-grid { grid-template-columns: 1fr; }
-    .day-btn { min-width: 56px; padding: .45rem .6rem; }
-    .time-filter-bar { top: 140px; }
+.day-tabs { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .25rem; scrollbar-width: thin; }
+.day-tab { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; min-width: 96px; padding: .6rem .9rem; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); color: var(--text-2); text-decoration: none; line-height: 1.25; }
+.day-tab strong { color: var(--text); font-size: 1rem; }
+.day-tab span { font-size: .85rem; }
+.day-tab:hover { border-color: var(--accent); color: var(--text); }
+.day-tab.active { background: var(--accent); border-color: var(--accent); }
+.day-tab.active strong, .day-tab.active span { color: #04121f; }
+.slot-filter { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1.25rem 0; }
+.slot-filter button { background: var(--surface); border: 1px solid var(--line); color: var(--text-2); border-radius: 999px; padding: .4rem .95rem; font-weight: 600; font-size: .92rem; }
+.slot-filter button.active { background: var(--surface-3); color: var(--text); border-color: var(--accent); }
+.guide { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.show { display: grid; grid-template-columns: 5.5rem 140px minmax(0,1fr) auto; gap: 1.1rem; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid var(--line); }
+.show:last-child { border-bottom: 0; }
+.show.past { opacity: .6; }
+.show.now { background: rgba(76,195,255,.08); box-shadow: inset 4px 0 0 var(--accent); opacity: 1; }
+.show .t { font-size: 1.2rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
+.show .t small { display: block; font-size: .85rem; font-weight: 500; color: var(--text-3); }
+.show .img { aspect-ratio: 16/9; border-radius: 8px; overflow: hidden; background: var(--surface-3); }
+.show .img img { width: 100%; height: 100%; object-fit: cover; }
+.show h3 { font-size: 1.08rem; font-weight: 700; margin: 0 0 .2rem; line-height: 1.35; }
+.show .sub { color: var(--text-3); font-size: .92rem; display: flex; gap: .4rem .9rem; flex-wrap: wrap; }
+@media (max-width: 767px) {
+    .show { grid-template-columns: 4.2rem minmax(0,1fr); gap: .5rem .9rem; padding: .9rem 1rem; }
+    .show .img { display: none; }
+    .show .act { grid-column: 2; }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-
-<!-- PAGE HEADER -->
-<div class="guide-page-header">
-    <div class="container d-flex justify-content-between align-items-end flex-wrap gap-3">
-        <div>
-            <h1><i class="bi bi-tv me-2" style="color:var(--rsl-accent);"></i>TV Guide</h1>
-            <p>RSL Programm · 17 Tage Vorschau</p>
-        </div>
-        <div class="upd-badge">
-            <span class="upd-dot"></span>
-            <span id="upd-txt" style="color:var(--rsl-muted)!important;">Wird geladen…</span>
-        </div>
+<header class="page-head">
+    <div class="wrap">
+        <h1>Programm</h1>
+        <p class="lead">Was läuft wann bei RSL? Alle Sendungen der nächsten Tage auf einen Blick. Alle Zeiten in deutscher Zeit.</p>
     </div>
-</div>
+</header>
 
-<!-- DAY STRIP -->
-<div class="day-strip">
-    <div class="day-strip-inner" id="day-strip"></div>
-</div>
+<section class="section">
+    <div class="wrap">
+        {% if days %}
+        <nav class="day-tabs" aria-label="Tag wählen">
+            {% for d in days %}
+            <a href="?tag={{ d.date|date:'Y-m-d' }}" class="day-tab{% if d.date == current_day.date %} active{% endif %}"{% if d.date == current_day.date %} aria-current="page"{% endif %}>
+                <strong>{% if d.date == today %}Heute{% else %}{{ d.date|date:"D" }}{% endif %}</strong>
+                <span>{{ d.date|date:"d.m." }}</span>
+            </a>
+            {% endfor %}
+        </nav>
 
-<!-- ZEITFILTER -->
-<div class="time-filter-bar">
-    <div class="time-filter-inner" id="time-filter">
-        <span class="time-filter-label"><i class="bi bi-clock me-1"></i>Uhrzeit:</span>
-        <button class="tf-btn active" data-slot="all" onclick="_setSlot(this,'all')">Alle</button>
-        <button class="tf-btn" data-slot="00-06" onclick="_setSlot(this,'00-06')">00–06 Nacht</button>
-        <button class="tf-btn" data-slot="06-12" onclick="_setSlot(this,'06-12')">06–12 Morgen</button>
-        <button class="tf-btn" data-slot="12-18" onclick="_setSlot(this,'12-18')">12–18 Mittag</button>
-        <button class="tf-btn" data-slot="18-24" onclick="_setSlot(this,'18-24')">18–24 Abend</button>
-        <button class="tf-btn" data-slot="now"   onclick="_setSlot(this,'now')">Jetzt &amp; Danach</button>
-    </div>
-</div>
+        <div class="slot-filter" role="group" aria-label="Tageszeit filtern">
+            <button type="button" class="active" data-slot="all">Ganzer Tag</button>
+            <button type="button" data-slot="0-6">Nacht</button>
+            <button type="button" data-slot="6-12">Vormittag</button>
+            <button type="button" data-slot="12-18">Nachmittag</button>
+            <button type="button" data-slot="18-24">Abend</button>
+        </div>
 
-<!-- MAIN -->
-<section class="py-3">
-    <div class="container">
-
-        <!-- NOW BAR (nur heute) -->
-        <div id="now-bar" class="now-bar" style="display:none;">
-            <img id="nb-img" class="now-bar-thumb" src="" alt="" style="display:none;">
-            <div class="now-bar-info">
-                <div class="d-flex align-items-center gap-2 mb-1">
-                    <span class="live-badge">● JETZT</span>
-                    <span id="nb-time" class="now-bar-time"></span>
+        <h2 class="visually-hidden">Sendungen am {{ current_day.date|date:"l, d.m.Y" }}</h2>
+        <div class="guide" id="guide">
+            {% for s in current_day.shows %}
+            <article class="show{% if s.is_now %} now{% elif s.is_past %} past{% endif %}" data-hour="{{ s.start|date:'G' }}"{% if s.is_now %} id="jetzt"{% endif %}>
+                <div class="t">{{ s.start|time:"H:i" }}{% if s.end %}<small>bis {{ s.end|time:"H:i" }}</small>{% endif %}</div>
+                <div class="img">{% if s.thumbnail %}<img src="{{ s.thumbnail }}" alt="" loading="lazy">{% endif %}</div>
+                <div>
+                    {% if s.is_now %}<span class="live-badge mb-1">Läuft jetzt</span>{% endif %}
+                    <h3>{{ s.short_title }}</h3>
+                    <div class="sub">
+                        {% if s.series_title %}<span>{{ s.series_title }}</span>{% endif %}
+                        {% if s.category %}<span>{{ s.category }}</span>{% endif %}
+                        {% if s.is_repeat %}<span>Wiederholung</span>{% endif %}
+                    </div>
+                    {% if s.is_now %}<div class="progress-line" style="max-width:320px" aria-label="{{ s.progress }} Prozent gesendet"><span style="width:{{ s.progress }}%"></span></div>{% endif %}
                 </div>
-                <div class="now-bar-title" id="nb-title"></div>
-                <div class="now-bar-desc" id="nb-desc"></div>
-                <div class="now-prog"><div class="now-prog-bar" id="nb-prog" style="width:0%"></div></div>
-            </div>
+                <div class="act">
+                    {% if s.is_now %}<a href="/" class="btn btn-rsl btn-sm"><i class="bi bi-broadcast"></i>Einschalten</a>
+                    {% elif s.in_mediathek %}<a href="/mediathek/sendung/{{ s.program_id }}/" class="btn btn-ghost btn-sm"><i class="bi bi-play-fill"></i>Mediathek</a>{% endif %}
+                </div>
+            </article>
+            {% endfor %}
         </div>
-
-        <!-- PROGRAMMLISTE -->
-        <div id="guide-list">
-            <div class="guide-loading">
-                <div class="rsl-spin"></div>
-                <span style="color:var(--rsl-muted)!important;">Programm wird geladen…</span>
-            </div>
-        </div>
-
+        <p id="slot-empty" class="empty-state mt-3" style="display:none"><i class="bi bi-moon-stars"></i>In diesem Zeitraum sind keine Sendungen geplant.</p>
+        {% else %}
+        <div class="empty-state"><i class="bi bi-calendar-x"></i>Das Programm wird gerade aktualisiert. Bitte schau gleich noch einmal vorbei.</div>
+        {% endif %}
     </div>
 </section>
-
 {% endblock %}
 
 {% block extra_js %}
 <script>
-/* ═══════════════════════════════════════════════
-   KONFIGURATION
-═══════════════════════════════════════════════ */
-var _API  = 'https://wknwmmjnecnrffucrprd.supabase.co/functions/v1/schedule-api';
-var _MAXD = 17;
-var _DN   = ['So','Mo','Di','Mi','Do','Fr','Sa'];
-var _MN   = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
-var _days = [], _ai = 0, _slot = 'all';
-
-/* ═══════════════════════════════════════════════
-   HILFSFUNKTIONEN
-═══════════════════════════════════════════════ */
-function _p2(n){ return String(n).padStart(2,'0'); }
-function _esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function _today(){ var d=new Date(); return d.getFullYear()+'-'+_p2(d.getMonth()+1)+'-'+_p2(d.getDate()); }
-
-/* ISO-datetime "2026-04-11T20:00:00+02:00" ODER "HH:MM" → Date */
-function _toD(val, base) {
-    if (!val) return null;
-    var s = String(val);
-    if (s.indexOf('T') !== -1) {
-        var d = new Date(s);
-        return isNaN(d.getTime()) ? null : d;
-    }
-    var b = base || _today();
-    var d = new Date(b + 'T' + s);
-    return isNaN(d.getTime()) ? null : d;
-}
-
-function _ft(val, base) {
-    var d = _toD(val, base);
-    if (d) return _p2(d.getHours()) + ':' + _p2(d.getMinutes());
-    return val ? String(val).slice(0,5) : '';
-}
-
-function _isNow(s, ds) {
-    var a = _toD(s.start_time, ds), b = _toD(s.end_time, ds), n = new Date();
-    return a && b && n >= a && n < b;
-}
-function _isPast(s, ds) {
-    var b = _toD(s.end_time, ds);
-    return b ? new Date() >= b : false;
-}
-function _pct(s, ds) {
-    var a = _toD(s.start_time, ds), b = _toD(s.end_time, ds), n = new Date();
-    if (!a || !b) return 0;
-    return Math.max(0, Math.min(100, (n-a)/(b-a)*100));
-}
-function _dur(s) {
-    if (s.duration) return s.duration + ' Min.';
-    var a = _toD(s.start_time, '2000-01-01'), b = _toD(s.end_time, '2000-01-01');
-    if (a && b && b > a) return Math.round((b-a)/60000) + ' Min.';
-    return null;
-}
-function _fdt(str) {
-    if (!str) return null;
-    var d = new Date(str);
-    if (isNaN(d.getTime())) return str;
-    return _p2(d.getDate())+'.'+_p2(d.getMonth()+1)+'.'+d.getFullYear()+' '+_p2(d.getHours())+':'+_p2(d.getMinutes())+' Uhr';
-}
-
-/* Titel aus allen möglichen API-Feldern */
-function _title(s) {
-    return s.title
-        || s.name
-        || s.show_title
-        || s.program_title
-        || (s.video   && (s.video.title   || s.video.name))
-        || (s.program && s.program.title)
-        || '—';
-}
-
-function _dlabel(ds) {
-    var ts = _today();
-    var nd = new Date(); nd.setDate(nd.getDate()+1);
-    var tom = nd.getFullYear()+'-'+_p2(nd.getMonth()+1)+'-'+_p2(nd.getDate());
-    if (ds === ts)  return 'Heute';
-    if (ds === tom) return 'Morgen';
-    return _DN[new Date(ds+'T12:00:00').getDay()];
-}
-
-/* Stunde einer Sendung */
-function _startHour(s, ds) {
-    var d = _toD(s.start_time, ds);
-    return d ? d.getHours() : -1;
-}
-
-/* Slot-Filter */
-function _matchSlot(s, ds) {
-    if (_slot === 'all') return true;
-    var h = _startHour(s, ds);
-    if (h < 0) return true;
-    if (_slot === '00-06') return h >= 0  && h <  6;
-    if (_slot === '06-12') return h >= 6  && h < 12;
-    if (_slot === '12-18') return h >= 12 && h < 18;
-    if (_slot === '18-24') return h >= 18 && h < 24;
-    if (_slot === 'now') {
-        /* aktuelle + nächste 4 Stunden */
-        var a = _toD(s.start_time, ds), b = _toD(s.end_time, ds), n = new Date();
-        var limit = new Date(n.getTime() + 4*3600000);
-        if (!a || !b) return false;
-        return b > n && a < limit;
-    }
-    return true;
-}
-
-/* ═══════════════════════════════════════════════
-   LADEN
-═══════════════════════════════════════════════ */
-function _load() {
-    var td = new Date();
-    var dates = [];
-    for (var i = 0; i < _MAXD; i++) {
-        var d = new Date(td); d.setDate(td.getDate()+i);
-        dates.push(d.getFullYear()+'-'+_p2(d.getMonth()+1)+'-'+_p2(d.getDate()));
-    }
-
-    Promise.allSettled(dates.map(function(ds){
-        return fetch(_API+'?date='+ds).then(function(r){
-            if (!r.ok) throw new Error('HTTP '+r.status);
-            return r.json();
-        });
-    })).then(function(results) {
-        var ts = _today();
-
-        /* Debug */
-        if (results[0] && results[0].status === 'fulfilled') {
-            var sample = (results[0].value.schedule||[])[0];
-            if (sample) {
-                console.log('[RSL Guide] Felder:', Object.keys(sample).join(', '));
-                console.log('[RSL Guide] title=', sample.title, '| start_time=', sample.start_time);
-            }
-        }
-
-        _days = results.map(function(res, i) {
-            var ds = dates[i];
-            if (res.status !== 'fulfilled') return {date:ds, shows:[]};
-            /* Deduplizieren */
-            var seen = {};
-            var shows = (res.value.schedule||[]).filter(function(s){
-                var k = s.id ? String(s.id) : (s.start_time||'')+'__'+_title(s);
-                if (seen[k]) return false; seen[k]=true; return true;
+(function () {
+    var buttons = document.querySelectorAll('.slot-filter button');
+    var shows = document.querySelectorAll('#guide .show');
+    var empty = document.getElementById('slot-empty');
+    buttons.forEach(function (b) {
+        b.addEventListener('click', function () {
+            buttons.forEach(function (x) { x.classList.toggle('active', x === b); });
+            var slot = b.dataset.slot, from = 0, to = 24, visible = 0;
+            if (slot !== 'all') { var p = slot.split('-'); from = +p[0]; to = +p[1]; }
+            shows.forEach(function (s) {
+                var h = +s.dataset.hour, show = h >= from && h < to;
+                s.style.display = show ? '' : 'none';
+                if (show) visible++;
             });
-            /* Sortieren */
-            shows.sort(function(a,b){
-                return (_toD(a.start_time,ds)||0) - (_toD(b.start_time,ds)||0);
-            });
-            return {date:ds, shows:shows, isLive:res.value.is_live};
+            if (empty) empty.style.display = visible ? 'none' : '';
         });
-
-        _ai = Math.max(0, _days.findIndex(function(d){ return d.date===ts; }));
-        _renderStrip();
-        _renderDay(_ai);
-        _updateNowBar();
-
-        var now = new Date();
-        document.getElementById('upd-txt').textContent =
-            'Stand: '+_p2(now.getHours())+':'+_p2(now.getMinutes())+' Uhr';
     });
-}
-
-/* ═══════════════════════════════════════════════
-   DAY STRIP
-═══════════════════════════════════════════════ */
-function _renderStrip() {
-    var el = document.getElementById('day-strip');
-    el.innerHTML = '';
-    _days.forEach(function(day, i) {
-        var d = new Date(day.date+'T12:00:00');
-        var isT = day.date === _today();
-        var btn = document.createElement('button');
-        btn.className = 'day-btn' + (i===_ai ? ' active' : '');
-        btn.innerHTML =
-            (isT ? '<span class="today-dot"></span>' : '') +
-            '<span class="dn">'+_p2(d.getDate())+'</span>' +
-            '<span class="dd">'+_dlabel(day.date)+'</span>' +
-            '<span class="dm">'+_MN[d.getMonth()]+'</span>';
-        btn.onclick = function(){ _switchDay(i); };
-        el.appendChild(btn);
-    });
-    setTimeout(function(){
-        var a = el.querySelector('.active');
-        if (a) a.scrollIntoView({behavior:'smooth', inline:'nearest', block:'nearest'});
-    }, 80);
-}
-
-function _switchDay(i) {
-    _ai = i;
-    document.querySelectorAll('.day-btn').forEach(function(b,j){
-        b.classList.toggle('active', j===i);
-    });
-    var isToday = _days[i] && _days[i].date === _today();
-    document.getElementById('now-bar').style.display = isToday ? 'flex' : 'none';
-    _renderDay(i);
-}
-
-/* ═══════════════════════════════════════════════
-   ZEITFILTER
-═══════════════════════════════════════════════ */
-function _setSlot(btn, slot) {
-    _slot = slot;
-    document.querySelectorAll('.tf-btn').forEach(function(b){ b.classList.remove('active'); });
-    btn.classList.add('active');
-    _renderDay(_ai);
-}
-
-/* ═══════════════════════════════════════════════
-   NOW BAR
-═══════════════════════════════════════════════ */
-function _updateNowBar() {
-    var ts = _today();
-    var today = _days.find(function(d){ return d.date===ts; });
-    if (!today) return;
-    var cur = today.shows.find(function(s){ return _isNow(s,ts); });
-    var bar = document.getElementById('now-bar');
-    if (!cur || _days[_ai].date !== ts) { bar.style.display='none'; return; }
-
-    bar.style.display = 'flex';
-    document.getElementById('nb-title').textContent = _title(cur);
-    document.getElementById('nb-time').textContent  = _ft(cur.start_time,ts) + ' – ' + _ft(cur.end_time,ts) + ' Uhr';
-    var desc = cur.description || (cur.video && cur.video.description) || '';
-    document.getElementById('nb-desc').textContent = desc ? desc.slice(0,100)+(desc.length>100?'…':'') : '';
-    document.getElementById('nb-prog').style.width = _pct(cur,ts).toFixed(1)+'%';
-
-    var thumb = cur.thumbnail_url || (cur.video&&cur.video.thumbnail_url) || cur.pause_image_url || '';
-    var img = document.getElementById('nb-img');
-    if (thumb) { img.src=thumb; img.style.display='block'; } else { img.style.display='none'; }
-}
-
-/* ═══════════════════════════════════════════════
-   PROGRAMM RENDERN
-═══════════════════════════════════════════════ */
-var _TIME_GROUPS = [
-    {slot:'00-06', label:'Nacht  (00–06 Uhr)',  min:0,  max:6 },
-    {slot:'06-12', label:'Morgen (06–12 Uhr)',  min:6,  max:12},
-    {slot:'12-18', label:'Mittag (12–18 Uhr)',  min:12, max:18},
-    {slot:'18-24', label:'Abend  (18–24 Uhr)',  min:18, max:24},
-];
-
-function _renderDay(i) {
-    var list = document.getElementById('guide-list');
-    var day  = _days[i];
-    var ts   = _today();
-
-    if (!day || !day.shows.length) {
-        list.innerHTML = '<div class="guide-empty"><i class="bi bi-calendar-x"></i><p>Für diesen Tag ist noch kein Programm geplant.</p></div>';
-        return;
-    }
-
-    /* Filter anwenden */
-    var filtered = day.shows.filter(function(s){ return _matchSlot(s, day.date); });
-    if (!filtered.length) {
-        list.innerHTML = '<div class="guide-empty"><i class="bi bi-clock"></i><p>Keine Sendungen in diesem Zeitbereich.</p></div>';
-        return;
-    }
-
-    var html = '';
-
-    if (_slot === 'all') {
-        /* Gruppiert nach Tageszeiten */
-        _TIME_GROUPS.forEach(function(g) {
-            var group = filtered.filter(function(s){
-                var h = _startHour(s, day.date);
-                return h >= g.min && h < g.max;
-            });
-            if (!group.length) return;
-            html += '<div class="time-group-label">'+_esc(g.label)+'</div>';
-            group.forEach(function(s){ html += _cardHtml(s, day.date, ts); });
-        });
-    } else {
-        filtered.forEach(function(s){ html += _cardHtml(s, day.date, ts); });
-    }
-
-    list.innerHTML = html;
-
-    /* Aktuelle Sendung sanft einblenden */
-    var curEl = list.querySelector('.is-current');
-    if (curEl) setTimeout(function(){ curEl.scrollIntoView({behavior:'smooth', block:'center'}); }, 150);
-}
-
-function _cardHtml(show, ds, ts) {
-    var cur  = _isNow(show, ds) && ds===ts;
-    var past = _isPast(show, ds) && !cur;
-    var pct  = cur ? _pct(show, ds).toFixed(1) : 0;
-    var dur  = _dur(show);
-    var title = _title(show);
-    var desc  = show.description || (show.video&&show.video.description) || (show.program&&show.program.description) || '';
-
-    /* Thumbnail */
-    var thumb = show.thumbnail_url
-        || (show.video && show.video.thumbnail_url)
-        || show.pause_image_url
-        || (show.video && show.video.thumbnail)
-        || (show.program && show.program.thumbnail_url)
-        || '';
-    var thumbH = thumb
-        ? '<img src="'+_esc(thumb)+'" alt="'+_esc(title)+'" loading="lazy"'
-          +' onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">'
-          +'<div class="gc-thumb-ph" style="display:none;"><i class="bi bi-film"></i></div>'
-        : '<div class="gc-thumb-ph"><i class="bi bi-film"></i></div>';
-
-    /* Kategorie */
-    var cat = show.category || (show.video&&show.video.category) || null;
-    var catH = cat
-        ? '<span class="gc-cat" style="background:'+_esc(cat.color||'#1d5a82')+';">'+_esc(cat.name||String(cat))+'</span>'
-        : '';
-
-    /* Meta */
-    var meta = [];
-    if (dur) meta.push('<span><i class="bi bi-clock"></i>'+_esc(dur)+'</span>');
-    if (show.channel_id) meta.push('<span><i class="bi bi-broadcast"></i>Kanal '+_esc(String(show.channel_id))+'</span>');
-    if (show.current_program_id) meta.push('<span><i class="bi bi-collection-play"></i>Prog.&nbsp;'+_esc(String(show.current_program_id))+'</span>');
-    if (show.video && show.video.source_type) meta.push('<span><i class="bi bi-camera-video"></i>'+_esc(show.video.source_type)+'</span>');
-
-    /* Detail-Liste für Expand */
-    var dl = '';
-    if (show.start_time) dl += '<dt>Beginn</dt><dd>'+_esc(_ft(show.start_time,ds))+' Uhr</dd>';
-    if (show.end_time)   dl += '<dt>Ende</dt><dd>'+_esc(_ft(show.end_time,ds))+' Uhr</dd>';
-    if (dur)             dl += '<dt>Dauer</dt><dd>'+_esc(dur)+'</dd>';
-    if (cat)             dl += '<dt>Kategorie</dt><dd>'+_esc(cat.name||String(cat))+'</dd>';
-    if (show.channel_id) dl += '<dt>Kanal-ID</dt><dd>'+_esc(String(show.channel_id))+'</dd>';
-    if (show.current_program_id) dl += '<dt>Programm-ID</dt><dd>'+_esc(String(show.current_program_id))+'</dd>';
-    if (show.current_scene_id)   dl += '<dt>Szene-ID</dt><dd>'+_esc(String(show.current_scene_id))+'</dd>';
-    if (show.started_at) dl += '<dt>Gestartet</dt><dd>'+_esc(_fdt(show.started_at)||show.started_at)+'</dd>';
-    if (show.video&&show.video.source_type) dl += '<dt>Quelle</dt><dd>'+_esc(show.video.source_type)+'</dd>';
-
-    /* Expand-Bild & Video-Link */
-    var expImg = show.pause_image_url || thumb;
-    var expImgH = expImg
-        ? '<img class="gc-expand-img" src="'+_esc(expImg)+'" alt="'+_esc(title)+'" loading="lazy">'
-        : '<div class="gc-expand-ph"><i class="bi bi-image"></i></div>';
-    var videoUrl = show.video_url || (show.video&&(show.video.source_url||show.video.url||show.video.video_url)) || '';
-    var videoBtn = videoUrl
-        ? '<a class="gc-video-btn" href="'+_esc(videoUrl)+'" target="_blank" rel="noopener"><i class="bi bi-play-circle-fill"></i> Video ansehen</a>'
-        : '';
-
-    return '<div class="guide-card'+(cur?' is-current':'')+(past?' is-past':'')+'" onclick="_toggleCard(this)">'
-        + '<i class="bi bi-chevron-down gc-chevron"></i>'
-        + '<div class="gc-thumb">'+thumbH+(dur?'<span class="gc-dur">'+_esc(dur)+'</span>':'')+'</div>'
-        + '<div class="gc-body">'
-        +   '<div>'
-        +     '<div class="gc-top">'
-        +       '<span class="gc-time">'+_esc(_ft(show.start_time,ds))
-        +         (show.end_time ? '<span class="gc-time-sep"> – </span><span class="gc-time-end">'+_esc(_ft(show.end_time,ds))+'</span>' : '')
-        +       '</span>'
-        +       (cur ? '<span class="gc-now">JETZT</span>' : '')
-        +       catH
-        +     '</div>'
-        +     '<div class="gc-title">'+_esc(title)+'</div>'
-        +     (desc ? '<p class="gc-desc">'+_esc(desc)+'</p>' : '')
-        +   '</div>'
-        +   '<div>'
-        +     (meta.length ? '<div class="gc-meta">'+meta.join('')+'</div>' : '')
-        +     (cur ? '<div class="gc-prog"><div class="gc-prog-bar" style="width:'+pct+'%"></div></div>' : '')
-        +   '</div>'
-        + '</div>'
-        + '<div class="gc-expand">'
-        +   '<div class="gc-expand-grid">'
-        +     '<div>'+expImgH+videoBtn+'</div>'
-        +     '<div>'
-        +       '<p class="gc-exp-title">'+_esc(title)+'</p>'
-        +       (desc ? '<p class="gc-exp-desc">'+_esc(desc)+'</p>' : '')
-        +       (dl   ? '<dl class="gc-dl">'+dl+'</dl>' : '')
-        +     '</div>'
-        +   '</div>'
-        + '</div>'
-        + '</div>';
-}
-
-/* ═══════════════════════════════════════════════
-   KARTE AUF/ZUKLAPPEN
-═══════════════════════════════════════════════ */
-function _toggleCard(card) {
-    var panel = card.querySelector('.gc-expand');
-    var was   = card.classList.contains('is-expanded');
-    document.querySelectorAll('.guide-card.is-expanded').forEach(function(c){
-        c.classList.remove('is-expanded');
-        c.querySelector('.gc-expand').classList.remove('open');
-    });
-    if (!was) { card.classList.add('is-expanded'); panel.classList.add('open'); }
-}
-
-/* ═══════════════════════════════════════════════
-   START + AUTO-REFRESH (jede volle Stunde)
-═══════════════════════════════════════════════ */
-_load();
-(function _sched(){
-    var n = new Date(), nx = new Date(n);
-    nx.setHours(n.getHours()+1, 0, 0, 0);
-    setTimeout(function(){ _load(); _sched(); }, nx - n);
+    var now = document.getElementById('jetzt');
+    if (now && !location.search) now.scrollIntoView({ block: 'center' });
 })();
 </script>
 {% endblock %}

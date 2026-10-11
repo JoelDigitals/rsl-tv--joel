@@ -1,0 +1,75 @@
+{% extends "mediathek/base.html" %}
+{% load mediathek_tags %}
+
+{% block extra_styles %}
+.story { padding: 1.75rem 0; border-top: 1px solid var(--line); }
+.story:first-of-type { border-top: 0; padding-top: .5rem; }
+.story h2 { font-size: clamp(1.3rem, 2.4vw, 1.65rem); font-weight: 700; margin-bottom: .9rem; }
+.story img { width: 100%; max-height: 420px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--line); margin-bottom: 1rem; }
+.story .source { font-size: .92rem; color: var(--text-3); overflow-wrap: anywhere; }
+.story .source a { color: var(--accent); }
+.toc a { display: block; padding: .6rem 1.15rem; border-bottom: 1px solid var(--line); color: var(--text); text-decoration: none; font-weight: 500; line-height: 1.4; }
+.toc a:hover { background: var(--surface-2); color: var(--text); }
+.toc a:last-child { border-bottom: 0; }
+.intro { font-size: 1.15rem; color: var(--text); font-weight: 500; }
+{% endblock %}
+
+{% block mediathek_content %}
+<section class="section">
+    <div class="wrap">
+        <nav class="breadcrumbs" aria-label="Brotkrumen">
+            <a href="{% url 'mediathek:home' %}">Mediathek</a><span>/</span><a href="{% url 'mediathek:news_list' %}">Nachrichten</a>
+        </nav>
+        <div class="layout-side">
+            <article>
+                <div class="player">
+                    {% if edition.embed_url %}
+                    <iframe src="{{ edition.embed_url }}" title="{{ edition.title }}" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
+                    {% else %}
+                    <div class="player-empty"><i class="bi bi-newspaper"></i><p class="mb-0">Für diese Ausgabe gibt es keinen Player.</p></div>
+                    {% endif %}
+                </div>
+                <h1 class="watch-title">{{ edition.title }}</h1>
+                <div class="meta-line mb-4">
+                    {% if edition.created_at %}<span><i class="bi bi-calendar3"></i>{{ edition.created_at|date:"l, d. F Y" }}, {{ edition.created_at|time:"H:i" }} Uhr</span>{% endif %}
+                    {% if edition.duration_display %}<span><i class="bi bi-clock"></i>{{ edition.duration_display }}</span>{% endif %}
+                    {% if edition.stories %}<span><i class="bi bi-list-ul"></i>{{ edition.stories|length }} {% if edition.stories|length == 1 %}Thema{% else %}Themen{% endif %}</span>{% endif %}
+                </div>
+
+                <div class="prose">
+                    {% if edition.intro_text %}<p class="intro">{{ edition.intro_text }}</p>{% endif %}
+                    {% for s in edition.stories %}
+                    <section class="story" id="thema-{{ forloop.counter }}">
+                        {% if s.headline %}<h2>{{ s.headline }}</h2>{% endif %}
+                        {% if s.image_url %}<img src="{{ s.image_url }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}
+                        {% for para in s.paragraphs %}<p>{{ para }}</p>{% endfor %}
+                        {% if s.source_url %}<div class="source">Quelle: <a href="{{ s.source_url }}" target="_blank" rel="noopener">{{ s.source_url|domain }}</a></div>{% endif %}
+                    </section>
+                    {% endfor %}
+                    {% if edition.outro_text %}<p class="mt-3" style="color:var(--text-3)">{{ edition.outro_text }}</p>{% endif %}
+                </div>
+            </article>
+
+            <aside>
+                {% if edition.stories|length > 1 %}
+                <nav class="panel toc mb-4" aria-label="Themen dieser Ausgabe">
+                    <div class="panel-head"><h2>Themen dieser Ausgabe</h2></div>
+                    {% for s in edition.stories %}{% if s.headline %}<a href="#thema-{{ forloop.counter }}">{{ s.headline }}</a>{% endif %}{% endfor %}
+                </nav>
+                {% endif %}
+                {% if more %}
+                <div class="panel">
+                    <div class="panel-head"><h2>Weitere Ausgaben</h2><a href="{% url 'mediathek:news_list' %}" class="section-link" style="font-size:.92rem">Alle</a></div>
+                    {% for n in more %}
+                    <a href="{% url 'mediathek:edition_detail' n.id %}" class="list-row">
+                        <span class="info"><span class="title">{{ n.title }}</span><span class="sub">{{ n.created_at|date:"D, d.m. · H:i" }} Uhr{% if n.duration_display %} · {{ n.duration_display }}{% endif %}</span></span>
+                        <i class="bi bi-chevron-right" style="color:var(--text-3)"></i>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </aside>
+        </div>
+    </div>
+</section>
+{% endblock %}

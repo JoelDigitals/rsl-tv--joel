@@ -1,0 +1,47 @@
+{% extends "mediathek/base.html" %}
+{% load mediathek_tags %}
+
+{% block mediathek_content %}
+<section class="section">
+    <div class="wrap">
+        <nav class="breadcrumbs" aria-label="Brotkrumen"><a href="{% url 'mediathek:series_list' %}">Serien</a><span>/</span><a href="{% url 'mediathek:series_detail' series.slug %}">{{ series.title }}</a><span>/</span><a href="{% url 'mediathek:season_detail' series.slug season.season_number %}">Staffel {{ season.season_number }}</a></nav>
+        <div class="layout-side">
+            <div>
+                <div class="player">
+                    {% if episode.source_url|embed_src %}
+                    <iframe src="{{ episode.source_url|embed_src }}" title="{{ episode.title }}" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
+                    {% elif episode.source_url|is_direct_video %}
+                    <video src="{{ episode.source_url }}" controls playsinline poster="{{ episode.get_thumbnail }}"></video>
+                    {% elif episode.source_url %}
+                    <iframe src="{{ episode.source_url }}" title="{{ episode.title }}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
+                    {% else %}
+                    <div class="player-empty"><i class="bi bi-hourglass-split"></i><p class="mb-0">Diese Folge ist bald verfügbar.</p></div>
+                    {% endif %}
+                </div>
+                <h1 class="watch-title">{{ episode.title }}</h1>
+                <div class="meta-line mb-3">
+                    <span><i class="bi bi-film"></i>{{ series.title }}</span>
+                    <span><i class="bi bi-hash"></i>Staffel {{ season.season_number }}, Folge {{ episode.episode_number }}</span>
+                    {% if episode.duration %}<span><i class="bi bi-clock"></i>{{ episode.duration|minutes }}</span>{% endif %}
+                </div>
+                {% if episode.description %}<div class="prose"><p>{{ episode.description|linebreaksbr }}</p></div>{% endif %}
+                <div class="ep-nav">
+                    {% if prev_episode %}<a href="{% url 'mediathek:episode_player' series.slug prev_episode.season.season_number prev_episode.episode_number %}" class="btn btn-ghost"><i class="bi bi-chevron-left"></i>Vorherige Folge</a>{% endif %}
+                    {% if next_episode %}<a href="{% url 'mediathek:episode_player' series.slug next_episode.season.season_number next_episode.episode_number %}" class="btn btn-rsl">Nächste Folge<i class="bi bi-chevron-right"></i></a>{% endif %}
+                </div>
+            </div>
+            <aside class="panel" aria-label="Folgen dieser Staffel">
+                <div class="panel-head"><h2>Staffel {{ season.season_number }}</h2></div>
+                <div style="max-height:720px;overflow-y:auto">
+                {% for e in season_episodes %}
+                <a href="{% url 'mediathek:episode_player' series.slug season.season_number e.episode_number %}" class="list-row{% if e.pk == episode.pk %} current{% endif %}">
+                    <span class="thumb"><img src="{{ e.get_thumbnail }}" alt="" loading="lazy"></span>
+                    <span class="info"><span class="title">{{ e.title }}</span><span class="sub">Folge {{ e.episode_number }}</span></span>
+                </a>
+                {% endfor %}
+                </div>
+            </aside>
+        </div>
+    </div>
+</section>
+{% endblock %}

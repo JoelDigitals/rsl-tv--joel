@@ -1,0 +1,27 @@
+{% extends "mediathek/base.html" %}
+
+{% block mediathek_content %}
+<header class="page-head">
+    <div class="wrap">
+        <h1>Playlists</h1>
+        <p class="lead">Zusammengestellte Video-Sammlungen zum Durchschauen.</p>
+    </div>
+</header>
+<section class="section">
+    <div class="wrap">
+        {% if playlists %}
+        <div class="grid">
+            {% for pl in playlists %}
+            <a href="{% url 'mediathek:playlist_detail' pl.slug %}" class="media-card">
+                <div class="media-thumb"><div class="placeholder"><i class="bi bi-collection-play"></i>{{ pl.title }}</div>
+                    <div class="tag-row"><span class="pill">{{ pl.items_count }} Video{{ pl.items_count|pluralize:"s" }}</span></div></div>
+                <div class="media-body"><span class="media-title">{{ pl.title }}</span>{% if pl.description %}<p class="media-desc">{{ pl.description }}</p>{% endif %}</div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state"><i class="bi bi-collection"></i>Noch keine Playlists vorhanden.</div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

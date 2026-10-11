@@ -1,0 +1,6 @@
+{# Serien-Karten aus _series_cards(): cards #}
+<div class="{{ grid_class|default:'grid' }}">
+    {% for c in cards %}
+        {% include "mediathek/partials/card_series.html" with href=c.href title=c.title image=c.image sub=c.sub badge=c.badge %}
+    {% endfor %}
+</div>

@@ -1,0 +1,24 @@
+{% extends "mediathek/base.html" %}
+{% load mediathek_tags %}
+
+{% block mediathek_content %}
+<header class="page-head">
+    <div class="wrap">
+        <h1>Nachrichten</h1>
+        <p class="lead">Die RSL Nachrichten und Magazine zum Hören, Sehen und Nachlesen. Jede Ausgabe bleibt 14 Tage verfügbar.</p>
+    </div>
+</header>
+<section class="section">
+    <div class="wrap">
+        {% regroup news by created_at.date as days %}
+        {% for day in days %}
+        <div class="section-head mt-2"><h2 style="font-size:1.5rem">{{ day.grouper|day_label }}</h2></div>
+        <div class="grid mb-4">
+            {% for n in day.list %}{% include "mediathek/partials/card_news.html" %}{% endfor %}
+        </div>
+        {% empty %}
+        <div class="empty-state"><i class="bi bi-newspaper"></i>Aktuell sind keine Nachrichten-Ausgaben verfügbar.</div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

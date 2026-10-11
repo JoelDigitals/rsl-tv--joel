@@ -1,0 +1,41 @@
+{% extends "mediathek/base.html" %}
+
+{% block extra_styles %}
+.series-hero { display: grid; grid-template-columns: 340px minmax(0,1fr); gap: 2rem; align-items: center; }
+.series-hero img { width: 100%; border-radius: var(--radius); border: 1px solid var(--line); aspect-ratio: 16/9; object-fit: cover; }
+@media (max-width: 767px) { .series-hero { grid-template-columns: 1fr; } }
+{% endblock %}
+
+{% block mediathek_content %}
+<header class="page-head">
+    <div class="wrap">
+        <nav class="breadcrumbs" aria-label="Brotkrumen"><a href="{% url 'mediathek:home' %}">Mediathek</a><span>/</span><a href="{% url 'mediathek:series_list' %}">Serien</a></nav>
+        <div class="series-hero">
+            {% if series.thumbnail %}<img src="{{ series.thumbnail }}" alt="">{% endif %}
+            <div>
+                {% if series.category %}<span class="pill brand mb-2">{{ series.category }}</span>{% endif %}
+                <h1>{{ series.title }}</h1>
+                <div class="meta-line mb-3">
+                    <span><i class="bi bi-collection-play"></i>{{ series.count }} Folge{{ series.count|pluralize:"n" }}</span>
+                    {% if series.seasons|length > 1 %}<span><i class="bi bi-layers"></i>{{ series.seasons|length }} Staffeln</span>{% endif %}
+                </div>
+                {% if series.description %}<p class="lead">{{ series.description }}</p>{% endif %}
+                {% with first=series.episodes.0 %}
+                <a href="{% url 'mediathek:program_player' first.id %}" class="btn btn-rsl btn-lg mt-3"><i class="bi bi-play-fill"></i>Erste Folge ansehen</a>
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+</header>
+
+{% for season in series.seasons %}
+<section class="section">
+    <div class="wrap">
+        {% if series.seasons|length > 1 %}<div class="section-head"><h2>Staffel {{ season.number }}</h2></div>{% endif %}
+        <div class="grid">
+            {% for p in season.episodes %}{% include "mediathek/partials/card_program.html" with hide_series=True %}{% endfor %}
+        </div>
+    </div>
+</section>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends "mediathek/base.html" %}
+
+{% block extra_styles %}
+.chat { display: flex; flex-direction: column; height: 560px; }
+.chat-messages { flex: 1; overflow-y: auto; padding: 1rem 1.15rem; display: flex; flex-direction: column; gap: .75rem; }
+.chat-msg .user { font-weight: 700; font-size: .9rem; color: var(--accent); }
+.chat-msg.system .user { color: var(--warn); }
+.chat-msg .text { color: var(--text); word-wrap: break-word; }
+.chat-form { display: flex; gap: .5rem; padding: .9rem; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.chat-form input { flex: 1 1 140px; background: var(--bg-deep); border: 1px solid var(--line-strong); color: var(--text); border-radius: 10px; padding: .6rem .8rem; }
+.chat-form input.name { flex: 0 1 120px; }
+@media (max-width: 1100px) { .chat { height: 440px; } }
+{% endblock %}
+
+{% block mediathek_content %}
+<section class="section">
+    <div class="wrap">
+        <nav class="breadcrumbs" aria-label="Brotkrumen"><a href="{% url 'mediathek:home' %}">Mediathek</a><span>/</span><a href="{% url 'mediathek:live_overview' %}">Live</a></nav>
+        <div class="layout-side">
+            <div>
+                <div class="player">
+                    {% if player.kind == 'iframe' %}
+                    <iframe src="{{ player.src }}" title="{{ stream.title }}" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
+                    {% else %}
+                    <video id="live-video" controls autoplay muted playsinline></video>
+                    {% endif %}
+                </div>
+                <h1 class="watch-title">{{ stream.title }}</h1>
+                <div class="meta-line mb-3">
+                    {% if stream.is_live %}<span class="live-badge">Live</span><span><i class="bi bi-people"></i><strong id="viewerCount">–</strong>&nbsp;Zuschauer</span>{% endif %}
+                    {% if stream.category %}<span><i class="bi bi-tag"></i>{{ stream.category.name }}</span>{% endif %}
+                </div>
+                {% if stream.description %}<div class="prose"><p>{{ stream.description|linebreaksbr }}</p></div>{% endif %}
+            </div>
+
+            <aside class="panel chat" aria-label="Live-Chat">
+                <div class="panel-head"><h2><i class="bi bi-chat-dots me-2" style="color:var(--accent)"></i>Live-Chat</h2></div>
+                <div class="chat-messages" id="chatMessages" aria-live="polite"></div>
+                <form class="chat-form" id="chatForm" autocomplete="off">
+                    <input class="name" id="chatName" maxlength="40" placeholder="Name" aria-label="Dein Name">
+                    <input id="chatInput" maxlength="500" placeholder="Nachricht schreiben …" aria-label="Nachricht" required>
+                    <button class="btn btn-rsl" type="submit"><i class="bi bi-send"></i><span class="visually-hidden">Senden</span></button>
+                </form>
+            </aside>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+{% if player.kind == 'hls' %}
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+<script>
+(function () {
+    var v = document.getElementById('live-video'), src = "{{ player.src|escapejs }}";
+    if (!v || !src) return;
+    if (window.Hls && Hls.isSupported()) { var h = new Hls(); h.loadSource(src); h.attachMedia(v); }
+    else { v.src = src; }
+})();
+</script>
+{% endif %}
+<script>
+(function () {
+    var SLUG = "{{ stream.slug|escapejs }}", SESSION = "{{ viewer_session|escapejs }}";
+    var box = document.getElementById('chatMessages');
+    var lastIds = new Set();
+
+    function render(msgs) {
+        var atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+        msgs.forEach(function (m) {
+            if (lastIds.has(m.id)) return;
+            lastIds.add(m.id);
+            var el = document.createElement('div');
+            el.className = 'chat-msg' + (m.is_system ? ' system' : '');
+            var u = document.createElement('div'); u.className = 'user'; u.textContent = m.username;
+            var t = document.createElement('div'); t.className = 'text'; t.textContent = m.message;
+            el.appendChild(u); el.appendChild(t); box.appendChild(el);
+        });
+        if (!lastIds.size) box.innerHTML = '<p class="mb-0" style="color:var(--text-3)">Noch keine Nachrichten – schreib die erste!</p>';
+        if (atBottom) box.scrollTop = box.scrollHeight;
+    }
+    function load() {
+        fetch('/mediathek/api/chat-messages/' + SLUG + '/').then(function (r) { return r.json(); })
+            .then(function (d) { if (lastIds.size === 0) box.innerHTML = ''; render(d.messages || []); }).catch(function () {});
+    }
+    var nameInput = document.getElementById('chatName');
+    try { nameInput.value = localStorage.getItem('rsl_chat_name') || ''; } catch (e) {}
+    document.getElementById('chatForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var input = document.getElementById('chatInput'), msg = input.value.trim();
+        if (!msg) return;
+        var name = nameInput.value.trim() || 'Gast';
+        try { localStorage.setItem('rsl_chat_name', name); } catch (e2) {}
+        fetch('/mediathek/api/chat-send/', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stream_slug: SLUG, username: name, message: msg }) })
+            .then(function () { input.value = ''; load(); });
+    });
+    load(); setInterval(load, 4000);
+
+    {% if stream.is_live %}
+    function beat() {
+        fetch('/mediathek/api/viewer-heartbeat/', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stream_slug: SLUG, session_id: SESSION }) }).catch(function () {});
+        fetch('/mediathek/api/viewer-count/' + SLUG + '/').then(function (r) { return r.json(); })
+            .then(function (d) { document.getElementById('viewerCount').textContent = d.count; }).catch(function () {});
+    }
+    beat(); setInterval(beat, 15000);
+    {% endif %}
+})();
+</script>
+{% endblock %}

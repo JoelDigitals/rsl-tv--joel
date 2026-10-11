@@ -1,0 +1,13 @@
+{# Lokales Video: v #}
+<a href="{% url 'mediathek:video_player' v.slug %}" class="media-card">
+    <div class="media-thumb">
+        <img src="{{ v.get_thumbnail }}" alt="" loading="lazy">
+        <div class="play"><i class="bi bi-play-fill"></i></div>
+        {% if v.duration %}<div class="tag-row"><span class="pill">{{ v.duration_display }}</span></div>{% endif %}
+    </div>
+    <div class="media-body">
+        {% if v.category %}<span class="media-kicker">{{ v.category.name }}</span>{% endif %}
+        <span class="media-title">{{ v.title }}</span>
+        <div class="media-meta"><span><i class="bi bi-calendar3 me-1"></i>{{ v.published_at|date:"d.m.Y" }}</span>{% if v.views %}<span><i class="bi bi-eye me-1"></i>{{ v.views }}</span>{% endif %}</div>
+    </div>
+</a>

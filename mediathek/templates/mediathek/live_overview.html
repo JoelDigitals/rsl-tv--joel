@@ -1,0 +1,88 @@
+{% extends "mediathek/base.html" %}
+
+{% block mediathek_content %}
+<header class="page-head">
+    <div class="wrap">
+        <h1>Live</h1>
+        <p class="lead">Das laufende RSL-Programm, Live-Studios und Events auf einen Blick.</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="wrap">
+        <div class="layout-side">
+            <a href="/" class="media-card" style="flex-direction:row;flex-wrap:wrap">
+                <div class="media-thumb" style="flex:1 1 320px">
+                    {% if current_show.thumbnail %}<img src="{{ current_show.thumbnail }}" alt="">{% else %}<div class="placeholder"><i class="bi bi-tv"></i>RSL 24/7</div>{% endif %}
+                    <div class="play"><i class="bi bi-play-fill"></i></div>
+                    <div class="tag-row top">{% if broadcast.is_live %}<span class="pill live">● Live</span>{% endif %}</div>
+                </div>
+                <div class="media-body" style="flex:1 1 280px;padding:1.4rem">
+                    <span class="media-kicker">RSL Hauptprogramm</span>
+                    <span class="media-title" style="font-size:1.4rem">{% if current_show %}{{ current_show.short_title }}{% else %}RSL 24/7{% endif %}</span>
+                    {% if current_show %}<p class="media-desc">{% if current_show.series_title %}{{ current_show.series_title }} · {% endif %}{{ current_show.start|time:"H:i" }} – {{ current_show.end|time:"H:i" }} Uhr</p>{% endif %}
+                    <span class="btn btn-rsl mt-2 align-self-start"><i class="bi bi-broadcast"></i>Live-TV einschalten</span>
+                </div>
+            </a>
+
+            <div class="panel">
+                <div class="panel-head"><h2>Danach</h2><a href="/programm/" class="section-link" style="font-size:.92rem">Programm</a></div>
+                {% for s in upcoming %}
+                <div class="list-row"><span class="time">{{ s.start|time:"H:i" }}</span><span class="info"><span class="title">{{ s.short_title }}</span><span class="sub">{{ s.series_title|default:s.category }}</span></span></div>
+                {% empty %}
+                <div class="panel-body"><p class="mb-0">Keine weiteren Sendungen geplant.</p></div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="wrap">
+        <div class="section-head"><h2>Live-Studios</h2></div>
+        {% if studios or live_streams %}
+        <div class="grid">
+            {% for s in studios %}
+            <a href="{% url 'mediathek:studio_player' s.id %}" class="media-card">
+                <div class="media-thumb"><div class="placeholder"><i class="bi bi-camera-video"></i>{{ s.name }}</div>
+                    <div class="tag-row top">{% if s.is_active %}<span class="pill live">● Live</span>{% else %}<span class="pill">Offline</span>{% endif %}</div>
+                </div>
+                <div class="media-body">
+                    <span class="media-title">{{ s.scheduled_title|default:s.name }}</span>
+                    <div class="media-meta">
+                        {% if s.is_active and s.live_started_at %}<span>Live seit {{ s.live_started_at|time:"H:i" }} Uhr</span>
+                        {% elif s.scheduled_start_at %}<span>Geplant: {{ s.scheduled_start_at|date:"d.m., H:i" }} Uhr</span>
+                        {% else %}<span>Derzeit keine Sendung</span>{% endif %}
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+            {% for ls in live_streams %}
+            <a href="{% url 'mediathek:live_player' ls.slug %}" class="media-card">
+                <div class="media-thumb"><img src="{{ ls.get_thumbnail }}" alt="" loading="lazy"><div class="tag-row top"><span class="pill live">● Live</span></div></div>
+                <div class="media-body"><span class="media-title">{{ ls.title }}</span>{% if ls.category %}<div class="media-meta"><span>{{ ls.category.name }}</span></div>{% endif %}</div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state"><i class="bi bi-broadcast"></i>Gerade läuft kein Live-Event. Das Hauptprogramm sendet aber rund um die Uhr.</div>
+        {% endif %}
+    </div>
+</section>
+
+{% if upcoming_streams %}
+<section class="section">
+    <div class="wrap">
+        <div class="section-head"><h2>Demnächst live</h2></div>
+        <div class="grid">
+            {% for ls in upcoming_streams %}
+            <div class="media-card">
+                <div class="media-thumb"><img src="{{ ls.get_thumbnail }}" alt="" loading="lazy"></div>
+                <div class="media-body"><span class="media-kicker">{{ ls.scheduled_start|date:"D, d.m.Y · H:i" }} Uhr</span><span class="media-title">{{ ls.title }}</span>{% if ls.description %}<p class="media-desc">{{ ls.description }}</p>{% endif %}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

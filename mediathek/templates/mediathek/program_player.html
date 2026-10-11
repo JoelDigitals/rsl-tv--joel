@@ -1,0 +1,60 @@
+{% extends "mediathek/base.html" %}
+{% load mediathek_tags %}
+
+{% block mediathek_content %}
+<section class="section">
+    <div class="wrap">
+        <nav class="breadcrumbs" aria-label="Brotkrumen">
+            <a href="{% url 'mediathek:home' %}">Mediathek</a><span>/</span>
+            {% if series %}<a href="{% url 'mediathek:api_series_detail' series.slug %}">{{ series.title }}</a>{% else %}<span>{{ program.category|default:"Sendung" }}</span>{% endif %}
+        </nav>
+        <div class="layout-side">
+            <div>
+                <div class="player">
+                    {% if program.youtube_id %}
+                    <iframe src="https://www.youtube-nocookie.com/embed/{{ program.youtube_id }}?rel=0&modestbranding=1" title="{{ program.title }}"
+                            allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
+                    {% elif program.video_url|is_direct_video %}
+                    <video src="{{ program.video_url }}" controls playsinline poster="{{ program.thumbnail }}"></video>
+                    {% else %}
+                    <div class="player-empty"><i class="bi bi-camera-video-off"></i><p class="mb-0">Diese Sendung ist nur im linearen Programm verfügbar.</p><a href="/programm/" class="btn btn-rsl btn-sm">Zum Programm</a></div>
+                    {% endif %}
+                </div>
+
+                <h1 class="watch-title">{% if program.series_title %}{{ program.short_title }}{% else %}{{ program.title }}{% endif %}</h1>
+                <div class="meta-line mb-3">
+                    {% if program.series_title %}<span><i class="bi bi-film"></i>{{ program.series_title }}</span>{% endif %}
+                    {% if program.episode_number and program.series_title %}<span><i class="bi bi-hash"></i>Staffel {{ program.season_number|default:1 }}, Folge {{ program.episode_number }}</span>{% endif %}
+                    {% if program.duration_display %}<span><i class="bi bi-clock"></i>{{ program.duration_display }}</span>{% endif %}
+                    {% if program.category %}<span><i class="bi bi-tag"></i>{{ program.category }}</span>{% endif %}
+                </div>
+                {% if program.description %}<div class="prose"><p>{{ program.description }}</p></div>{% endif %}
+
+                {% if prev_episode or next_episode %}
+                <div class="ep-nav">
+                    {% if prev_episode %}<a href="{% url 'mediathek:program_player' prev_episode.id %}" class="btn btn-ghost"><i class="bi bi-chevron-left"></i>Vorherige Folge</a>{% endif %}
+                    {% if next_episode %}<a href="{% url 'mediathek:program_player' next_episode.id %}" class="btn btn-rsl">Nächste Folge<i class="bi bi-chevron-right"></i></a>{% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            {% if more %}
+            <aside class="panel" aria-label="{% if series %}Alle Folgen{% else %}Mehr aus der Rubrik{% endif %}">
+                <div class="panel-head"><h2>{% if series %}Alle Folgen ({{ more|length }}){% else %}Mehr: {{ program.category }}{% endif %}</h2></div>
+                <div style="max-height:720px;overflow-y:auto">
+                {% for e in more %}
+                <a href="{% url 'mediathek:program_player' e.id %}" class="list-row{% if e.id == program.id %} current{% endif %}"{% if e.id == program.id %} aria-current="true"{% endif %}>
+                    <span class="thumb">{% if e.thumbnail %}<img src="{{ e.thumbnail }}" alt="" loading="lazy">{% endif %}</span>
+                    <span class="info">
+                        <span class="title">{% if e.series_title %}{{ e.short_title }}{% else %}{{ e.title }}{% endif %}</span>
+                        <span class="sub">{% if e.episode_number and e.series_title %}Folge {{ e.episode_number }} · {% endif %}{{ e.duration_display }}</span>
+                    </span>
+                </a>
+                {% endfor %}
+                </div>
+            </aside>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -44,6 +44,7 @@ urlpatterns = [
     # ══════════════════════════════════════════════════════════════════════════
     path('api/playlist/', views.api_playlist, name='api_playlist'),
     path('api/current/', views.api_current_show, name='api_current'),
+    path('api/jetzt/', views.api_now_next, name='api_now_next'),
     path('api/current-show/', views.api_current_show_extended, name='api_current_show_extended'),
     path('api/news/', views.api_news, name='api_news'),
     path('api/logo/', views.api_logo, name='api_logo'),

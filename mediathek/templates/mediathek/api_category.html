@@ -1,0 +1,29 @@
+{% extends "mediathek/base.html" %}
+
+{% block mediathek_content %}
+<header class="page-head">
+    <div class="wrap">
+        <nav class="breadcrumbs" aria-label="Brotkrumen"><a href="{% url 'mediathek:home' %}">Mediathek</a><span>/</span><span>Rubrik</span></nav>
+        <h1>{{ category.name }}</h1>
+    </div>
+</header>
+{% if series_cards %}
+<section class="section">
+    <div class="wrap">
+        <div class="section-head"><h2>Serien</h2></div>
+        {% include "mediathek/partials/series_grid.html" with cards=series_cards %}
+    </div>
+</section>
+{% endif %}
+{% if programs %}
+<section class="section">
+    <div class="wrap">
+        <div class="section-head"><h2>Sendungen</h2></div>
+        <div class="grid">{% for p in programs %}{% include "mediathek/partials/card_program.html" %}{% endfor %}</div>
+    </div>
+</section>
+{% endif %}
+{% if not series_cards and not programs %}
+<section class="section"><div class="wrap"><div class="empty-state"><i class="bi bi-folder2-open"></i>In dieser Rubrik ist gerade nichts verfügbar.</div></div></section>
+{% endif %}
+{% endblock %}

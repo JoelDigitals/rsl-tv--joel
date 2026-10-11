@@ -1,0 +1,43 @@
+{% extends "mediathek/base.html" %}
+{% load mediathek_tags %}
+
+{% block mediathek_content %}
+<section class="section">
+    <div class="wrap">
+        <nav class="breadcrumbs" aria-label="Brotkrumen"><a href="{% url 'mediathek:home' %}">Mediathek</a><span>/</span><a href="{% url 'mediathek:video_list' %}">Videos</a>{% if video.category %}<span>/</span><a href="{% url 'mediathek:category_detail' video.category.slug %}">{{ video.category.name }}</a>{% endif %}</nav>
+        <div class="layout-side">
+            <div>
+                <div class="player">
+                    {% if video.source_url|embed_src %}
+                    <iframe src="{{ video.source_url|embed_src }}" title="{{ video.title }}" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
+                    {% elif video.source_url %}
+                    <video src="{{ video.source_url }}" controls playsinline poster="{{ video.get_thumbnail }}"></video>
+                    {% else %}
+                    <div class="player-empty"><i class="bi bi-camera-video-off"></i><p class="mb-0">Video nicht verfügbar.</p></div>
+                    {% endif %}
+                </div>
+                <h1 class="watch-title">{{ video.title }}</h1>
+                <div class="meta-line mb-3">
+                    <span><i class="bi bi-calendar3"></i>{{ video.published_at|date:"d.m.Y" }}</span>
+                    {% if video.category %}<span><i class="bi bi-tag"></i>{{ video.category.name }}</span>{% endif %}
+                    {% if video.duration %}<span><i class="bi bi-clock"></i>{{ video.duration_display }}</span>{% endif %}
+                    <span><i class="bi bi-eye"></i>{{ video.views|add:1 }} Aufrufe</span>
+                    {% if video.available_until %}<span><i class="bi bi-hourglass-split"></i>Verfügbar bis {{ video.available_until|date:"d.m.Y" }}</span>{% endif %}
+                </div>
+                {% if video.description %}<div class="prose"><p>{{ video.description|linebreaksbr }}</p></div>{% endif %}
+            </div>
+            {% if related %}
+            <aside class="panel" aria-label="Ähnliche Videos">
+                <div class="panel-head"><h2>Ähnliche Videos</h2></div>
+                {% for r in related %}
+                <a href="{% url 'mediathek:video_player' r.slug %}" class="list-row">
+                    <span class="thumb"><img src="{{ r.get_thumbnail }}" alt="" loading="lazy"></span>
+                    <span class="info"><span class="title">{{ r.title }}</span><span class="sub">{% if r.duration %}{{ r.duration_display }} · {% endif %}{{ r.published_at|date:"d.m.Y" }}</span></span>
+                </a>
+                {% endfor %}
+            </aside>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

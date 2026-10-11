@@ -71,7 +71,15 @@ def index(request):
         channel = live_stream.stream_url.split('twitch.tv/')[-1].strip('/')
         twitch_embed_url = f"https://player.twitch.tv/?channel={channel}&parent={host}&autoplay=true"
 
+    from rsl_tv import broadcast_api as rsl_api
+    api_current, api_upcoming = rsl_api.get_now_and_next(6)
+
     return render(request, 'tv/index.html', {
+        'api_current': api_current,
+        'api_upcoming': api_upcoming,
+        'api_news': rsl_api.get_news()[:4],
+        'api_library': rsl_api.get_library()[:8],
+        'api_studios_live': [st for st in rsl_api.get_studios() if st['is_active']],
         'current_show': current_show,
         'upcoming': upcoming,
         'live_stream': live_stream,
@@ -83,15 +91,64 @@ def index(request):
     })
 
 
+def api_now_next(request):
+    """Aktuelle und kommende Sendungen (für Live-Seite, ohne Neuladen)."""
+    from rsl_tv import broadcast_api as rsl_api
+    current, upcoming = rsl_api.get_now_and_next(6)
+    broadcast = rsl_api.get_broadcast()
+
+    def ser(s):
+        return {
+            'title': s['short_title'], 'series_title': s['series_title'], 'category': s['category'],
+            'thumbnail': s['thumbnail'], 'start': s['start'].strftime('%H:%M'),
+            'end': s['end'].strftime('%H:%M') if s['end'] else '',
+            'start_iso': s['start'].isoformat(), 'end_iso': s['end'].isoformat() if s['end'] else '',
+        }
+    return JsonResponse({
+        'is_live': bool(broadcast.get('is_live')),
+        'ad_break_active': bool(broadcast.get('ad_break_active')),
+        'current': ser(current) if current else None,
+        'upcoming': [ser(s) for s in upcoming],
+    })
+
+
 def program(request):
-    now = timezone.now()
-    today = now.date()
-    days = []
-    for i in range(7):
-        day = today + timedelta(days=i)
-        shows = Schedule.objects.filter(start_time__date=day, is_active=True).order_by('start_time')
-        days.append({'date': day, 'shows': shows})
-    return render(request, 'tv/program.html', {'days': days, 'today': today, 'page': 'program'})
+    """TV-Programm – Daten aus der RSL Broadcast-API, Fallback: lokaler Sendeplan."""
+    from rsl_tv import broadcast_api as rsl_api
+    today = timezone.localdate()
+    days = rsl_api.get_schedule_by_day()
+    days = [d for d in days if d['date'] >= today]
+
+    if not days:
+        now = timezone.now()
+        for i in range(7):
+            day = today + timedelta(days=i)
+            shows = [{
+                'title': sh.title, 'short_title': sh.title, 'series_title': '',
+                'category': sh.category.name if getattr(sh, 'category', None) else '',
+                'thumbnail': '', 'program_id': None, 'is_repeat': False,
+                'start': timezone.localtime(sh.start_time), 'end': timezone.localtime(sh.end_time),
+                'is_now': sh.start_time <= now < sh.end_time, 'is_past': sh.end_time <= now,
+            } for sh in Schedule.objects.filter(start_time__date=day, is_active=True).order_by('start_time')]
+            if shows:
+                days.append({'date': day, 'shows': shows})
+
+    selected = request.GET.get('tag', '')
+    current_day = next((d for d in days if d['date'].isoformat() == selected), days[0] if days else None)
+
+    # Nur Sendungen verlinken, die es in der Mediathek gibt
+    available = {p['id'] for p in rsl_api.get_programs() if p['video_type'] != 'ai_news'}
+    if current_day:
+        now = timezone.now()
+        for sh in current_day['shows']:
+            sh['in_mediathek'] = sh.get('program_id') in available
+            if sh['is_now'] and sh['end']:
+                total = (sh['end'] - sh['start']).total_seconds() or 1
+                sh['progress'] = int(min(100, max(0, (now - sh['start']).total_seconds() / total * 100)))
+
+    return render(request, 'tv/program.html', {
+        'days': days, 'current_day': current_day, 'today': today, 'page': 'program',
+    })
 
 
 def live(request):

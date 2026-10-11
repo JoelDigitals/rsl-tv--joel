@@ -1,434 +1,394 @@
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}RSL – Dein Sender. Deine Welt.{% endblock %}</title>
-    <meta name="description" content="{% block meta_description %}RSL – Der Fernsehsender von Joel Digitals. 24/7 Programm, Live-Streams und mehr.{% endblock %}">
+    <meta name="description" content="{% block meta_description %}RSL – Der Fernsehsender von Joel Digitals. 24/7 Programm, Live-Streams, Nachrichten und Mediathek.{% endblock %}">
+    <meta name="theme-color" content="#0a1220">
+    <link rel="icon" href="{% static 'tv/img/logo-nobg.png' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        :root {
-            --rsl-blue:       #0a6eb4;
-            --rsl-blue-dark:  #073e6e;
-            --rsl-blue-deep:  #041c36;
-            --rsl-blue-light: #1a8fd1;
-            --rsl-steel:      #1d5a82;
-            --rsl-sky:        #5baed4;
-            --rsl-dark:       #070d14;
-            --rsl-darker:     #040810;
-            --rsl-panel:      #0d1a27;
-            --rsl-border:     #162842;
-            --rsl-border2:    #1e3a56;
-            --rsl-text:       #ffffff;
-            --rsl-muted:      #a8c4d9;
-            --rsl-bright:     #ffffff;
-            --rsl-accent:     #00c4ff;
-            --rsl-live:       #e63946;
-        }
-        * { box-sizing: border-box; }
-        body {
-            background: var(--rsl-dark);
-            color: var(--rsl-text);
-            font-family: 'Barlow', sans-serif;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
+    /* ══════════════════════════════════════════════════════════════
+       RSL DESIGN-SYSTEM – kontraststark & gut lesbar
+    ══════════════════════════════════════════════════════════════ */
+    :root {
+        --bg:          #0a1220;
+        --bg-deep:     #060c17;
+        --surface:     #111c2e;
+        --surface-2:   #18263c;
+        --surface-3:   #1f3049;
+        --line:        #2a3c57;
+        --line-strong: #3b5375;
+        --text:        #f3f6fb;
+        --text-2:      #c8d3e1;
+        --text-3:      #9eb0c6;
+        --brand:       #0a6eb4;
+        --brand-hover: #0c80d0;
+        --accent:      #4cc3ff;
+        --live:        #e5333f;
+        --ok:          #34d399;
+        --warn:        #fbbf24;
+        --radius:      12px;
+        --radius-sm:   8px;
+        --shadow:      0 10px 30px rgba(0,0,0,.35);
+        --font:        'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --font-display:'Barlow Condensed', 'Inter', sans-serif;
+        --wrap:        1320px;
 
-        /* NAVBAR */
-        .rsl-navbar {
-            background: linear-gradient(180deg, var(--rsl-darker) 0%, rgba(4,8,16,0.98) 100%);
-            border-bottom: 2px solid var(--rsl-blue);
-            padding: 0;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 2px 24px rgba(10,110,180,0.35);
-        }
-        .rsl-logo-wrap {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            text-decoration: none;
-            padding: 6px 0;
-        }
-        .rsl-logo-img {
-            height: 46px;
-            width: auto;
-            filter: drop-shadow(0 0 10px rgba(0,196,255,0.5));
-        }
-        .rsl-logo-text .name {
-            font-family: 'Barlow Condensed', sans-serif;
-            font-weight: 900;
-            font-size: 1.9rem;
-            color: var(--rsl-bright);
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            display: block;
-            line-height: 1;
-        }
-        .rsl-logo-text .tagline {
-            font-size: 0.58rem;
-            color: var(--rsl-muted);
-            letter-spacing: 3px;
-            text-transform: uppercase;
-        }
-        .navbar-nav .nav-link {
-            color: var(--rsl-text) !important;
-            font-weight: 600;
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: 1rem;
-            padding: 1.25rem 0.85rem !important;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            transition: color 0.2s, border-bottom 0.2s;
-            border-bottom: 3px solid transparent;
-        }
-        .navbar-nav .nav-link:hover,
-        .navbar-nav .nav-link.active {
-            color: var(--rsl-accent) !important;
-            border-bottom-color: var(--rsl-blue);
-        }
+        /* Alte Variablen – zeigen auf die neuen Farben, damit alle Seiten lesbar bleiben */
+        --rsl-blue: var(--brand); --rsl-blue-dark: #084f82; --rsl-blue-deep: #06345a;
+        --rsl-blue-light: var(--brand-hover); --rsl-steel: #1d5a82; --rsl-sky: #7cc8ef;
+        --rsl-dark: var(--bg); --rsl-darker: var(--bg-deep); --rsl-panel: var(--surface);
+        --rsl-panel2: var(--surface-2); --rsl-border: var(--line); --rsl-border2: var(--line-strong);
+        --rsl-text: var(--text); --rsl-muted: var(--text-2); --rsl-bright: #ffffff;
+        --rsl-accent: var(--accent); --rsl-live: var(--live);
+    }
 
-        /* LIVE BADGE */
-        .live-badge {
-            background: var(--rsl-live);
-            color: white;
-            font-size: 0.62rem;
-            font-weight: 800;
-            padding: 3px 7px;
-            border-radius: 3px;
-            letter-spacing: 1.5px;
-            animation: livePulse 1.5s infinite;
-            display: inline-block;
-            font-family: 'Barlow Condensed', sans-serif;
-        }
-        @keyframes livePulse {
-            0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(230,57,70,0.5); }
-            50% { opacity:0.85; box-shadow:0 0 0 5px rgba(230,57,70,0); }
-        }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font);
+        font-size: 1.0625rem;
+        line-height: 1.6;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+    }
+    main { flex: 1 0 auto; }
+    h1, h2, h3, h4, h5, h6 { color: var(--text); font-weight: 700; line-height: 1.2; }
+    p { color: var(--text-2); }
+    a { color: var(--accent); }
+    a:hover { color: #8fd9ff; }
+    img { max-width: 100%; }
+    ::selection { background: var(--brand); color: #fff; }
+    :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+    .text-muted, .text-secondary { color: var(--text-3) !important; }
+    hr { border-color: var(--line); opacity: 1; }
 
-        /* TICKER */
-        .rsl-ticker {
-            background: linear-gradient(90deg, var(--rsl-blue-dark), var(--rsl-steel), var(--rsl-blue-dark));
-            overflow: hidden;
-            white-space: nowrap;
-            padding: 7px 0;
-            border-bottom: 1px solid var(--rsl-border);
-        }
-        .ticker-label {
-            background: var(--rsl-accent);
-            color: var(--rsl-darker);
-            font-weight: 800;
-            font-size: 0.68rem;
-            padding: 0 14px;
-            letter-spacing: 2px;
-            display: inline-block;
-            vertical-align: middle;
-            font-family: 'Barlow Condensed', sans-serif;
-            text-transform: uppercase;
-        }
-        .ticker-content {
-            display: inline-block;
-            animation: tickerScroll 40s linear infinite;
-            font-size: 0.82rem;
-            font-weight: 500;
-            color: var(--rsl-bright);
-        }
-        @keyframes tickerScroll {
-            0% { transform: translateX(100vw); }
-            100% { transform: translateX(-100%); }
-        }
+    .skip-link { position: absolute; left: -999px; top: 8px; background: var(--accent); color: #001; padding: .5rem 1rem; border-radius: 6px; z-index: 2000; font-weight: 700; }
+    .skip-link:focus { left: 8px; }
 
-        /* FOOTER */
-        .rsl-footer {
-            background: var(--rsl-darker);
-            border-top: 2px solid var(--rsl-border);
-            margin-top: 4rem;
-            padding: 3rem 0 1.5rem;
-        }
-        .footer-logo-img {
-            height: 48px;
-            width: auto;
-            filter: drop-shadow(0 0 6px rgba(0,196,255,0.3));
-        }
-        .footer-link {
-            color: var(--rsl-muted);
-            text-decoration: none;
-            font-size: 0.88rem;
-            display: block;
-            margin-bottom: 0.5rem;
-            transition: color 0.2s;
-        }
-        .footer-link:hover { color: var(--rsl-accent); }
-        .footer-head {
-            font-family: 'Barlow Condensed', sans-serif;
-            font-weight: 700;
-            color: var(--rsl-accent);
-            letter-spacing: 2px;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            margin-bottom: 0.9rem;
-        }
+    .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 1.25rem; }
+    @media (min-width: 992px) { .wrap { padding: 0 2rem; } }
 
-        /* CARDS */
-        .rsl-card {
-            background: var(--rsl-panel);
-            border: 1px solid var(--rsl-border);
-            border-radius: 8px;
-            overflow: hidden;
-            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
-        }
-        .rsl-card:hover {
-            transform: translateY(-3px);
-            border-color: var(--rsl-blue);
-            box-shadow: 0 8px 24px rgba(10,110,180,0.2);
-        }
+    /* ── NAVIGATION ─────────────────────────────────────────── */
+    .site-header {
+        position: sticky; top: 0; z-index: 1000;
+        background: rgba(6,12,23,.94);
+        backdrop-filter: saturate(140%) blur(10px);
+        -webkit-backdrop-filter: saturate(140%) blur(10px);
+        border-bottom: 1px solid var(--line);
+    }
+    .site-header .wrap { display: flex; align-items: center; gap: 1rem; height: 68px; }
+    .brand { display: flex; align-items: center; gap: .65rem; text-decoration: none; color: var(--text); flex-shrink: 0; }
+    .brand:hover { color: var(--text); }
+    .brand img { height: 42px; width: auto; }
+    .brand-name[hidden] { display: none; }
+    .brand-name { font-family: var(--font-display); font-weight: 800; font-size: 1.9rem; letter-spacing: 3px; line-height: 1; }
+    .brand-sub { display: block; font-size: .68rem; color: var(--text-3); letter-spacing: 1.5px; text-transform: uppercase; font-family: var(--font); font-weight: 600; margin-top: 2px; }
 
-        /* BUTTONS */
-        .btn-rsl {
-            background: linear-gradient(135deg, var(--rsl-blue-dark), var(--rsl-blue-light));
-            color: white;
-            border: none;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            padding: 0.6rem 1.5rem;
-            border-radius: 4px;
-            transition: all 0.2s;
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: 0.95rem;
-        }
-        .btn-rsl:hover {
-            background: linear-gradient(135deg, var(--rsl-blue-light), var(--rsl-accent));
-            color: white;
-            box-shadow: 0 4px 16px rgba(10,110,180,0.4);
-            transform: translateY(-1px);
-        }
-        .btn-outline-rsl {
-            border: 2px solid var(--rsl-blue);
-            color: var(--rsl-accent);
-            background: transparent;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            padding: 0.6rem 1.5rem;
-            border-radius: 4px;
-            transition: all 0.2s;
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: 0.95rem;
-        }
-        .btn-outline-rsl:hover {
-            background: var(--rsl-blue);
-            color: white;
-            box-shadow: 0 4px 16px rgba(10,110,180,0.4);
-        }
+    .main-nav { display: flex; align-items: center; gap: .25rem; margin-left: auto; }
+    .main-nav a {
+        color: var(--text-2); text-decoration: none; font-weight: 600; font-size: .98rem;
+        padding: .55rem .85rem; border-radius: 8px; display: inline-flex; align-items: center; gap: .45rem;
+        transition: background .15s, color .15s;
+    }
+    .main-nav a:hover { color: var(--text); background: var(--surface-2); }
+    .main-nav a.active { color: #fff; background: var(--surface-3); box-shadow: inset 0 -2px 0 var(--accent); }
+    .main-nav .nav-cta { background: var(--brand); color: #fff; margin-left: .5rem; }
+    .main-nav .nav-cta:hover { background: var(--brand-hover); color: #fff; }
 
-        /* SECTION HEADERS */
-        .section-title {
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: 2.5rem;
-            font-weight: 900;
-            letter-spacing: 3px;
-            color: var(--rsl-bright);
-            text-transform: uppercase;
-        }
-        .section-title span { color: var(--rsl-accent); }
-        .section-divider {
-            width: 60px;
-            height: 3px;
-            background: linear-gradient(90deg, var(--rsl-blue), var(--rsl-accent));
-            margin: 0.5rem 0 2rem;
-        }
+        background: var(--surface); border: 1px solid var(--line); color: var(--text);
+        border-radius: 999px; padding: .5rem 1rem .5rem 2.4rem; width: 210px; font-size: .95rem;
+    }
 
-        /* PROGRAM */
-        .program-row {
-            background: var(--rsl-panel);
-            border-bottom: 1px solid var(--rsl-border);
-            padding: 0.8rem 1rem;
-            display: flex;
-            align-items: center;
-            transition: background 0.2s;
-        }
-        .program-row:hover { background: rgba(10,110,180,0.08); }
-        .program-row.current {
-            border-left: 4px solid var(--rsl-blue);
-            background: rgba(10,110,180,0.12);
-        }
-        .program-time {
-            font-weight: 700;
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: 1.1rem;
-            color: var(--rsl-accent);
-            min-width: 70px;
-        }
+    .nav-toggle {
+        display: none; margin-left: auto; background: var(--surface-2); border: 1px solid var(--line);
+        color: var(--text); border-radius: 8px; width: 46px; height: 42px; font-size: 1.5rem; line-height: 1;
+    }
+    .mobile-nav { display: none; }
 
-        /* FORMS */
-        .form-control, .form-select {
-            background: var(--rsl-panel) !important;
-            border-color: var(--rsl-border2) !important;
-            color: var(--rsl-text) !important;
+    @media (max-width: 1100px) {
+        .main-nav { display: none; }
+        .nav-toggle { display: inline-flex; align-items: center; justify-content: center; }
+        .mobile-nav.open { display: block; border-top: 1px solid var(--line); background: var(--bg-deep); padding: .75rem 0 1.25rem; }
+        .mobile-nav a {
+            display: flex; align-items: center; gap: .75rem; padding: .85rem 1.25rem; color: var(--text);
+            text-decoration: none; font-weight: 600; font-size: 1.05rem; border-radius: 8px;
         }
-        .form-control:focus, .form-select:focus {
-            border-color: var(--rsl-blue) !important;
-            box-shadow: 0 0 0 0.2rem rgba(10,110,180,0.25) !important;
-        }
-        .form-label { color: var(--rsl-text); font-weight: 500; }
+        .mobile-nav a.active, .mobile-nav a:hover { background: var(--surface-2); }
+    }
 
-        /* PAGE HEADER */
-        .page-header {
-            background: linear-gradient(135deg, var(--rsl-darker) 0%, var(--rsl-panel) 100%);
-            border-bottom: 2px solid var(--rsl-border);
-            padding: 3rem 0;
-            position: relative;
-            overflow: hidden;
-        }
-        .page-header::after {
-            content: '';
-            position: absolute;
-            right: 0; top: 0; width: 40%; height: 100%;
-            background: radial-gradient(ellipse at right, rgba(10,110,180,0.12) 0%, transparent 70%);
-            pointer-events: none;
-        }
-        .page-header h1 {
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: 3.2rem;
-            font-weight: 900;
-            letter-spacing: 4px;
-            margin: 0;
-            text-transform: uppercase;
-        }
+    /* ── LIVE-BADGE & TICKER ────────────────────────────────── */
+    .live-badge {
+        display: inline-flex; align-items: center; gap: .4rem; background: var(--live); color: #fff;
+        font-size: .75rem; font-weight: 700; padding: .25rem .6rem; border-radius: 999px; letter-spacing: .8px;
+        text-transform: uppercase; line-height: 1.4; white-space: nowrap;
+    }
+    .live-badge::before { content: ''; width: 8px; height: 8px; background: #fff; border-radius: 50%; animation: livePulse 1.4s infinite; }
+    @keyframes livePulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
 
-        /* SCROLLBAR */
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: var(--rsl-darker); }
-        ::-webkit-scrollbar-thumb { background: var(--rsl-blue); border-radius: 3px; }
+    .rsl-ticker { background: var(--surface); border-bottom: 1px solid var(--line); display: flex; align-items: stretch; overflow: hidden; }
+    .ticker-label { background: var(--accent); color: #04121f; font-weight: 800; font-size: .78rem; padding: .5rem 1rem; letter-spacing: 1px; text-transform: uppercase; flex-shrink: 0; display: flex; align-items: center; }
+    .ticker-track { overflow: hidden; flex: 1; display: flex; align-items: center; }
+    .ticker-content { display: inline-block; white-space: nowrap; animation: tickerScroll 50s linear infinite; font-size: .95rem; font-weight: 500; color: var(--text); padding-left: 100%; }
+    .rsl-ticker:hover .ticker-content { animation-play-state: paused; }
+    @keyframes tickerScroll { to { transform: translateX(-100%); } }
+    @media (prefers-reduced-motion: reduce) { .ticker-content { animation: none; padding-left: 1rem; } .live-badge::before { animation: none; } }
 
-        .alert { border-radius: 6px; }
+    /* ── SEITENKOPF ─────────────────────────────────────────── */
+    .page-head { background: linear-gradient(180deg, var(--bg-deep), var(--bg)); border-bottom: 1px solid var(--line); padding: 2.5rem 0 2rem; }
+    .page-head h1, .page-header h1 { font-family: var(--font-display); font-size: clamp(2.1rem, 4vw, 3rem); font-weight: 800; letter-spacing: .5px; margin: 0 0 .35rem; }
+    .page-head p.lead { font-size: 1.1rem; color: var(--text-2); max-width: 720px; margin: 0; }
+    .page-header { background: linear-gradient(180deg, var(--bg-deep), var(--bg)); border-bottom: 1px solid var(--line); padding: 2.5rem 0 2rem; }
+    .breadcrumbs { display: flex; flex-wrap: wrap; gap: .4rem; font-size: .9rem; color: var(--text-3); margin-bottom: .75rem; }
+    .breadcrumbs a { color: var(--text-2); text-decoration: none; }
+    .breadcrumbs a:hover { color: var(--accent); text-decoration: underline; }
+
+    /* ── ABSCHNITTE ─────────────────────────────────────────── */
+    .section { padding: 2.25rem 0; }
+    .section + .section { padding-top: .5rem; }
+    .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1.1rem; flex-wrap: wrap; }
+    .section-head h2 { font-family: var(--font-display); font-size: clamp(1.6rem, 3vw, 2.1rem); font-weight: 800; margin: 0; letter-spacing: .3px; }
+    .section-head h2 small { display: block; font-family: var(--font); font-size: .95rem; font-weight: 500; color: var(--text-3); letter-spacing: 0; margin-top: .2rem; }
+    .section-link { color: var(--accent); text-decoration: none; font-weight: 600; white-space: nowrap; }
+    .section-link:hover { text-decoration: underline; }
+    .section-title { font-family: var(--font-display); font-size: clamp(1.8rem, 3.5vw, 2.4rem); font-weight: 800; color: var(--text); }
+    .section-title span { color: var(--accent); }
+    .section-divider { width: 56px; height: 3px; background: var(--accent); border-radius: 2px; margin: .5rem 0 1.5rem; }
+
+    /* ── KARTEN-RASTER ──────────────────────────────────────── */
+    .grid { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+    .grid-poster { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+    @media (max-width: 575px) {
+        .grid { grid-template-columns: 1fr; }
+        .grid-poster { grid-template-columns: repeat(2, 1fr); gap: .9rem; }
+    }
+    .rail { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 300px); gap: 1.1rem; overflow-x: auto; padding-bottom: .75rem; scroll-snap-type: x proximity; }
+    .rail > * { scroll-snap-align: start; }
+    .rail::-webkit-scrollbar { height: 8px; }
+    .rail::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
+
+    .media-card {
+        display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line);
+        border-radius: var(--radius); overflow: hidden; text-decoration: none; color: var(--text); height: 100%;
+        transition: transform .18s, border-color .18s, box-shadow .18s;
+    }
+    .media-card:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: var(--shadow); color: var(--text); }
+    .media-thumb { position: relative; aspect-ratio: 16 / 9; background: var(--surface-3); overflow: hidden; }
+    .media-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .media-thumb.poster { aspect-ratio: 2 / 3; }
+    .media-thumb .placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: .35rem; color: var(--text-2); font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; background: linear-gradient(135deg, #0b3d66, #142a45); text-align: center; padding: 1rem; }
+    .media-thumb .placeholder i { font-size: 2.2rem; color: var(--accent); }
+    .media-thumb .play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.35); opacity: 0; transition: opacity .18s; }
+    .media-thumb .play i { width: 58px; height: 58px; border-radius: 50%; background: rgba(255,255,255,.95); color: #0a1220; display: flex; align-items: center; justify-content: center; font-size: 1.9rem; padding-left: 4px; }
+    .media-card:hover .play, .media-card:focus-visible .play { opacity: 1; }
+    .tag-row { position: absolute; left: .6rem; right: .6rem; bottom: .6rem; display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; }
+    .tag-row.top { top: .6rem; bottom: auto; }
+    .pill { display: inline-flex; align-items: center; gap: .3rem; background: rgba(6,12,23,.88); color: #fff; font-size: .78rem; font-weight: 600; padding: .2rem .55rem; border-radius: 6px; line-height: 1.4; }
+    .pill.accent { background: var(--accent); color: #04121f; }
+    .pill.brand { background: var(--brand); color: #fff; }
+    .pill.live { background: var(--live); }
+    .media-body { padding: .9rem 1rem 1.05rem; display: flex; flex-direction: column; gap: .35rem; flex: 1; }
+    .media-kicker { font-size: .8rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .6px; }
+    .media-title { font-size: 1.05rem; font-weight: 700; line-height: 1.35; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .media-meta { font-size: .88rem; color: var(--text-3); margin-top: auto; display: flex; gap: .75rem; flex-wrap: wrap; }
+    .media-desc { font-size: .92rem; color: var(--text-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0; }
+
+    /* ── CHIPS / FILTER ─────────────────────────────────────── */
+    .chips { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .chip { display: inline-flex; align-items: center; gap: .4rem; padding: .45rem .95rem; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--text-2); font-weight: 600; font-size: .92rem; text-decoration: none; }
+    .chip:hover { border-color: var(--accent); color: var(--text); }
+    .chip.active { background: var(--accent); border-color: var(--accent); color: #04121f; }
+
+    /* ── PLAYER ─────────────────────────────────────────────── */
+    .player { position: relative; background: #000; border-radius: var(--radius); overflow: hidden; aspect-ratio: 16 / 9; border: 1px solid var(--line); box-shadow: var(--shadow); }
+    .player iframe, .player video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+    .player-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .75rem; color: var(--text-2); text-align: center; padding: 1.5rem; background: linear-gradient(135deg, #06101e, #0f2238); }
+    .player-empty i { font-size: 3rem; color: var(--accent); }
+
+    /* ── PANELS / LISTEN ────────────────────────────────────── */
+    .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+    .panel-head { padding: 1rem 1.15rem; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+    .panel-head h2, .panel-head h3 { font-size: 1.1rem; margin: 0; font-weight: 700; }
+    .panel-body { padding: 1.15rem; }
+
+    .list-row { display: flex; gap: .9rem; align-items: center; padding: .8rem 1.15rem; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--text); }
+    .list-row:last-child { border-bottom: 0; }
+    a.list-row:hover { background: var(--surface-2); color: var(--text); }
+    .list-row.current { background: rgba(76,195,255,.09); box-shadow: inset 4px 0 0 var(--accent); }
+    .list-row .time { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 3.4rem; color: var(--text); font-size: 1rem; }
+    .list-row .thumb { width: 96px; flex-shrink: 0; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden; background: var(--surface-3); }
+    .list-row .thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .list-row .info { min-width: 0; flex: 1; }
+    .list-row .title { font-weight: 600; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .list-row .sub { color: var(--text-3); font-size: .87rem; }
+    .progress-line { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; margin-top: .4rem; }
+    .progress-line span { display: block; height: 100%; background: var(--accent); }
+
+    .empty-state { text-align: center; padding: 3rem 1.5rem; background: var(--surface); border: 1px dashed var(--line-strong); border-radius: var(--radius); color: var(--text-2); }
+    .empty-state i { font-size: 2.5rem; color: var(--accent); display: block; margin-bottom: .75rem; }
+
+    /* ── BUTTONS (inkl. Bootstrap-Overrides) ─────────────────── */
+    .btn { font-weight: 600; border-radius: 10px; padding: .6rem 1.2rem; }
+    .btn-sm { padding: .4rem .85rem; font-size: .9rem; border-radius: 8px; }
+    .btn-lg { padding: .8rem 1.5rem; font-size: 1.08rem; }
+    .btn-rsl, .btn-primary { background: var(--brand); border: 1px solid var(--brand); color: #fff; display: inline-flex; align-items: center; justify-content: center; gap: .45rem; text-decoration: none; }
+    .btn-rsl:hover, .btn-primary:hover, .btn-rsl:focus { background: var(--brand-hover); border-color: var(--brand-hover); color: #fff; }
+    .btn-outline-rsl, .btn-ghost { background: transparent; border: 1px solid var(--line-strong); color: var(--text); display: inline-flex; align-items: center; justify-content: center; gap: .45rem; text-decoration: none; }
+    .btn-outline-rsl:hover, .btn-ghost:hover { background: var(--surface-2); border-color: var(--accent); color: var(--text); }
+    .btn-outline-light { color: var(--text); border-color: var(--line-strong); }
+    .btn-outline-light:hover { background: var(--surface-3); color: #fff; border-color: var(--accent); }
+    .btn[disabled], .btn.disabled { opacity: .45; }
+
+    /* ── BOOTSTRAP-ANPASSUNGEN (Formulare, Karten, Tabellen) ─── */
+    .card, .rsl-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); color: var(--text); }
+    .card-header, .card-footer { background: var(--surface-2); border-color: var(--line); color: var(--text); }
+    .form-control, .form-select { background: var(--bg-deep) !important; border: 1px solid var(--line-strong) !important; color: var(--text) !important; border-radius: 10px; padding: .7rem .9rem; font-size: 1rem; }
+    .form-control::placeholder { color: var(--text-3); }
+    .form-control:focus, .form-select:focus { border-color: var(--accent) !important; box-shadow: 0 0 0 .2rem rgba(76,195,255,.25) !important; }
+    .form-label, label { color: var(--text); font-weight: 600; }
+    .form-text, .helptext { color: var(--text-3) !important; }
+    .form-check-input { background-color: var(--bg-deep); border-color: var(--line-strong); }
+    .table { --bs-table-bg: transparent; --bs-table-color: var(--text); --bs-table-border-color: var(--line); color: var(--text); }
+    .alert { border-radius: 10px; font-weight: 500; }
+    .alert-success { background: rgba(52,211,153,.14); border-color: rgba(52,211,153,.5); color: #c9f7e5; }
+    .alert-danger { background: rgba(229,51,63,.14); border-color: rgba(229,51,63,.5); color: #ffd6d9; }
+    .alert-info { background: rgba(76,195,255,.12); border-color: rgba(76,195,255,.5); color: #d8f1ff; }
+    .alert-warning { background: rgba(251,191,36,.14); border-color: rgba(251,191,36,.5); color: #fff0c4; }
+    .btn-close { filter: invert(1); }
+
+    /* Ältere Seiten-Bausteine */
+    .program-row { background: var(--surface); border-bottom: 1px solid var(--line); padding: .85rem 1rem; display: flex; align-items: center; gap: .75rem; }
+    .program-row.current { box-shadow: inset 4px 0 0 var(--accent); background: rgba(76,195,255,.09); }
+    .program-time { font-weight: 700; font-size: 1.05rem; color: var(--text); min-width: 70px; }
+
+    /* ── FOOTER ─────────────────────────────────────────────── */
+    .site-footer { background: var(--bg-deep); border-top: 1px solid var(--line); margin-top: 4rem; padding: 3rem 0 1.5rem; flex-shrink: 0; }
+    .footer-grid { display: grid; gap: 2rem; grid-template-columns: 1.6fr repeat(3, 1fr); }
+    @media (max-width: 900px) { .footer-grid { grid-template-columns: 1fr 1fr; } .footer-about { grid-column: 1 / -1; } }
+    .footer-head { font-weight: 700; color: var(--text); font-size: .95rem; margin-bottom: .8rem; }
+    .footer-link { display: block; color: var(--text-2); text-decoration: none; margin-bottom: .5rem; font-size: .95rem; }
+    .footer-link:hover { color: var(--accent); text-decoration: underline; }
+    .footer-social a { color: var(--text-2); font-size: 1.4rem; margin-right: 1rem; }
+    .footer-social a:hover { color: var(--accent); }
+    .footer-bottom { border-top: 1px solid var(--line); margin-top: 2.5rem; padding-top: 1.25rem; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; color: var(--text-3); font-size: .88rem; }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
+<a href="#inhalt" class="skip-link">Zum Inhalt springen</a>
 
-<nav class="rsl-navbar navbar navbar-expand-lg">
-    <div class="container">
-        {% load static %}
-        <a class="rsl-logo-wrap navbar-brand me-4" href="/">
-            <img src="{% static 'tv/img/logo-nobg.png' %}" alt="RSL Logo" class="rsl-logo-img"
-                 onerror="this.style.display='none';document.getElementById('rsl-text-logo').style.display='block'">
-            <div class="rsl-logo-text" id="rsl-text-logo" style="display:block;">
-                <span class="name">RSL</span>
-                <span class="tagline">von Joel Digitals</span>
-            </div>
+<header class="site-header">
+    <div class="wrap">
+        <a class="brand" href="/" aria-label="RSL Startseite">
+            <img src="{% static 'tv/img/logo-nobg.png' %}" alt="RSL" onerror="this.nextElementSibling.firstElementChild.hidden=false;this.remove()">
+            <span><span class="brand-name" hidden>RSL</span><span class="brand-sub">Joel Digitals</span></span>
         </a>
+        {% if RSL_IS_LIVE %}<span class="live-badge">Live</span>{% endif %}
 
-        {% if RSL_IS_LIVE %}
-        <span class="live-badge me-3">🔴 LIVE</span>
-        {% endif %}
-
-        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
-            <i class="bi bi-list" style="color:white;font-size:1.5rem;"></i>
+        <nav class="main-nav" aria-label="Hauptnavigation">
+            <a href="/" class="{% if page == 'home' %}active{% endif %}"><i class="bi bi-broadcast"></i>Live-TV</a>
+            <a href="/programm/" class="{% if page == 'program' %}active{% endif %}"><i class="bi bi-calendar3"></i>Programm</a>
+            <a href="/mediathek/" class="{% if page == 'mediathek' %}active{% endif %}"><i class="bi bi-collection-play"></i>Mediathek</a>
+            <a href="/werbung/" class="{% if page == 'werbung' %}active{% endif %}"><i class="bi bi-megaphone"></i>Werbung</a>
+        </nav>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="mobileNav" aria-label="Menü öffnen"
+                onclick="var m=document.getElementById('mobileNav');var o=m.classList.toggle('open');this.setAttribute('aria-expanded',o);this.innerHTML=o?'<i class=&quot;bi bi-x-lg&quot;></i>':'<i class=&quot;bi bi-list&quot;></i>';">
+            <i class="bi bi-list"></i>
         </button>
-
-        <div class="collapse navbar-collapse" id="navMenu">
-            <ul class="navbar-nav ms-auto align-items-lg-center">
-                <li class="nav-item"><a class="nav-link {% if page == 'home' %}active{% endif %}" href="/"><i class="bi bi-tv me-1"></i>Live</a></li>
-                <li class="nav-item"><a class="nav-link {% if page == 'program' %}active{% endif %}" href="/programm/"><i class="bi bi-calendar3 me-1"></i>Programm</a></li>
-                <!--<li class="nav-item"><a class="nav-link {% if page == 'live' %}active{% endif %}" href="/live/"><i class="bi bi-broadcast me-1"></i>Live Events</a></li>-->
-                <li class="nav-item"><a class="nav-link {% if page == 'mediathek' %}active{% endif %}" href="/mediathek/"><i class="bi bi-collection-play me-1"></i>Mediathek</a></li>
-                <li class="nav-item"><a class="nav-link {% if page == 'werbung' %}active{% endif %}" href="/werbung/"><i class="bi bi-megaphone me-1"></i>Werbung</a></li>
-                <li class="nav-item ms-lg-3"><a class="btn btn-rsl btn-sm" href="/werbung/buchen/">Werbung buchen</a></li>
-            </ul>
+    </div>
+    <div class="mobile-nav" id="mobileNav">
+        <div class="wrap" style="display:block;height:auto;">
+            <a href="/" class="{% if page == 'home' %}active{% endif %}"><i class="bi bi-broadcast"></i>Live-TV</a>
+            <a href="/programm/" class="{% if page == 'program' %}active{% endif %}"><i class="bi bi-calendar3"></i>Programm</a>
+            <a href="/mediathek/" class="{% if page == 'mediathek' %}active{% endif %}"><i class="bi bi-collection-play"></i>Mediathek</a>
+            <a href="/werbung/" class="{% if page == 'werbung' %}active{% endif %}"><i class="bi bi-megaphone"></i>Werbung</a>
+            <a href="/kontakt/"><i class="bi bi-envelope"></i>Kontakt</a>
         </div>
     </div>
-</nav>
+</header>
 
-<!-- TICKER -->
-<div class="rsl-ticker">
+{% block ticker %}
+{% if news_items %}
+<div class="rsl-ticker" role="marquee" aria-label="RSL News">
     <span class="ticker-label">RSL News</span>
-    <span class="ticker-content" id="ticker-text">
-        {% for item in news_items %}{{ item.text }} &nbsp;&nbsp;&nbsp;●&nbsp;&nbsp;&nbsp;{% empty %}Willkommen bei RSL – Dein Sender. Deine Welt. &nbsp;&nbsp;&nbsp;●&nbsp;&nbsp;&nbsp; 24/7 Programm &nbsp;&nbsp;&nbsp;●&nbsp;&nbsp;&nbsp; Joel Digitals{% endfor %}
-    </span>
+    <div class="ticker-track">
+        <span class="ticker-content">{% for item in news_items %}{{ item.text }}{% if not forloop.last %} &nbsp;&nbsp;•&nbsp;&nbsp; {% endif %}{% endfor %}</span>
+    </div>
 </div>
+{% endif %}
+{% endblock %}
 
 {% if messages %}
-<div class="container mt-3">
+<div class="wrap mt-3">
     {% for message in messages %}
-    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show">
+    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
         {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></button>
     </div>
     {% endfor %}
 </div>
 {% endif %}
 
+<main id="inhalt">
 {% block content %}{% endblock %}
+</main>
 
-<footer class="rsl-footer">
-    <div class="container">
-        <div class="row g-4">
-            <div class="col-lg-4">
-                <div class="d-flex align-items-center gap-3 mb-3">
-                    {% load static %}
-                    <img src="{% static 'tv/img/logo-nobg.png' %}" alt="RSL" class="footer-logo-img" onerror="this.style.display='none'">
-                    <div>
-                        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:2rem;color:var(--rsl-bright);letter-spacing:3px;">RSL</div>
-                        <div style="font-size:0.72rem;color:var(--rsl-muted);">Dein Sender. Deine Welt.</div>
-                    </div>
-                </div>
-                <p style="font-size:0.85rem;color:var(--rsl-muted);">Ein Sender von <strong style="color:var(--rsl-text)">Joel Digitals</strong></p>
-                <div class="mt-3 d-flex gap-3" style="font-size:1.4rem;">
-                    <a href="#" style="color:var(--rsl-muted);transition:color 0.2s;" onmouseover="this.style.color='#ff0000'" onmouseout="this.style.color='var(--rsl-muted)'"><i class="bi bi-youtube"></i></a>
-                    <a href="#" style="color:var(--rsl-muted);transition:color 0.2s;" onmouseover="this.style.color='#9147ff'" onmouseout="this.style.color='var(--rsl-muted)'"><i class="bi bi-twitch"></i></a>
-                    <a href="#" style="color:var(--rsl-muted);transition:color 0.2s;" onmouseover="this.style.color='var(--rsl-accent)'" onmouseout="this.style.color='var(--rsl-muted)'"><i class="bi bi-instagram"></i></a>
-                    <a href="#" style="color:var(--rsl-muted);transition:color 0.2s;" onmouseover="this.style.color='var(--rsl-accent)'" onmouseout="this.style.color='var(--rsl-muted)'"><i class="bi bi-tiktok"></i></a>
+<footer class="site-footer">
+    <div class="wrap">
+        <div class="footer-grid">
+            <div class="footer-about">
+                <a class="brand mb-3" href="/">
+                    <img src="{% static 'tv/img/logo-nobg.png' %}" alt="RSL" onerror="this.nextElementSibling.firstElementChild.hidden=false;this.remove()">
+                    <span><span class="brand-name" hidden>RSL</span><span class="brand-sub">Dein Sender. Deine Welt.</span></span>
+                </a>
+                <p style="font-size:.95rem;max-width:340px;">Der Fernsehsender von Joel Digitals – 24 Stunden Programm, Nachrichten, Serien und Live-Events. Kostenlos auf allen Geräten.</p>
+                <div class="footer-social">
+                    <a href="#" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
+                    <a href="#" aria-label="Twitch"><i class="bi bi-twitch"></i></a>
+                    <a href="#" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
+                    <a href="#" aria-label="TikTok"><i class="bi bi-tiktok"></i></a>
                 </div>
             </div>
-            <div class="col-lg-2">
+            <div>
                 <div class="footer-head">Sender</div>
-                <a href="/" class="footer-link">Live TV</a>
-                <a href="/programm/" class="footer-link">Programm</a>
-                <!--<a href="/live/" class="footer-link">Live Events</a>-->
+                <a href="/" class="footer-link">Live-TV</a>
                 <a href="/mediathek/" class="footer-link">Mediathek</a>
+                <a href="/programm/" class="footer-link">Programm</a>
+                <a href="/iptv/rsl.m3u" class="footer-link">IPTV / Smart TV</a>
             </div>
-            <div class="col-lg-2">
+            <div>
                 <div class="footer-head">Werbung</div>
                 <a href="/werbung/" class="footer-link">Werbemöglichkeiten</a>
                 <a href="/werbung/buchen/" class="footer-link">Werbung buchen</a>
-                <a href="/kontakt/" class="footer-link">Mediadaten</a>
             </div>
-            <div class="col-lg-2">
-                <div class="footer-head">Über uns</div>
-                <a href="/ueber-uns/" class="footer-link">Über RSL</a>
+            <div>
+                <div class="footer-head">RSL</div>
+                <a href="/ueber-uns/" class="footer-link">Über uns</a>
                 <a href="/kontakt/" class="footer-link">Kontakt</a>
-                <a href="/iptv/rsl.m3u" class="footer-link">IPTV / Smart TV</a>
-            </div>
-            <div class="col-lg-2">
-                <div class="footer-head">Rechtliches</div>
                 <a href="/impressum/" class="footer-link">Impressum</a>
                 <a href="/datenschutz/" class="footer-link">Datenschutz</a>
             </div>
         </div>
-        <hr style="border-color:var(--rsl-border);margin:2rem 0 1rem;">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <p class="mb-0" style="font-size:0.8rem;color:var(--rsl-muted);">© 2024–2025 RSL – Joel Digitals. Alle Rechte vorbehalten.</p>
-            <p class="mb-0" style="font-size:0.75rem;color:var(--rsl-muted);"><i class="bi bi-broadcast me-1" style="color:var(--rsl-blue);"></i>24/7 Live auf YouTube &amp; Twitch</p>
+        <div class="footer-bottom">
+            <span>© {% now "Y" %} RSL – Joel Digitals. Alle Rechte vorbehalten.</span>
+            <span><i class="bi bi-broadcast me-1"></i>24/7 auf Sendung</span>
         </div>
     </div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-function checkLiveStatus() {
-    fetch('/api/current/').then(r=>r.json()).then(data=>{
-        const badge = document.querySelector('.live-badge');
-        if (data.is_live && !badge) location.reload();
-    }).catch(()=>{});
-}
-setInterval(checkLiveStatus, 30000);
-</script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

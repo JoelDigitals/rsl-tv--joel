@@ -1,0 +1,303 @@
+{% load static %}<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ page_title }} – RSL Mediathek{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}RSL Mediathek – Serien, Sendungen zum Nachschauen, Nachrichten und Live-Streams. Kostenlos und jederzeit.{% endblock %}">
+    <meta name="theme-color" content="#0a1220">
+    <link rel="icon" href="{% static 'tv/img/logo-nobg.png' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+    /* ══════════════════════════════════════════════════════════════
+       RSL MEDIATHEK – eigenständiges Design-System
+    ══════════════════════════════════════════════════════════════ */
+    :root {
+        --bg:          #0a1220;
+        --bg-deep:     #060c17;
+        --surface:     #111c2e;
+        --surface-2:   #18263c;
+        --surface-3:   #1f3049;
+        --line:        #2a3c57;
+        --line-strong: #3b5375;
+        --text:        #f3f6fb;
+        --text-2:      #c8d3e1;
+        --text-3:      #9eb0c6;
+        --brand:       #0a6eb4;
+        --brand-hover: #0c80d0;
+        --accent:      #4cc3ff;
+        --live:        #e5333f;
+        --ok:          #34d399;
+        --warn:        #fbbf24;
+        --radius:      12px;
+        --radius-sm:   8px;
+        --shadow:      0 10px 30px rgba(0,0,0,.35);
+        --font:        'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --font-display:'Barlow Condensed', 'Inter', sans-serif;
+        --wrap:        1320px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font);
+        font-size: 1.0625rem;
+        line-height: 1.6;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+    }
+    main { flex: 1 0 auto; }
+    h1, h2, h3, h4, h5, h6 { color: var(--text); font-weight: 700; line-height: 1.2; }
+    p { color: var(--text-2); }
+    a { color: var(--accent); }
+    a:hover { color: #8fd9ff; }
+    img { max-width: 100%; }
+    ::selection { background: var(--brand); color: #fff; }
+    :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+    .text-muted, .text-secondary { color: var(--text-3) !important; }
+    hr { border-color: var(--line); opacity: 1; }
+
+    .skip-link { position: absolute; left: -999px; top: 8px; background: var(--accent); color: #001; padding: .5rem 1rem; border-radius: 6px; z-index: 2000; font-weight: 700; }
+    .skip-link:focus { left: 8px; }
+
+    .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 1.25rem; }
+    @media (min-width: 992px) { .wrap { padding: 0 2rem; } }
+
+    /* ── LIVE-BADGE & TICKER ────────────────────────────────── */
+    .live-badge {
+        display: inline-flex; align-items: center; gap: .4rem; background: var(--live); color: #fff;
+        font-size: .75rem; font-weight: 700; padding: .25rem .6rem; border-radius: 999px; letter-spacing: .8px;
+        text-transform: uppercase; line-height: 1.4; white-space: nowrap;
+    }
+    .live-badge::before { content: ''; width: 8px; height: 8px; background: #fff; border-radius: 50%; animation: livePulse 1.4s infinite; }
+    @keyframes livePulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+    @media (prefers-reduced-motion: reduce) { .live-badge::before { animation: none; } }
+
+    /* ── SEITENKOPF ─────────────────────────────────────────── */
+    .page-head { background: linear-gradient(180deg, var(--bg-deep), var(--bg)); border-bottom: 1px solid var(--line); padding: 2.5rem 0 2rem; }
+    .page-head h1, .page-header h1 { font-family: var(--font-display); font-size: clamp(2.1rem, 4vw, 3rem); font-weight: 800; letter-spacing: .5px; margin: 0 0 .35rem; }
+    .page-head p.lead { font-size: 1.1rem; color: var(--text-2); max-width: 720px; margin: 0; }
+    .page-header { background: linear-gradient(180deg, var(--bg-deep), var(--bg)); border-bottom: 1px solid var(--line); padding: 2.5rem 0 2rem; }
+    .breadcrumbs { display: flex; flex-wrap: wrap; gap: .4rem; font-size: .9rem; color: var(--text-3); margin-bottom: .75rem; }
+    .breadcrumbs a { color: var(--text-2); text-decoration: none; }
+    .breadcrumbs a:hover { color: var(--accent); text-decoration: underline; }
+
+    /* ── ABSCHNITTE ─────────────────────────────────────────── */
+    .section { padding: 2.25rem 0; }
+    .section + .section { padding-top: .5rem; }
+    .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1.1rem; flex-wrap: wrap; }
+    .section-head h2 { font-family: var(--font-display); font-size: clamp(1.6rem, 3vw, 2.1rem); font-weight: 800; margin: 0; letter-spacing: .3px; }
+    .section-head h2 small { display: block; font-family: var(--font); font-size: .95rem; font-weight: 500; color: var(--text-3); letter-spacing: 0; margin-top: .2rem; }
+    .section-link { color: var(--accent); text-decoration: none; font-weight: 600; white-space: nowrap; }
+    .section-link:hover { text-decoration: underline; }
+    .section-title { font-family: var(--font-display); font-size: clamp(1.8rem, 3.5vw, 2.4rem); font-weight: 800; color: var(--text); }
+    .section-title span { color: var(--accent); }
+    .section-divider { width: 56px; height: 3px; background: var(--accent); border-radius: 2px; margin: .5rem 0 1.5rem; }
+
+    /* ── KARTEN-RASTER ──────────────────────────────────────── */
+    .grid { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+    .grid-poster { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+    @media (max-width: 575px) {
+        .grid { grid-template-columns: 1fr; }
+        .grid-poster { grid-template-columns: repeat(2, 1fr); gap: .9rem; }
+    }
+    .rail { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 300px); gap: 1.1rem; overflow-x: auto; padding-bottom: .75rem; scroll-snap-type: x proximity; }
+    .rail > * { scroll-snap-align: start; }
+    .rail::-webkit-scrollbar { height: 8px; }
+    .rail::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
+
+    .media-card {
+        display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line);
+        border-radius: var(--radius); overflow: hidden; text-decoration: none; color: var(--text); height: 100%;
+        transition: transform .18s, border-color .18s, box-shadow .18s;
+    }
+    .media-card:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: var(--shadow); color: var(--text); }
+    .media-thumb { position: relative; aspect-ratio: 16 / 9; background: var(--surface-3); overflow: hidden; }
+    .media-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .media-thumb.poster { aspect-ratio: 2 / 3; }
+    .media-thumb .placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: .35rem; color: var(--text-2); font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; background: linear-gradient(135deg, #0b3d66, #142a45); text-align: center; padding: 1rem; }
+    .media-thumb .placeholder i { font-size: 2.2rem; color: var(--accent); }
+    .media-thumb .play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.35); opacity: 0; transition: opacity .18s; }
+    .media-thumb .play i { width: 58px; height: 58px; border-radius: 50%; background: rgba(255,255,255,.95); color: #0a1220; display: flex; align-items: center; justify-content: center; font-size: 1.9rem; padding-left: 4px; }
+    .media-card:hover .play, .media-card:focus-visible .play { opacity: 1; }
+    .tag-row { position: absolute; left: .6rem; right: .6rem; bottom: .6rem; display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; }
+    .tag-row.top { top: .6rem; bottom: auto; }
+    .pill { display: inline-flex; align-items: center; gap: .3rem; background: rgba(6,12,23,.88); color: #fff; font-size: .78rem; font-weight: 600; padding: .2rem .55rem; border-radius: 6px; line-height: 1.4; }
+    .pill.accent { background: var(--accent); color: #04121f; }
+    .pill.brand { background: var(--brand); color: #fff; }
+    .pill.live { background: var(--live); }
+    .media-body { padding: .9rem 1rem 1.05rem; display: flex; flex-direction: column; gap: .35rem; flex: 1; }
+    .media-kicker { font-size: .8rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .6px; }
+    .media-title { font-size: 1.05rem; font-weight: 700; line-height: 1.35; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .media-meta { font-size: .88rem; color: var(--text-3); margin-top: auto; display: flex; gap: .75rem; flex-wrap: wrap; }
+    .media-desc { font-size: .92rem; color: var(--text-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0; }
+
+    /* ── CHIPS / FILTER ─────────────────────────────────────── */
+    .chips { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .chip { display: inline-flex; align-items: center; gap: .4rem; padding: .45rem .95rem; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--text-2); font-weight: 600; font-size: .92rem; text-decoration: none; }
+    .chip:hover { border-color: var(--accent); color: var(--text); }
+    .chip.active { background: var(--accent); border-color: var(--accent); color: #04121f; }
+
+    /* ── PLAYER ─────────────────────────────────────────────── */
+    .player { position: relative; background: #000; border-radius: var(--radius); overflow: hidden; aspect-ratio: 16 / 9; border: 1px solid var(--line); box-shadow: var(--shadow); }
+    .player iframe, .player video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+    .player-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .75rem; color: var(--text-2); text-align: center; padding: 1.5rem; background: linear-gradient(135deg, #06101e, #0f2238); }
+    .player-empty i { font-size: 3rem; color: var(--accent); }
+
+    /* ── PANELS / LISTEN ────────────────────────────────────── */
+    .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+    .panel-head { padding: 1rem 1.15rem; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+    .panel-head h2, .panel-head h3 { font-size: 1.1rem; margin: 0; font-weight: 700; }
+    .panel-body { padding: 1.15rem; }
+
+    .list-row { display: flex; gap: .9rem; align-items: center; padding: .8rem 1.15rem; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--text); }
+    .list-row:last-child { border-bottom: 0; }
+    a.list-row:hover { background: var(--surface-2); color: var(--text); }
+    .list-row.current { background: rgba(76,195,255,.09); box-shadow: inset 4px 0 0 var(--accent); }
+    .list-row .time { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 3.4rem; color: var(--text); font-size: 1rem; }
+    .list-row .thumb { width: 96px; flex-shrink: 0; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden; background: var(--surface-3); }
+    .list-row .thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .list-row .info { min-width: 0; flex: 1; }
+    .list-row .title { font-weight: 600; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .list-row .sub { color: var(--text-3); font-size: .87rem; }
+    .progress-line { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; margin-top: .4rem; }
+    .progress-line span { display: block; height: 100%; background: var(--accent); }
+
+    .empty-state { text-align: center; padding: 3rem 1.5rem; background: var(--surface); border: 1px dashed var(--line-strong); border-radius: var(--radius); color: var(--text-2); }
+    .empty-state i { font-size: 2.5rem; color: var(--accent); display: block; margin-bottom: .75rem; }
+
+    /* ── BUTTONS (inkl. Bootstrap-Overrides) ─────────────────── */
+    .btn { font-weight: 600; border-radius: 10px; padding: .6rem 1.2rem; }
+    .btn-sm { padding: .4rem .85rem; font-size: .9rem; border-radius: 8px; }
+    .btn-lg { padding: .8rem 1.5rem; font-size: 1.08rem; }
+    .btn-rsl, .btn-primary { background: var(--brand); border: 1px solid var(--brand); color: #fff; display: inline-flex; align-items: center; justify-content: center; gap: .45rem; text-decoration: none; }
+    .btn-rsl:hover, .btn-primary:hover, .btn-rsl:focus { background: var(--brand-hover); border-color: var(--brand-hover); color: #fff; }
+    .btn-outline-rsl, .btn-ghost { background: transparent; border: 1px solid var(--line-strong); color: var(--text); display: inline-flex; align-items: center; justify-content: center; gap: .45rem; text-decoration: none; }
+    .btn-outline-rsl:hover, .btn-ghost:hover { background: var(--surface-2); border-color: var(--accent); color: var(--text); }
+    .btn-outline-light { color: var(--text); border-color: var(--line-strong); }
+    .btn-outline-light:hover { background: var(--surface-3); color: #fff; border-color: var(--accent); }
+    .btn[disabled], .btn.disabled { opacity: .45; }
+
+    /* ── BOOTSTRAP-ANPASSUNGEN (Formulare, Karten, Tabellen) ─── */
+    .card, .rsl-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); color: var(--text); }
+    .card-header, .card-footer { background: var(--surface-2); border-color: var(--line); color: var(--text); }
+    .form-control, .form-select { background: var(--bg-deep) !important; border: 1px solid var(--line-strong) !important; color: var(--text) !important; border-radius: 10px; padding: .7rem .9rem; font-size: 1rem; }
+    .form-control::placeholder { color: var(--text-3); }
+    .form-control:focus, .form-select:focus { border-color: var(--accent) !important; box-shadow: 0 0 0 .2rem rgba(76,195,255,.25) !important; }
+    .form-label, label { color: var(--text); font-weight: 600; }
+    .form-text, .helptext { color: var(--text-3) !important; }
+    .form-check-input { background-color: var(--bg-deep); border-color: var(--line-strong); }
+    .table { --bs-table-bg: transparent; --bs-table-color: var(--text); --bs-table-border-color: var(--line); color: var(--text); }
+    .alert { border-radius: 10px; font-weight: 500; }
+    .alert-success { background: rgba(52,211,153,.14); border-color: rgba(52,211,153,.5); color: #c9f7e5; }
+    .alert-danger { background: rgba(229,51,63,.14); border-color: rgba(229,51,63,.5); color: #ffd6d9; }
+    .alert-info { background: rgba(76,195,255,.12); border-color: rgba(76,195,255,.5); color: #d8f1ff; }
+    .alert-warning { background: rgba(251,191,36,.14); border-color: rgba(251,191,36,.5); color: #fff0c4; }
+    .btn-close { filter: invert(1); }
+
+    /* Ältere Seiten-Bausteine */
+    .program-row { background: var(--surface); border-bottom: 1px solid var(--line); padding: .85rem 1rem; display: flex; align-items: center; gap: .75rem; }
+    .program-row.current { box-shadow: inset 4px 0 0 var(--accent); background: rgba(76,195,255,.09); }
+    .program-time { font-weight: 700; font-size: 1.05rem; color: var(--text); min-width: 70px; }
+
+    /* ── MEDIATHEK-KOPF ─────────────────────────────────────── */
+    .mt-header { position: sticky; top: 0; z-index: 1000; background: rgba(6,12,23,.96); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+    .mt-top { display: flex; align-items: center; gap: 1rem; height: 66px; }
+    .mt-brand { display: flex; align-items: center; gap: .7rem; text-decoration: none; color: var(--text); flex-shrink: 0; }
+    .mt-brand:hover { color: var(--text); }
+    .mt-brand img { height: 38px; width: auto; }
+    .mt-brand .name { font-family: var(--font-display); font-weight: 800; font-size: 1.55rem; letter-spacing: 1px; line-height: 1; }
+    .mt-search { position: relative; margin-left: auto; flex: 0 1 340px; }
+    .mt-search input { width: 100%; background: var(--surface); border: 1px solid var(--line); color: var(--text); border-radius: 999px; padding: .55rem 1rem .55rem 2.5rem; font-size: .97rem; }
+    .mt-search input::placeholder { color: var(--text-3); }
+    .mt-search input:focus { outline: none; border-color: var(--accent); }
+    .mt-search i { position: absolute; left: .95rem; top: 50%; transform: translateY(-50%); color: var(--text-3); }
+    .mt-tv { flex-shrink: 0; }
+    @media (max-width: 640px) { .mt-tv span { display: none; } .mt-brand .name { font-size: 1.3rem; } .mt-brand img { height: 30px; } .mt-search { flex: 1 1 auto; min-width: 0; } }
+
+    .mt-subnav { border-top: 1px solid var(--line); }
+    .mt-subnav .wrap { display: flex; gap: .25rem; overflow-x: auto; scrollbar-width: none; }
+    .mt-subnav .wrap::-webkit-scrollbar { display: none; }
+    .mt-subnav a { flex-shrink: 0; display: inline-flex; align-items: center; gap: .45rem; padding: .8rem .95rem; color: var(--text-2); text-decoration: none; font-weight: 600; font-size: .97rem; border-bottom: 3px solid transparent; }
+    .mt-subnav a:hover { color: var(--text); }
+    .mt-subnav a.active { color: var(--text); border-bottom-color: var(--accent); }
+
+    /* ── INHALTS-BAUSTEINE ──────────────────────────────────── */
+    .prose { max-width: 760px; }
+    .prose p { font-size: 1.08rem; line-height: 1.75; color: var(--text-2); margin-bottom: 1.1rem; }
+    .meta-line { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; color: var(--text-3); font-size: .95rem; align-items: center; }
+    .meta-line i { color: var(--accent); margin-right: .3rem; }
+    .layout-side { display: grid; gap: 2rem; grid-template-columns: minmax(0, 1fr) 360px; align-items: start; }
+    @media (max-width: 1100px) { .layout-side { grid-template-columns: minmax(0, 1fr); } }
+    .watch-title { font-family: var(--font-display); font-size: clamp(1.8rem, 3.4vw, 2.5rem); font-weight: 800; margin: 1.25rem 0 .5rem; line-height: 1.15; }
+    .ep-nav { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 1.25rem; }
+
+    /* ── FUSSZEILE ──────────────────────────────────────────── */
+    .mt-footer { background: var(--bg-deep); border-top: 1px solid var(--line); margin-top: 4rem; padding: 2rem 0; flex-shrink: 0; }
+    .mt-footer .wrap { display: flex; flex-wrap: wrap; gap: 1rem 2rem; align-items: center; justify-content: space-between; color: var(--text-3); font-size: .92rem; }
+    .mt-footer nav { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; }
+    .mt-footer a { color: var(--text-2); text-decoration: none; }
+    .mt-footer a:hover { color: var(--accent); text-decoration: underline; }
+    {% block extra_styles %}{% endblock %}
+    </style>
+</head>
+<body>
+<a href="#inhalt" class="skip-link">Zum Inhalt springen</a>
+
+<header class="mt-header">
+    <div class="wrap mt-top">
+        <a class="mt-brand" href="{% url 'mediathek:home' %}" aria-label="RSL Mediathek Startseite">
+            <img src="{% static 'tv/img/logo-nobg.png' %}" alt="RSL" onerror="this.remove()">
+            <span class="name">Mediathek</span>
+        </a>
+        <form class="mt-search" action="{% url 'mediathek:search' %}" method="get" role="search">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input type="search" name="q" value="{{ search_query|default:'' }}" placeholder="Serien, Sendungen, Themen …" aria-label="Mediathek durchsuchen">
+        </form>
+        <a href="/" class="btn btn-ghost btn-sm mt-tv"><i class="bi bi-broadcast"></i><span>Live-TV</span></a>
+    </div>
+    <nav class="mt-subnav" aria-label="Mediathek-Bereiche">
+        <div class="wrap">
+            {% url 'mediathek:home' as u_home %}{% url 'mediathek:series_list' as u_series %}{% url 'mediathek:library_list' as u_lib %}
+            {% url 'mediathek:news_list' as u_news %}{% url 'mediathek:live_overview' as u_live %}{% url 'mediathek:video_list' as u_videos %}{% url 'mediathek:playlist_list' as u_pl %}
+            <a href="{{ u_home }}" class="{% if request.path == u_home %}active{% endif %}"><i class="bi bi-grid"></i>Übersicht</a>
+            <a href="{{ u_series }}" class="{% if u_series in request.path or '/reihe/' in request.path %}active{% endif %}"><i class="bi bi-film"></i>Serien</a>
+            <a href="{{ u_lib }}" class="{% if u_lib in request.path or '/ausgabe/' in request.path or '/sendung/' in request.path %}active{% endif %}"><i class="bi bi-clock-history"></i>Sendung verpasst</a>
+            <a href="{{ u_news }}" class="{% if u_news in request.path %}active{% endif %}"><i class="bi bi-newspaper"></i>Nachrichten</a>
+            <a href="{{ u_live }}" class="{% if u_live in request.path or '/studio/' in request.path %}active{% endif %}"><i class="bi bi-broadcast"></i>Live</a>
+            <a href="{{ u_videos }}" class="{% if u_videos in request.path %}active{% endif %}"><i class="bi bi-play-btn"></i>Videos</a>
+            <a href="{{ u_pl }}" class="{% if u_pl in request.path %}active{% endif %}"><i class="bi bi-collection"></i>Playlists</a>
+        </div>
+    </nav>
+</header>
+
+<main id="inhalt">
+{% block mediathek_content %}{% endblock %}
+</main>
+
+<footer class="mt-footer">
+    <div class="wrap">
+        <span>© {% now "Y" %} RSL Mediathek – Joel Digitals</span>
+        <nav aria-label="Fußzeile">
+            <a href="/">Live-TV</a>
+            <a href="/programm/">Programm</a>
+            <a href="/impressum/">Impressum</a>
+            <a href="/datenschutz/">Datenschutz</a>
+        </nav>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

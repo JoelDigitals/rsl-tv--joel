@@ -126,18 +126,15 @@
                 
                 <!-- RSL Studio Live Embed (ersetzt YouTube) -->
                 <div id="rsl-stream" class="stream-embed">
-                    <iframe 
-                        src="https://rsl-studio-live.lovable.app/embed"
-                        allowfullscreen
-                        allow="autoplay; fullscreen">
-                    </iframe>
+                    <iframe src="https://rsl-studio-live.lovable.app/embed" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen style="width:100%;aspect-ratio:16/9;border:0"></iframe>
+
                 </div>
                 
                 <!-- Twitch Stream -->
                 <div id="twitch-stream" class="stream-embed" style="display: none;">
                     <iframe 
                         src="https://player.twitch.tv/?channel={{ twitch_channel }}&parent={{ request.get_host }}&autoplay=true" 
-                        allowfullscreen>
+                        allowfullscreen style="width:100%;aspect-ratio:16/9;border:0">
                     </iframe>
                 </div>
             </div>

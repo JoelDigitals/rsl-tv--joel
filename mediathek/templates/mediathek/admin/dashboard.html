@@ -1,0 +1,100 @@
+{% extends "mediathek/admin/base.html" %}
+
+{% block content %}
+<!-- STATS -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.videos_count }}</div>
+        <div class="stat-label">Videos</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.series_count }}</div>
+        <div class="stat-label">Serien</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.playlists_count }}</div>
+        <div class="stat-label">Playlists</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--rsl-live);">{{ stats.live_now }}</div>
+        <div class="stat-label">🔴 Live Jetzt</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.total_views|default:0 }}</div>
+        <div class="stat-label">Gesamt-Aufrufe</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.categories_count }}</div>
+        <div class="stat-label">Kategorien</div>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(400px, 1fr)); gap:1.5rem;">
+    <!-- LIVE STREAMS -->
+    {% if live_streams %}
+    <div class="card">
+        <div class="card-header">🔴 Live Jetzt</div>
+        {% for stream in live_streams %}
+        <div style="padding:1rem 0; border-bottom:1px solid var(--rsl-border);">
+            <div style="font-weight:700;">{{ stream.title }}</div>
+            <div style="color:var(--rsl-muted); font-size:0.9rem; margin-top:0.5rem;">
+                <span class="badge badge-live">LIVE</span>
+                👥 {{ stream.get_current_viewers }} Zuschauer
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- ABLAUFENDE INHALTE -->
+    {% if expiring_soon %}
+    <div class="card">
+        <div class="card-header">⏰ Läuft bald ab</div>
+        {% for item in expiring_soon %}
+        <div style="padding:1rem 0; border-bottom:1px solid var(--rsl-border);">
+            <div style="font-weight:700;">{{ item.title }}</div>
+            <div style="color:var(--rsl-muted); font-size:0.9rem; margin-top:0.5rem;">
+                <span class="badge badge-warning">{{ item.type }}</span>
+                {{ item.expires|date:"d.m.Y H:i" }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- NEUESTE VIDEOS -->
+    <div class="card">
+        <div class="card-header">🎬 Neueste Videos</div>
+        {% for video in recent_videos %}
+        <div style="padding:1rem 0; border-bottom:1px solid var(--rsl-border);">
+            <div style="font-weight:700;">{{ video.title }}</div>
+            <div style="color:var(--rsl-muted); font-size:0.9rem; margin-top:0.5rem;">
+                {{ video.created_at|date:"d.m.Y H:i" }} · 👁️ {{ video.views }} Aufrufe
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div style="margin-top:2rem;">
+    <div class="card">
+        <div class="card-header">⚡ Schnellaktionen</div>
+        <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+            <a href="{% url 'mediathek:custom_admin_video_edit' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Neues Video
+            </a>
+            <a href="{% url 'mediathek:custom_admin_playlist_edit' %}" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Neue Playlist
+            </a>
+            <a href="/admin/" class="btn btn-outline">
+                <i class="bi bi-gear"></i> Django Admin
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

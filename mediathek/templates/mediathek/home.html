@@ -1,0 +1,166 @@
+{% extends "mediathek/base.html" %}
+{% load mediathek_tags %}
+
+{% block extra_styles %}
+.mt-hero { padding: 2rem 0 1rem; }
+.hero-grid { display: grid; gap: 1.5rem; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+@media (max-width: 991px) { .hero-grid { grid-template-columns: minmax(0, 1fr); } }
+.hero-feature { position: relative; border-radius: var(--radius); overflow: hidden; min-height: 320px; display: flex; align-items: flex-end; text-decoration: none; color: #fff; border: 1px solid var(--line); background: var(--surface-3); }
+.hero-grid > .hero-feature { min-width: 0; }
+@media (min-width: 992px) { .hero-feature { aspect-ratio: 16 / 9; } }
+.hero-feature img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.hero-feature::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(6,12,23,0) 25%, rgba(6,12,23,.92) 80%); }
+.hero-feature .inner { position: relative; z-index: 1; padding: 1.5rem; }
+.hero-feature h1 { font-family: var(--font-display); font-size: clamp(1.8rem, 3.4vw, 2.6rem); font-weight: 800; margin: .4rem 0 .5rem; color: #fff; line-height: 1.1; }
+.hero-feature p { color: #e4ebf4; margin: 0 0 1rem; max-width: 620px; }
+.hero-feature:hover { color: #fff; }
+.hero-feature:hover .btn-rsl { background: var(--brand-hover); }
+.cat-strip { padding: 1.25rem 0 .25rem; }
+{% endblock %}
+
+{% block mediathek_content %}
+<section class="mt-hero">
+    <div class="wrap">
+        <div class="hero-grid">
+            {# Großes Feature: was läuft gerade / neueste Sendung #}
+            {% if current_show %}
+            <a class="hero-feature" href="/">
+                {% if current_show.thumbnail %}<img src="{{ current_show.thumbnail|hires }}" alt="" onerror="this.onerror=null;this.src='{{ current_show.thumbnail }}'">{% endif %}
+                <div class="inner">
+                    <span class="live-badge">Jetzt im TV</span>
+                    <h1>{{ current_show.short_title }}</h1>
+                    <p>{% if current_show.series_title %}{{ current_show.series_title }} · {% endif %}{{ current_show.start|time:"H:i" }} – {{ current_show.end|time:"H:i" }} Uhr</p>
+                    <span class="btn btn-rsl"><i class="bi bi-broadcast"></i>Live einschalten</span>
+                </div>
+            </a>
+            {% elif library %}
+            {% with i=library.0 %}
+            <a class="hero-feature" href="{% url 'mediathek:library_player' i.id %}">
+                {% if i.thumbnail %}<img src="{{ i.thumbnail|hires }}" alt="" onerror="this.onerror=null;this.src='{{ i.thumbnail }}'">{% endif %}
+                <div class="inner">
+                    <span class="pill accent">Neu in der Mediathek</span>
+                    <h1>{{ i.short_title }}</h1>
+                    <p>{% if i.series_title %}{{ i.series_title }} · {% endif %}{{ i.aired_at|date:"d.m.Y" }}</p>
+                    <span class="btn btn-rsl"><i class="bi bi-play-fill"></i>Jetzt ansehen</span>
+                </div>
+            </a>
+            {% endwith %}
+            {% else %}
+            <div class="hero-feature" style="background:linear-gradient(135deg,#0b3d66,#111c2e);">
+                <div class="inner">
+                    <h1>RSL Mediathek</h1>
+                    <p>Serien, Sendungen und Nachrichten – jederzeit und kostenlos.</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {# Daneben: Gleich im TV #}
+            <div class="panel">
+                <div class="panel-head">
+                    <h2><i class="bi bi-calendar3 me-2" style="color:var(--accent)"></i>Gleich im TV</h2>
+                    <a href="/programm/" class="section-link" style="font-size:.92rem">Programm</a>
+                </div>
+                {% for s in upcoming %}
+                <div class="list-row">
+                    <span class="time">{{ s.start|time:"H:i" }}</span>
+                    {% if s.thumbnail %}<span class="thumb"><img src="{{ s.thumbnail }}" alt="" loading="lazy"></span>{% endif %}
+                    <span class="info">
+                        <span class="title">{{ s.short_title }}</span>
+                        <span class="sub">{% if s.series_title %}{{ s.series_title }}{% else %}{{ s.category }}{% endif %}</span>
+                    </span>
+                </div>
+                {% empty %}
+                <div class="panel-body"><p class="mb-0">Das Programm wird gerade aktualisiert.</p></div>
+                {% endfor %}
+                {% if studios_live or live_streams %}
+                <div class="panel-body" style="border-top:1px solid var(--line)">
+                    {% for st in studios_live %}
+                    <a href="{% url 'mediathek:studio_player' st.id %}" class="btn btn-ghost w-100 mb-2 justify-content-start"><span class="live-badge">Live</span>{{ st.name }}</a>
+                    {% endfor %}
+                    {% for ls in live_streams %}
+                    <a href="{% url 'mediathek:live_player' ls.slug %}" class="btn btn-ghost w-100 mb-2 justify-content-start"><span class="live-badge">Live</span>{{ ls.title }}</a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if api_categories or categories %}
+        <div class="cat-strip">
+            <div class="chips" aria-label="Rubriken">
+                {% for c in api_categories %}<a class="chip" href="{% url 'mediathek:api_category' c.slug %}">{{ c.name }}</a>{% endfor %}
+                {% for c in categories %}<a class="chip" href="{% url 'mediathek:category_detail' c.slug %}">{{ c.name }}</a>{% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+{# SERIEN – eigene Serien sind immer dabei #}
+<section class="section">
+    <div class="wrap">
+        <div class="section-head">
+            <h2>Serien<small>Eigene RSL-Serien und Reihen aus dem Programm</small></h2>
+            <a href="{% url 'mediathek:series_list' %}" class="section-link">Alle Serien <i class="bi bi-arrow-right"></i></a>
+        </div>
+        {% if series_cards %}
+            {% include "mediathek/partials/series_grid.html" with cards=series_cards %}
+        {% else %}
+            <div class="empty-state"><i class="bi bi-film"></i>Noch keine Serien verfügbar.</div>
+        {% endif %}
+    </div>
+</section>
+
+{% if library %}
+<section class="section">
+    <div class="wrap">
+        <div class="section-head">
+            <h2>Sendung verpasst?<small>{{ library_total }} Sendung{{ library_total|pluralize:"en" }} zum Nachschauen</small></h2>
+            <a href="{% url 'mediathek:library_list' %}" class="section-link">Alle anzeigen <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="rail">
+            {% for i in library %}{% include "mediathek/partials/card_library.html" %}{% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% if news %}
+<section class="section">
+    <div class="wrap">
+        <div class="section-head">
+            <h2>Nachrichten<small>Alle Ausgaben der letzten 14 Tage</small></h2>
+            <a href="{% url 'mediathek:news_list' %}" class="section-link">Alle Nachrichten <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="grid">
+            {% for n in news %}{% include "mediathek/partials/card_news.html" %}{% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% if singles %}
+<section class="section">
+    <div class="wrap">
+        <div class="section-head"><h2>Einzelsendungen<small>Musik, Story Times und mehr</small></h2></div>
+        <div class="rail">
+            {% for p in singles %}{% include "mediathek/partials/card_program.html" %}{% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% if videos %}
+<section class="section">
+    <div class="wrap">
+        <div class="section-head">
+            <h2>Neueste Videos</h2>
+            <a href="{% url 'mediathek:video_list' %}" class="section-link">Alle Videos <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="grid">
+            {% for v in videos %}{% include "mediathek/partials/card_video.html" %}{% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

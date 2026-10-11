@@ -1,0 +1,60 @@
+{% extends "mediathek/admin/base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">{% if video %}Video bearbeiten{% else %}Neues Video{% endif %}</div>
+    
+    <form method="post" style="padding:1rem 0;">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label class="form-label">Titel *</label>
+            <input type="text" name="title" class="form-input" value="{{ video.title|default:'' }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Beschreibung</label>
+            <textarea name="description" class="form-textarea">{{ video.description|default:'' }}</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Video-URL (YouTube, Vimeo, etc.) *</label>
+            <input type="url" name="source_url" class="form-input" value="{{ video.source_url|default:'' }}" required placeholder="https://www.youtube.com/watch?v=xxxxx">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Kategorie</label>
+            <select name="category" class="form-select">
+                <option value="">Keine Kategorie</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if video and video.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Verfügbar bis (Optional)</label>
+            <input type="datetime-local" name="available_until" class="form-input" value="{% if video.available_until %}{{ video.available_until|date:'Y-m-d\TH:i' }}{% endif %}">
+            <small style="color:var(--rsl-muted); display:block; margin-top:0.5rem;">
+                Nach diesem Datum wird das Video automatisch ausgeblendet
+            </small>
+        </div>
+        
+        <div class="form-group">
+            <div class="form-check">
+                <input type="checkbox" name="is_active" id="is_active" {% if not video or video.is_active %}checked{% endif %}>
+                <label for="is_active">Aktiv</label>
+            </div>
+        </div>
+        
+        <div style="display:flex; gap:1rem; margin-top:2rem;">
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check-circle"></i> Speichern
+            </button>
+            <a href="{% url 'mediathek:custom_admin_videos' %}" class="btn btn-outline">
+                <i class="bi bi-x-circle"></i> Abbrechen
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

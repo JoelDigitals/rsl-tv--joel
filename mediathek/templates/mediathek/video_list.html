@@ -1,0 +1,25 @@
+{% extends "mediathek/base.html" %}
+
+{% block mediathek_content %}
+<header class="page-head">
+    <div class="wrap">
+        <h1>Videos</h1>
+        <p class="lead">Clips, Beiträge und Specials aus der RSL-Redaktion.</p>
+    </div>
+</header>
+<section class="section">
+    <div class="wrap">
+        {% if categories %}
+        <div class="chips mb-4" aria-label="Nach Kategorie filtern">
+            <a class="chip{% if not current_category %} active{% endif %}" href="{% url 'mediathek:video_list' %}">Alle</a>
+            {% for c in categories %}<a class="chip{% if current_category == c.slug %} active{% endif %}" href="?category={{ c.slug }}">{{ c.name }}</a>{% endfor %}
+        </div>
+        {% endif %}
+        {% if videos %}
+        <div class="grid">{% for v in videos %}{% include "mediathek/partials/card_video.html" %}{% endfor %}</div>
+        {% else %}
+        <div class="empty-state"><i class="bi bi-play-btn"></i>Keine Videos gefunden. Schau doch bei den <a href="{% url 'mediathek:series_list' %}">Serien</a> oder unter <a href="{% url 'mediathek:library_list' %}">Sendung verpasst</a> vorbei.</div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "mediathek/base.html" %}
+
+{% block mediathek_content %}
+<section class="section">
+    <div class="wrap">
+        <nav class="breadcrumbs" aria-label="Brotkrumen">
+            <a href="{% url 'mediathek:home' %}">Mediathek</a><span>/</span><a href="{% url 'mediathek:live_overview' %}">Live</a>
+        </nav>
+        <div class="layout-side">
+            <div>
+                <div class="player">
+                    {% if studio.embed_url %}
+                    <iframe src="{{ studio.embed_url }}" title="{{ studio.name }}" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
+                    {% else %}
+                    <div class="player-empty"><i class="bi bi-broadcast"></i><p class="mb-0">Dieses Studio sendet gerade nicht.</p></div>
+                    {% endif %}
+                </div>
+                <h1 class="watch-title">{{ studio.scheduled_title|default:studio.name }}</h1>
+                <div class="meta-line mb-3">
+                    {% if studio.is_active %}<span class="live-badge">Live</span>{% else %}<span class="pill">Offline</span>{% endif %}
+                    <span><i class="bi bi-camera-video"></i>Studio {{ studio.name }}</span>
+                    {% if studio.is_active and studio.live_started_at %}<span><i class="bi bi-clock"></i>Live seit {{ studio.live_started_at|time:"H:i" }} Uhr</span>{% endif %}
+                    {% if not studio.is_active and studio.scheduled_start_at %}<span><i class="bi bi-calendar-event"></i>Geplant: {{ studio.scheduled_start_at|date:"d.m.Y, H:i" }} Uhr</span>{% endif %}
+                </div>
+                {% if studio.description %}<div class="prose"><p>{{ studio.description }}</p></div>{% endif %}
+            </div>
+            {% if other_studios %}
+            <aside class="panel" aria-label="Weitere Studios">
+                <div class="panel-head"><h2>Weitere Studios</h2></div>
+                {% for s in other_studios %}
+                <a href="{% url 'mediathek:studio_player' s.id %}" class="list-row">
+                    <span class="info"><span class="title">{{ s.name }}</span><span class="sub">{% if s.is_active %}Sendet gerade{% else %}Offline{% endif %}</span></span>
+                    {% if s.is_active %}<span class="live-badge">Live</span>{% endif %}
+                </a>
+                {% endfor %}
+            </aside>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
