@@ -214,7 +214,7 @@ def send_new_booking_admin(booking):
             <tr><td style="padding:8px;font-weight:bold;">Betrag:</td><td style="padding:8px;color:#e63946;font-weight:bold;">{booking.price} €</td></tr>
             <tr><td style="padding:8px;font-weight:bold;">Video-URL:</td><td style="padding:8px;"><a href="{booking.video_url}">{booking.video_url}</a></td></tr>
         </table>
-        <p><a href="https://rsl-tv.onrender.com/admin/tv/adbooking/{booking.id}/change/" style="background:#e63946;color:white;padding:10px 20px;text-decoration:none;border-radius:4px;">Im Admin öffnen</a></p>
+        <p><a href="{settings.SITE_URL}/admin/tv/adbooking/{booking.id}/change/" style="background:#e63946;color:white;padding:10px 20px;text-decoration:none;border-radius:4px;">Im Admin öffnen</a></p>
     </div>
     """
     return send_mailjet(
