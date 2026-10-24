@@ -6,19 +6,28 @@ Fehlern leere Daten statt einer Exception. Die Mediathek funktioniert damit
 auch dann, wenn die API einmal nicht erreichbar ist – lokale Serien und
 Videos werden immer angezeigt.
 """
+import hashlib
+import json
 import logging
+import os
 import re
 from collections import OrderedDict
 from datetime import datetime
 
 import requests
 from django.core.cache import cache
+from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.text import slugify
 
 logger = logging.getLogger(__name__)
 
-API_URL = "https://wknwmmjnecnrffucrprd.supabase.co/functions/v1/broadcast-api"
+# Standard: Supabase-Edge-Function. Überschreibbar per Umgebungsvariable
+# BROADCAST_API_URL, falls die API woanders läuft (z. B. hinter der eigenen Domain).
+API_URL = os.environ.get(
+    "BROADCAST_API_URL",
+    "https://wknwmmjnecnrffucrprd.supabase.co/functions/v1/broadcast-api",
+)
 TIMEOUT = 8
 MAX_LIMIT = 100
 UUID_RE = re.compile(r"^[0-9a-fA-F-]{36}$")
@@ -357,6 +366,51 @@ def get_studio(studio_id):
 def get_branding():
     data = _cached("rslapi:branding", CACHE_TTL["branding"], lambda: _fetch("branding", limit=1), [])
     return data[0] if data else {}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Öffentlicher JSON-Endpunkt ( eigener Server )
+# ─────────────────────────────────────────────────────────────────────────────
+
+_PROXY_RESOURCES = {
+    "broadcast", "studios", "studio", "schedule", "news",
+    "library", "programs", "edition", "branding",
+}
+
+
+def broadcast_api_proxy(request):
+    """Stellt die Broadcast-API unter der eigenen Domain bereit –
+    identisches Antwortformat wie die Supabase-Edge-Function ({"data": ...}).
+    Beispiele:
+      /api/broadcast-api/?resource=programs
+      /api/broadcast-api/?resource=edition&id=<uuid>
+    """
+    params = {}
+    for key in ("resource", "limit", "offset", "id"):
+        value = request.GET.get(key)
+        if value:
+            params[key] = value
+
+    resource = params.get("resource", "")
+    if resource not in _PROXY_RESOURCES:
+        return JsonResponse(
+            {"error": "Unbekannte resource"}, status=400
+        )
+
+    raw = json.dumps(params, sort_keys=True)
+    key = "rslapi:proxy:" + hashlib.sha256(raw.encode()).hexdigest()
+    data = cache.get(key)
+    if data is None:
+        try:
+            r = requests.get(API_URL, params=params, timeout=TIMEOUT)
+            r.raise_for_status()
+            data = r.json()
+        except (requests.RequestException, ValueError) as e:
+            logger.warning("Broadcast-API-Proxy %s fehlgeschlagen: %s", resource, e)
+            data = {"data": []}
+        cache.set(key, data, 20)
+
+    return JsonResponse(data, safe=False)
 
 
 def search(query):

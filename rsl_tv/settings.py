@@ -17,8 +17,16 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     'localhost', '127.0.0.1', '.render.com', '.onrender.com', 'rsl-tv.onrender.com',
+    'tv.85-215-240-180.sslip.io',
     os.environ.get('RENDER_EXTERNAL_HOSTNAME', ''),
 ]
+
+# Öffentliche Basis-URL der Website (gammautz für Links in E-Mails, APIs etc.)
+SITE_URL = os.environ.get('SITE_URL', 'https://tv.85-215-240-180.sslip.io')
+
+# Für HTTPS hinter Reverse-Proxy (sslip.io Domain auf eigenem Server)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+CSRF_TRUSTED_ORIGINS = [SITE_URL]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
