@@ -262,8 +262,13 @@ def quellen(request):
     from .models import Quelle
     labels = dict(Quelle.KATEGORIEN)
     rang = {key: i for i, (key, _) in enumerate(Quelle.KATEGORIEN)}
-    quellen = sorted(Quelle.objects.filter(is_active=True),
-                     key=lambda q: (rang.get(q.kategorie, 99), q.reihenfolge, q.name.lower()))
+    from django.db import DatabaseError
+    try:
+        quellen = sorted(Quelle.objects.filter(is_active=True),
+                         key=lambda q: (rang.get(q.kategorie, 99), q.reihenfolge, q.name.lower()))
+    except DatabaseError:
+        # Tabelle fehlt (Migration noch nicht gelaufen) – Sendungsquellen trotzdem zeigen
+        quellen = []
     gruppen = []
     for q in quellen:
         if not gruppen or gruppen[-1]['key'] != q.kategorie:
