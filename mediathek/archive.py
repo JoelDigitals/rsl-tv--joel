@@ -13,7 +13,7 @@ SYNC_INTERVAL Sekunden) und per Befehl: python manage.py sync_mediathek
 import logging
 
 from django.core.cache import cache
-from django.db import DatabaseError, transaction
+from django.db import DatabaseError, connection, transaction
 from django.utils import timezone
 
 from rsl_tv import broadcast_api as rsl_api
@@ -25,8 +25,29 @@ SYNC_INTERVAL = 120
 _SYNC_KEY = "mediathek:archive:last-sync"
 
 
+def available():
+    """True, wenn die Archiv-Tabelle existiert (Migration 0003 ausgeführt).
+
+    Fehlt sie, zeigt die Mediathek die Sendungen direkt aus der API an,
+    statt mit einem Datenbankfehler abzustürzen.
+    """
+    ok = cache.get("mediathek:archive:available")
+    if ok is None:
+        try:
+            ok = ArchivedBroadcast._meta.db_table in connection.introspection.table_names()
+        except DatabaseError:
+            ok = False
+        if not ok:
+            logger.error("Tabelle %s fehlt – bitte 'python manage.py migrate' ausführen.",
+                         ArchivedBroadcast._meta.db_table)
+        cache.set("mediathek:archive:available", ok, 300 if ok else 60)
+    return ok
+
+
 def sync(force=False):
     """Gleicht API und Archiv ab. Gibt (neu_sendungen, neu_live, beendet) zurück."""
+    if not available():
+        return 0, 0, 0
     if not force and cache.get(_SYNC_KEY):
         return 0, 0, 0
     cache.set(_SYNC_KEY, True, SYNC_INTERVAL)

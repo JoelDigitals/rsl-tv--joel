@@ -85,7 +85,13 @@ def home(request):
     broadcast = rsl_api.get_broadcast()
     studios_live = [s for s in rsl_api.get_studios() if s['is_active']]
     archive.sync()
-    sendungen = archive.sendungen()
+    if archive.available():
+        sendungen = archive.sendungen()
+        library, library_total = archive.as_items(sendungen[:12]), sendungen.count()
+        live_recordings = archive.as_items(archive.live_streams()[:8])
+    else:
+        api_library = rsl_api.get_library()
+        library, library_total, live_recordings = api_library[:12], len(api_library), []
     news = rsl_api.get_news()
     api_series = rsl_api.get_api_series()
 
@@ -97,9 +103,9 @@ def home(request):
         studios_live=studios_live,
         live_streams=LiveStream.objects.filter(is_active=True, is_live=True),
         series_cards=_series_cards(_local_series(), _tv_series(), api_series),
-        library=archive.as_items(sendungen[:12]),
-        library_total=sendungen.count(),
-        live_recordings=archive.as_items(archive.live_streams()[:8]),
+        library=library,
+        library_total=library_total,
+        live_recordings=live_recordings,
         news=news[:6],
         singles=rsl_api.get_single_programs()[:12],
         videos=Video.objects.filter(is_active=True).order_by('-published_at')[:12],
@@ -242,6 +248,8 @@ def program_player(request, program_id):
 
 def library_list(request):
     archive.sync()
+    if not archive.available():
+        return _library_list_from_api(request)
     qs = archive.sendungen()
     reihen = sorted(set(qs.exclude(series_title='').values_list('series_title', flat=True)))
     reihe = request.GET.get('reihe', '')
@@ -260,16 +268,36 @@ def library_list(request):
     return render(request, 'mediathek/library_list.html', context)
 
 
+def _library_list_from_api(request):
+    """Fallback ohne Archiv-Tabelle: Sendungen direkt aus der API."""
+    items = rsl_api.get_library()
+    reihe = request.GET.get('reihe', '')
+    reihen = sorted({i['series_title'] for i in items if i['series_title']})
+    if reihe:
+        items = [i for i in items if slugify(i['series_title']) == reihe]
+    context = _mediathek_context(
+        page_title='Sendung verpasst?',
+        items=items,
+        total=len(items),
+        reihen=[{'slug': slugify(r), 'name': r} for r in reihen],
+        current_reihe=reihe,
+    )
+    return render(request, 'mediathek/library_list.html', context)
+
+
 def library_player(request, item_id):
     item_id = str(item_id)
-    obj = archive.sendungen().filter(api_id=item_id).first()
+    obj = archive.sendungen().filter(api_id=item_id).first() if archive.available() else None
     item = archive.as_item(obj) if obj else rsl_api.get_library_item(item_id)
     if not item:
         # Nachrichten-Ausgaben haben ebenfalls eine Ausgaben-ID
         if rsl_api.get_edition(item_id):
             return redirect('mediathek:edition_detail', edition_id=item_id)
         raise Http404("Ausgabe nicht gefunden")
-    more = archive.as_items(archive.sendungen().exclude(api_id=item_id)[:12])
+    if archive.available():
+        more = archive.as_items(archive.sendungen().exclude(api_id=item_id)[:12])
+    else:
+        more = [i for i in rsl_api.get_library() if i['id'] != item_id][:12]
     context = _mediathek_context(page_title=item['title'], item=item, more=more)
     return render(request, 'mediathek/library_player.html', context)
 
@@ -333,8 +361,8 @@ def live_overview(request):
         broadcast=rsl_api.get_broadcast(),
         current_show=current,
         upcoming=upcoming,
-        recordings=archive.as_items(archive.live_streams()[:12]),
-        recordings_total=archive.live_streams().count(),
+        recordings=archive.as_items(archive.live_streams()[:12]) if archive.available() else [],
+        recordings_total=archive.live_streams().count() if archive.available() else 0,
         past_streams=_past_local_streams()[:12],
     )
     return render(request, 'mediathek/live_overview.html', context)
@@ -350,6 +378,8 @@ def _past_local_streams():
 
 def live_recordings(request):
     archive.sync()
+    if not archive.available():
+        raise Http404("Live-Stream-Archiv noch nicht eingerichtet")
     page = Paginator(archive.live_streams(), 36).get_page(request.GET.get('seite'))
     context = _mediathek_context(
         page_title='Live-Streams',
@@ -361,6 +391,8 @@ def live_recordings(request):
 
 
 def live_recording_player(request, pk):
+    if not archive.available():
+        raise Http404("Live-Stream-Archiv noch nicht eingerichtet")
     obj = get_object_or_404(archive.live_streams(), pk=pk)
     item = archive.as_item(obj)
     more = archive.as_items(archive.live_streams().exclude(pk=pk)[:10])
