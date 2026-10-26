@@ -257,6 +257,84 @@ def datenschutz(request):
     return render(request, 'tv/datenschutz.html', {'page': 'datenschutz'})
 
 
+def quellen(request):
+    """Alle Quellen, gruppiert nach Kategorie (Pflege im Admin unter „Quellen“)."""
+    from .models import Quelle
+    labels = dict(Quelle.KATEGORIEN)
+    rang = {key: i for i, (key, _) in enumerate(Quelle.KATEGORIEN)}
+    quellen = sorted(Quelle.objects.filter(is_active=True),
+                     key=lambda q: (rang.get(q.kategorie, 99), q.reihenfolge, q.name.lower()))
+    gruppen = []
+    for q in quellen:
+        if not gruppen or gruppen[-1]['key'] != q.kategorie:
+            gruppen.append({'key': q.kategorie, 'name': labels.get(q.kategorie, q.kategorie), 'quellen': []})
+        gruppen[-1]['quellen'].append(q)
+    sendungen = _sendungs_quellen()
+    return render(request, 'tv/quellen.html', {
+        'gruppen': gruppen,
+        'sendungen': sendungen,
+        'sendungen_total': sum(len(g['eintraege']) for g in sendungen),
+        'page': 'quellen',
+    })
+
+
+def _sendungs_quellen():
+    """Jede Sendung mit ihrer Original-URL – automatisch aus API und Datenbank.
+
+    Quellen: Programme der Broadcast-API, gespeicherte Ausstrahlungen der
+    Mediathek, eigene Videos und Serienfolgen (Website + Mediathek).
+    Jede URL erscheint nur einmal.
+    """
+    from collections import OrderedDict
+    from rsl_tv import broadcast_api as rsl_api
+
+    gruppen = OrderedDict()
+    gesehen = set()
+
+    def add(gruppe, titel, url):
+        url = (url or '').strip()
+        if not url.startswith(('http://', 'https://')) or url in gesehen:
+            return
+        gesehen.add(url)
+        gruppen.setdefault(gruppe or 'Einzelsendungen', []).append({'titel': titel or url, 'url': url})
+
+    # 1. Programme aus der Broadcast-API (sortiert nach Reihe und Folge)
+    programme = sorted(rsl_api.get_programs(), key=lambda p: (
+        (p['series_title'] or p['category'] or '~').lower(), p['season_number'] or 0, p['episode_number'] or 0))
+    for p in programme:
+        titel = p['short_title'] if p['series_title'] else p['title']
+        if p['series_title'] and p['episode_number']:
+            titel = f"Folge {p['episode_number']}: {titel}"
+        add(p['series_title'] or p['category'], titel, p['video_url'])
+
+    # 2. Gespeicherte Ausstrahlungen (auch wenn die API sie nicht mehr liefert)
+    try:
+        from mediathek import archive
+        if archive.available():
+            for a in archive.sendungen().exclude(video_url='').only('title', 'series_title', 'video_url'):
+                add(a.series_title, a.title, a.video_url)
+    except Exception:
+        pass
+
+    # 3. Eigene Inhalte (Mediathek + Website)
+    try:
+        from mediathek.models import Video as MtVideo, Episode as MtEpisode
+        for v in MtVideo.objects.filter(is_active=True).exclude(source_url=''):
+            add('Videos', v.title, v.source_url)
+        for e in (MtEpisode.objects.filter(is_active=True).exclude(source_url='')
+                  .select_related('season__series').order_by('season__series__title', 'season__season_number', 'episode_number')):
+            add(e.season.series.title, f"S{e.season.season_number} E{e.episode_number}: {e.title}", e.source_url)
+    except Exception:
+        pass
+    for v in Video.objects.filter(is_active=True).exclude(source_url=''):
+        add('Videos', v.title, v.source_url)
+    for e in (Episode.objects.filter(is_active=True).exclude(source_url='')
+              .select_related('season__series').order_by('season__series__title', 'season__season_number', 'episode_number')):
+        add(e.season.series.title, f"S{e.season.season_number} E{e.episode_number}: {e.title}", e.source_url)
+
+    return [{'name': name, 'eintraege': eintraege} for name, eintraege in gruppen.items()]
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # API ENDPUNKTE (FFmpeg & Frontend)
 # ══════════════════════════════════════════════════════════════════════════════

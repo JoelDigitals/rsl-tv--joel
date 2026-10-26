@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block title %}Quellen – RSL{% endblock %}
+{% block meta_description %}Quellenangaben von RSL: Nachrichten, Videos, Bilder, Musik und Daten, die im Programm und in der Mediathek verwendet werden.{% endblock %}
+
+{% block extra_css %}
+<style>
+.quellen-nav { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 2rem; }
+.quellen-gruppe { margin-bottom: 2.5rem; scroll-margin-top: 90px; }
+.quellen-gruppe h2 { font-family: var(--font-display); font-size: clamp(1.5rem, 2.6vw, 1.9rem); font-weight: 800; margin-bottom: 1rem; }
+.quelle { padding: 1.1rem 1.25rem; border-bottom: 1px solid var(--line); }
+.quelle:last-child { border-bottom: 0; }
+.quelle h3 { font-size: 1.1rem; font-weight: 700; margin: 0 0 .25rem; display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.quelle p { margin: 0 0 .35rem; }
+.quelle .link { font-size: .95rem; overflow-wrap: anywhere; }
+.sendung-gruppe { border-bottom: 1px solid var(--line); }
+.sendung-gruppe:last-child { border-bottom: 0; }
+.sendung-gruppe summary { display: flex; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; cursor: pointer; font-weight: 700; color: var(--text); list-style: none; }
+.sendung-gruppe summary::-webkit-details-marker { display: none; }
+.sendung-gruppe summary::before { content: '\25B8'; color: var(--accent); margin-right: .6rem; transition: transform .15s; display: inline-block; }
+.sendung-gruppe[open] summary::before { transform: rotate(90deg); }
+.sendung-gruppe summary span:first-child { flex: 1; }
+.sendung-gruppe .anzahl { font-size: .85rem; font-weight: 600; color: var(--text-3); }
+.sendung-gruppe ol { margin: 0; padding: 0 1.25rem 1rem 2.6rem; }
+.sendung-gruppe li { padding: .45rem 0; border-top: 1px solid var(--line); color: var(--text-2); }
+.sendung-gruppe li .titel { display: block; color: var(--text); font-weight: 500; }
+.sendung-gruppe li a { font-size: .9rem; overflow-wrap: anywhere; }
+.quelle .lizenz { display: inline-block; font-size: .78rem; font-weight: 700; padding: .15rem .55rem; border-radius: 6px; background: var(--surface-3); color: var(--text); }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="page-head">
+    <div class="wrap">
+        <h1>Quellen</h1>
+        <p class="lead">Woher unsere Inhalte stammen: Hier stehen alle Quellen, die RSL im Programm, in den Nachrichten und in der Mediathek verwendet.</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="wrap" style="max-width:900px">
+        {% if gruppen|length > 1 or sendungen %}
+        <nav class="quellen-nav" aria-label="Kategorien">
+            {% for g in gruppen %}<a class="chip" href="#{{ g.key }}">{{ g.name }}</a>{% endfor %}
+            {% if sendungen %}<a class="chip" href="#sendungen">Alle Sendungen</a>{% endif %}
+        </nav>
+        {% endif %}
+
+        {% for g in gruppen %}
+        <section class="quellen-gruppe" id="{{ g.key }}">
+            <h2>{{ g.name }}</h2>
+            <div class="panel">
+                {% for q in g.quellen %}
+                <article class="quelle">
+                    <h3>{{ q.name }}{% if q.lizenz %}<span class="lizenz">{{ q.lizenz }}</span>{% endif %}</h3>
+                    {% if q.beschreibung %}<p>{{ q.beschreibung|linebreaksbr }}</p>{% endif %}
+                    {% if q.url %}<a class="link" href="{{ q.url }}" target="_blank" rel="noopener">{{ q.url }}</a>{% endif %}
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% empty %}
+        <div class="empty-state"><i class="bi bi-journal-text"></i>Noch keine Quellen eingetragen.</div>
+        {% endfor %}
+
+        {% if sendungen %}
+        <section class="quellen-gruppe" id="sendungen">
+            <h2>Alle Sendungen</h2>
+            <p>Jede Sendung aus Programm und Mediathek mit ihrer Original-Quelle ({{ sendungen_total }} Einträge). Die Liste wird automatisch aktualisiert.</p>
+            <input type="search" id="sendung-suche" class="form-control mb-3" placeholder="Sendung oder Reihe suchen …" aria-label="Sendungen durchsuchen">
+            <div class="panel" id="sendung-liste">
+                {% for g in sendungen %}
+                <details class="sendung-gruppe">
+                    <summary><span>{{ g.name }}</span><span class="anzahl">{{ g.eintraege|length }}</span></summary>
+                    <ol>
+                        {% for e in g.eintraege %}
+                        <li><span class="titel">{{ e.titel }}</span><a href="{{ e.url }}" target="_blank" rel="noopener">{{ e.url }}</a></li>
+                        {% endfor %}
+                    </ol>
+                </details>
+                {% endfor %}
+            </div>
+            <p id="sendung-leer" class="mt-3" style="display:none;color:var(--text-3)">Keine Sendung gefunden.</p>
+        </section>
+        {% endif %}
+
+        <p class="mt-4" style="color:var(--text-3);font-size:.95rem">
+            Alle Marken, Logos und Inhalte gehören ihren jeweiligen Rechteinhabern. Fehlt eine Quelle oder ist etwas falsch?
+            Schreib uns über das <a href="/kontakt/">Kontaktformular</a>.
+        </p>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    var input = document.getElementById('sendung-suche');
+    if (!input) return;
+    var gruppen = document.querySelectorAll('.sendung-gruppe');
+    var leer = document.getElementById('sendung-leer');
+    input.addEventListener('input', function () {
+        var q = input.value.trim().toLowerCase(), treffer = 0;
+        gruppen.forEach(function (g) {
+            var name = g.querySelector('summary').textContent.toLowerCase();
+            var sichtbar = 0;
+            g.querySelectorAll('li').forEach(function (li) {
+                var ok = !q || name.indexOf(q) !== -1 || li.textContent.toLowerCase().indexOf(q) !== -1;
+                li.style.display = ok ? '' : 'none';
+                if (ok) sichtbar++;
+            });
+            g.style.display = sichtbar ? '' : 'none';
+            g.open = !!q && sichtbar > 0;
+            treffer += sichtbar;
+        });
+        leer.style.display = treffer ? 'none' : '';
+    });
+})();
+</script>
+{% endblock %}

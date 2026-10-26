@@ -932,3 +932,16 @@ class EpisodeAdmin(admin.ModelAdmin):
             if not obj.thumbnail_url:
                 obj.thumbnail_url = obj.video.thumbnail_url
         super().save_model(request, obj, form, change)
+
+
+from .models import Quelle
+
+
+@admin.register(Quelle)
+class QuelleAdmin(admin.ModelAdmin):
+    """Quellenangaben für die öffentliche Seite /quellen/."""
+    list_display = ['name', 'kategorie', 'url', 'lizenz', 'reihenfolge', 'is_active']
+    list_filter = ['kategorie', 'is_active']
+    list_editable = ['reihenfolge', 'is_active']
+    search_fields = ['name', 'beschreibung', 'url']
+    fields = ['name', 'kategorie', 'url', 'beschreibung', 'lizenz', 'reihenfolge', 'is_active']

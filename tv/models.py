@@ -1653,3 +1653,34 @@ class Episode(models.Model):
             ).order_by('-episode_number').first()
         
         return None
+
+
+class Quelle(models.Model):
+    """Quellenangabe für die öffentliche Seite /quellen/ (im Admin pflegbar)."""
+    KATEGORIEN = [
+        ('nachrichten', 'Nachrichten'),
+        ('video', 'Videos & Sendungen'),
+        ('bilder', 'Bilder & Grafiken'),
+        ('musik', 'Musik & Audio'),
+        ('daten', 'Daten & Wetter'),
+        ('technik', 'Technik & Software'),
+        ('sonstiges', 'Sonstiges'),
+    ]
+
+    name = models.CharField(max_length=200, verbose_name="Name")
+    kategorie = models.CharField(max_length=20, choices=KATEGORIEN, default='sonstiges')
+    url = models.URLField(max_length=500, blank=True, verbose_name="Link")
+    beschreibung = models.TextField(blank=True, help_text="Wofür wird die Quelle genutzt?")
+    lizenz = models.CharField(max_length=200, blank=True, help_text="z. B. CC BY 4.0 – leer lassen, wenn nicht nötig")
+    reihenfolge = models.PositiveIntegerField(default=0, help_text="Kleinere Zahl = weiter oben")
+    is_active = models.BooleanField(default=True, verbose_name="Anzeigen")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Quelle"
+        verbose_name_plural = "Quellen"
+        ordering = ['kategorie', 'reihenfolge', 'name']
+
+    def __str__(self):
+        return self.name

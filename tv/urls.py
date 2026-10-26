@@ -19,6 +19,7 @@ urlpatterns = [
     path('kontakt/', views.kontakt, name='kontakt'),
     path('impressum/', views.impressum, name='impressum'),
     path('datenschutz/', views.datenschutz, name='datenschutz'),
+    path('quellen/', views.quellen, name='quellen'),
     
     # ══════════════════════════════════════════════════════════════════════════
     # FILE UPLOADS (NEU - JDS Cloud Integration)
