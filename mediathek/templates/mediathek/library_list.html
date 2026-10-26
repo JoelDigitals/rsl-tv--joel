@@ -4,7 +4,7 @@
 <header class="page-head">
     <div class="wrap">
         <h1>Sendung verpasst?</h1>
-        <p class="lead">Alles, was zuletzt bei RSL lief – zum Nachschauen, so lange es verfügbar ist.</p>
+        <p class="lead">Alles, was bei RSL lief – dauerhaft gespeichert zum Nachschauen.{% if total %} {{ total }} Sendung{{ total|pluralize:"en" }}.{% endif %}</p>
     </div>
 </header>
 <section class="section">
@@ -19,6 +19,7 @@
         <div class="grid">
             {% for i in items %}{% include "mediathek/partials/card_library.html" %}{% endfor %}
         </div>
+        {% include "mediathek/partials/pagination.html" %}
         {% else %}
         <div class="empty-state"><i class="bi bi-clock-history"></i>Gerade sind keine Sendungen zum Nachschauen verfügbar.</div>
         {% endif %}

@@ -692,3 +692,17 @@ class AdBreakAdmin(admin.ModelAdmin):
 admin.site.site_header = "RSL Mediathek Administration"
 admin.site.site_title = "RSL Admin"
 admin.site.index_title = "Willkommen im RSL Mediathek Admin-Bereich"
+
+
+from .models import ArchivedBroadcast
+
+
+@admin.register(ArchivedBroadcast)
+class ArchivedBroadcastAdmin(admin.ModelAdmin):
+    """Aus der Broadcast-API gespeicherte Sendungen und Live-Streams."""
+    list_display = ['title', 'kind', 'series_title', 'aired_at', 'ended_at', 'is_active']
+    list_filter = ['kind', 'is_active', 'series_title']
+    list_editable = ['is_active']
+    search_fields = ['title', 'series_title', 'api_id']
+    date_hierarchy = 'aired_at'
+    readonly_fields = ['api_id', 'created_at', 'updated_at']

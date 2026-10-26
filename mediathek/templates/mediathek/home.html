@@ -58,7 +58,7 @@
             <div class="panel">
                 <div class="panel-head">
                     <h2><i class="bi bi-calendar3 me-2" style="color:var(--accent)"></i>Gleich im TV</h2>
-                    <a href="/programm/" class="section-link" style="font-size:.92rem">Programm</a>
+                    <a href="{% url 'mediathek:schedule' %}" class="section-link" style="font-size:.92rem">Programm</a>
                 </div>
                 {% for s in upcoming %}
                 <div class="list-row">
@@ -120,6 +120,20 @@
         </div>
         <div class="rail">
             {% for i in library %}{% include "mediathek/partials/card_library.html" %}{% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% if live_recordings %}
+<section class="section">
+    <div class="wrap">
+        <div class="section-head">
+            <h2>Live-Streams<small>Gespeicherte Live-Streams aus den RSL-Studios</small></h2>
+            <a href="{% url 'mediathek:live_recordings' %}" class="section-link">Alle Live-Streams <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="rail">
+            {% for i in live_recordings %}{% include "mediathek/partials/card_live.html" %}{% endfor %}
         </div>
     </div>
 </section>

@@ -1,0 +1,34 @@
+{% extends "mediathek/base.html" %}
+
+{% block mediathek_content %}
+<header class="page-head">
+    <div class="wrap">
+        <nav class="breadcrumbs" aria-label="Brotkrumen"><a href="{% url 'mediathek:home' %}">Mediathek</a><span>/</span><a href="{% url 'mediathek:live_overview' %}">Live</a></nav>
+        <h1>Live-Streams</h1>
+        <p class="lead">Alle Live-Streams aus den RSL-Studios – gespeichert in der Mediathek.</p>
+    </div>
+</header>
+<section class="section">
+    <div class="wrap">
+        {% if items or past_streams %}
+        <div class="grid">
+            {% for i in items %}{% include "mediathek/partials/card_live.html" %}{% endfor %}
+            {% for ls in past_streams %}
+            <a href="{% url 'mediathek:live_player' ls.slug %}" class="media-card">
+                <div class="media-thumb"><img src="{{ ls.get_thumbnail }}" alt="" loading="lazy"><div class="play"><i class="bi bi-play-fill"></i></div>
+                    <div class="tag-row top"><span class="pill">Live-Event</span></div></div>
+                <div class="media-body">
+                    {% if ls.category %}<span class="media-kicker">{{ ls.category.name }}</span>{% endif %}
+                    <span class="media-title">{{ ls.title }}</span>
+                    {% if ls.scheduled_start %}<div class="media-meta"><span><i class="bi bi-calendar3 me-1"></i>{{ ls.scheduled_start|date:"D, d.m.Y · H:i" }} Uhr</span></div>{% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% include "mediathek/partials/pagination.html" %}
+        {% else %}
+        <div class="empty-state"><i class="bi bi-broadcast"></i>Noch keine Live-Streams gespeichert. Sobald ein Studio live geht, erscheint der Stream hier.</div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

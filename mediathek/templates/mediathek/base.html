@@ -269,10 +269,11 @@
     <nav class="mt-subnav" aria-label="Mediathek-Bereiche">
         <div class="wrap">
             {% url 'mediathek:home' as u_home %}{% url 'mediathek:series_list' as u_series %}{% url 'mediathek:library_list' as u_lib %}
-            {% url 'mediathek:news_list' as u_news %}{% url 'mediathek:live_overview' as u_live %}{% url 'mediathek:video_list' as u_videos %}{% url 'mediathek:playlist_list' as u_pl %}
+            {% url 'mediathek:news_list' as u_news %}{% url 'mediathek:live_overview' as u_live %}{% url 'mediathek:video_list' as u_videos %}{% url 'mediathek:playlist_list' as u_pl %}{% url 'mediathek:schedule' as u_prog %}
             <a href="{{ u_home }}" class="{% if request.path == u_home %}active{% endif %}"><i class="bi bi-grid"></i>Übersicht</a>
             <a href="{{ u_series }}" class="{% if u_series in request.path or '/reihe/' in request.path %}active{% endif %}"><i class="bi bi-film"></i>Serien</a>
             <a href="{{ u_lib }}" class="{% if u_lib in request.path or '/ausgabe/' in request.path or '/sendung/' in request.path %}active{% endif %}"><i class="bi bi-clock-history"></i>Sendung verpasst</a>
+            <a href="{{ u_prog }}" class="{% if u_prog in request.path %}active{% endif %}"><i class="bi bi-calendar3"></i>Programm</a>
             <a href="{{ u_news }}" class="{% if u_news in request.path %}active{% endif %}"><i class="bi bi-newspaper"></i>Nachrichten</a>
             <a href="{{ u_live }}" class="{% if u_live in request.path or '/studio/' in request.path %}active{% endif %}"><i class="bi bi-broadcast"></i>Live</a>
             <a href="{{ u_videos }}" class="{% if u_videos in request.path %}active{% endif %}"><i class="bi bi-play-btn"></i>Videos</a>

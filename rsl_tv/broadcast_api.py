@@ -22,12 +22,17 @@ from django.utils.text import slugify
 
 logger = logging.getLogger(__name__)
 
-# Standard: Supabase-Edge-Function. Überschreibbar per Umgebungsvariable
-# BROADCAST_API_URL, falls die API woanders läuft (z. B. hinter der eigenen Domain).
+# Eigener Server (sslip.io). Überschreibbar per Umgebungsvariable BROADCAST_API_URL.
 API_URL = os.environ.get(
     "BROADCAST_API_URL",
-    "https://wknwmmjnecnrffucrprd.supabase.co/functions/v1/broadcast-api",
+    "https://api.85-215-240-180.sslip.io/functions/v1/broadcast-api",
 )
+# Öffentliche Player-Seite (/embed, /mediathek?ausgabe=…, /studio-live/<id>).
+# Überschreibbar per Umgebungsvariable BROADCAST_PLAYER_URL.
+PLAYER_URL = os.environ.get("BROADCAST_PLAYER_URL", "https://tv.85-215-240-180.sslip.io").rstrip("/")
+LIVE_EMBED_URL = PLAYER_URL + "/embed"
+# Die API liefert in embed_url teils noch die alte Lovable-Adresse – die funktioniert nicht mehr.
+_OLD_PLAYER_RE = re.compile(r"https?://[a-z0-9-]+\.lovable\.app", re.I)
 TIMEOUT = 8
 MAX_LIMIT = 100
 UUID_RE = re.compile(r"^[0-9a-fA-F-]{36}$")
@@ -109,6 +114,21 @@ def youtube_id(url):
         return None
     m = re.search(r"(?:v=|youtu\.be/|embed/|shorts/)([A-Za-z0-9_-]{11})", url)
     return m.group(1) if m else None
+
+
+def fix_embed(url):
+    """Schreibt alte lovable.app-Player-Links auf den eigenen Player-Server um."""
+    return _OLD_PLAYER_RE.sub(PLAYER_URL, url or "")
+
+
+def _fix_embeds_deep(value):
+    if isinstance(value, str):
+        return fix_embed(value) if "lovable.app" in value else value
+    if isinstance(value, list):
+        return [_fix_embeds_deep(v) for v in value]
+    if isinstance(value, dict):
+        return {k: _fix_embeds_deep(v) for k, v in value.items()}
+    return value
 
 
 def is_uuid(value):
@@ -237,7 +257,7 @@ def get_library():
             "duration_display": prog.get("duration_display", ""),
             "program": prog,
             "aired_at": parse_dt(x.get("start_time")),
-            "embed_url": x.get("embed_url") or "",
+            "embed_url": fix_embed(x.get("embed_url")),
         })
     items.sort(key=lambda i: i["aired_at"] or timezone.now(), reverse=True)
     return items
@@ -258,7 +278,7 @@ def get_news():
             "thumbnail": prog.get("thumbnail_url") or "",
             "created_at": parse_dt(x.get("created_at")),
             "duration_display": _fmt_duration(x.get("audio_duration_seconds")),
-            "embed_url": x.get("embed_url") or "",
+            "embed_url": fix_embed(x.get("embed_url")),
         })
     items.sort(key=lambda i: i["created_at"] or timezone.now(), reverse=True)
     return items
@@ -293,7 +313,7 @@ def get_edition(edition_id):
         "stories": stories,
         "audio_url": data.get("audio_url") or "",
         "duration_display": _fmt_duration(data.get("audio_duration_seconds")),
-        "embed_url": data.get("embed_url") or "",
+        "embed_url": fix_embed(data.get("embed_url")),
     }
 
 
@@ -354,7 +374,7 @@ def get_studios():
             "live_started_at": parse_dt(s.get("live_started_at")),
             "scheduled_start_at": parse_dt(s.get("scheduled_start_at")),
             "scheduled_title": s.get("scheduled_title") or "",
-            "embed_url": s.get("embed_url") or "",
+            "embed_url": fix_embed(s.get("embed_url")) or f"{PLAYER_URL}/studio-live/{s.get('id')}",
         })
     return studios
 
@@ -380,7 +400,8 @@ _PROXY_RESOURCES = {
 
 def broadcast_api_proxy(request):
     """Stellt die Broadcast-API unter der eigenen Domain bereit –
-    identisches Antwortformat wie die Supabase-Edge-Function ({"data": ...}).
+    identisches Antwortformat wie die Broadcast-API ({"data": ...}),
+    alte lovable.app-Player-Links werden auf PLAYER_URL umgeschrieben.
     Beispiele:
       /api/broadcast-api/?resource=programs
       /api/broadcast-api/?resource=edition&id=<uuid>
@@ -404,7 +425,7 @@ def broadcast_api_proxy(request):
         try:
             r = requests.get(API_URL, params=params, timeout=TIMEOUT)
             r.raise_for_status()
-            data = r.json()
+            data = _fix_embeds_deep(r.json())
         except (requests.RequestException, ValueError) as e:
             logger.warning("Broadcast-API-Proxy %s fehlgeschlagen: %s", resource, e)
             data = {"data": []}

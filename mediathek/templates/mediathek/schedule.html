@@ -1,0 +1,74 @@
+{% extends "mediathek/base.html" %}
+
+{% block extra_styles %}
+.day-tabs { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .25rem; }
+.day-tab { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; min-width: 96px; padding: .6rem .9rem; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); color: var(--text-2); text-decoration: none; line-height: 1.25; }
+.day-tab strong { color: var(--text); }
+.day-tab span { font-size: .85rem; }
+.day-tab:hover { border-color: var(--accent); color: var(--text); }
+.day-tab.active { background: var(--accent); border-color: var(--accent); }
+.day-tab.active strong, .day-tab.active span { color: #04121f; }
+.guide { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; margin-top: 1.25rem; }
+.show { display: grid; grid-template-columns: 5.5rem 140px minmax(0,1fr) auto; gap: 1.1rem; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid var(--line); }
+.show:last-child { border-bottom: 0; }
+.show.past { opacity: .6; }
+.show.now { background: rgba(76,195,255,.08); box-shadow: inset 4px 0 0 var(--accent); }
+.show .t { font-size: 1.2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.show .t small { display: block; font-size: .85rem; font-weight: 500; color: var(--text-3); }
+.show .img { aspect-ratio: 16/9; border-radius: 8px; overflow: hidden; background: var(--surface-3); }
+.show .img img { width: 100%; height: 100%; object-fit: cover; }
+.show h3 { font-size: 1.08rem; font-weight: 700; margin: 0 0 .2rem; line-height: 1.35; }
+.show .sub { color: var(--text-3); font-size: .92rem; display: flex; gap: .4rem .9rem; flex-wrap: wrap; }
+@media (max-width: 767px) {
+    .show { grid-template-columns: 4.2rem minmax(0,1fr); gap: .5rem .9rem; padding: .9rem 1rem; }
+    .show .img { display: none; }
+    .show .act { grid-column: 2; }
+}
+{% endblock %}
+
+{% block mediathek_content %}
+<header class="page-head">
+    <div class="wrap">
+        <h1>Programm</h1>
+        <p class="lead">Was läuft wann bei RSL? Sendungen, die es auch in der Mediathek gibt, kannst du direkt ansehen.</p>
+    </div>
+</header>
+<section class="section">
+    <div class="wrap">
+        {% if days %}
+        <nav class="day-tabs" aria-label="Tag wählen">
+            {% for d in days %}
+            <a href="?tag={{ d.date|date:'Y-m-d' }}" class="day-tab{% if d.date == current_day.date %} active{% endif %}"{% if d.date == current_day.date %} aria-current="page"{% endif %}>
+                <strong>{% if d.date == today %}Heute{% else %}{{ d.date|date:"D" }}{% endif %}</strong>
+                <span>{{ d.date|date:"d.m." }}</span>
+            </a>
+            {% endfor %}
+        </nav>
+        <div class="guide">
+            {% for s in current_day.shows %}
+            <article class="show{% if s.is_now %} now{% elif s.is_past %} past{% endif %}">
+                <div class="t">{{ s.start|time:"H:i" }}{% if s.end %}<small>bis {{ s.end|time:"H:i" }}</small>{% endif %}</div>
+                <div class="img">{% if s.thumbnail %}<img src="{{ s.thumbnail }}" alt="" loading="lazy">{% endif %}</div>
+                <div>
+                    {% if s.is_now %}<span class="live-badge mb-1">Läuft jetzt</span>{% endif %}
+                    <h3>{{ s.short_title }}</h3>
+                    <div class="sub">
+                        {% if s.series_title %}<span>{{ s.series_title }}</span>{% endif %}
+                        {% if s.category %}<span>{{ s.category }}</span>{% endif %}
+                        {% if s.is_repeat %}<span>Wiederholung</span>{% endif %}
+                    </div>
+                    {% if s.is_now %}<div class="progress-line" style="max-width:320px"><span style="width:{{ s.progress }}%"></span></div>{% endif %}
+                </div>
+                <div class="act">
+                    {% if s.is_now %}<a href="/" class="btn btn-rsl btn-sm"><i class="bi bi-broadcast"></i>Live-TV</a>
+                    {% elif s.in_mediathek %}<a href="{% url 'mediathek:program_player' s.program_id %}" class="btn btn-ghost btn-sm"><i class="bi bi-play-fill"></i>Ansehen</a>{% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state"><i class="bi bi-calendar-x"></i>Das Programm wird gerade aktualisiert.</div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

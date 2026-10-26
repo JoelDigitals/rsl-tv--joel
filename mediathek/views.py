@@ -20,6 +20,8 @@ from .models import (
     Advertisement, AdBreak
 )
 from rsl_tv import broadcast_api as rsl_api
+from . import archive
+from django.core.paginator import Paginator
 
 
 # ============= HILFSFUNKTIONEN =============
@@ -82,7 +84,8 @@ def home(request):
     current, upcoming = rsl_api.get_now_and_next(4)
     broadcast = rsl_api.get_broadcast()
     studios_live = [s for s in rsl_api.get_studios() if s['is_active']]
-    library = rsl_api.get_library()
+    archive.sync()
+    sendungen = archive.sendungen()
     news = rsl_api.get_news()
     api_series = rsl_api.get_api_series()
 
@@ -94,8 +97,9 @@ def home(request):
         studios_live=studios_live,
         live_streams=LiveStream.objects.filter(is_active=True, is_live=True),
         series_cards=_series_cards(_local_series(), _tv_series(), api_series),
-        library=library[:12],
-        library_total=len(library),
+        library=archive.as_items(sendungen[:12]),
+        library_total=sendungen.count(),
+        live_recordings=archive.as_items(archive.live_streams()[:8]),
         news=news[:6],
         singles=rsl_api.get_single_programs()[:12],
         videos=Video.objects.filter(is_active=True).order_by('-published_at')[:12],
@@ -237,14 +241,19 @@ def program_player(request, program_id):
 
 
 def library_list(request):
-    items = rsl_api.get_library()
+    archive.sync()
+    qs = archive.sendungen()
+    reihen = sorted(set(qs.exclude(series_title='').values_list('series_title', flat=True)))
     reihe = request.GET.get('reihe', '')
-    reihen = sorted({i['series_title'] for i in items if i['series_title']})
-    if reihe:
-        items = [i for i in items if slugify(i['series_title']) == reihe]
+    reihe_name = next((r for r in reihen if slugify(r) == reihe), None)
+    if reihe_name:
+        qs = qs.filter(series_title=reihe_name)
+    page = Paginator(qs, 48).get_page(request.GET.get('seite'))
     context = _mediathek_context(
-        page_title='Sendungen verpasst?',
-        items=items,
+        page_title='Sendung verpasst?',
+        items=archive.as_items(page.object_list),
+        page_obj=page,
+        total=qs.count(),
         reihen=[{'slug': slugify(r), 'name': r} for r in reihen],
         current_reihe=reihe,
     )
@@ -253,13 +262,14 @@ def library_list(request):
 
 def library_player(request, item_id):
     item_id = str(item_id)
-    item = rsl_api.get_library_item(item_id)
+    obj = archive.sendungen().filter(api_id=item_id).first()
+    item = archive.as_item(obj) if obj else rsl_api.get_library_item(item_id)
     if not item:
         # Nachrichten-Ausgaben haben ebenfalls eine Ausgaben-ID
         if rsl_api.get_edition(item_id):
             return redirect('mediathek:edition_detail', edition_id=item_id)
         raise Http404("Ausgabe nicht gefunden")
-    more = [i for i in rsl_api.get_library() if i['id'] != item_id][:12]
+    more = archive.as_items(archive.sendungen().exclude(api_id=item_id)[:12])
     context = _mediathek_context(page_title=item['title'], item=item, more=more)
     return render(request, 'mediathek/library_player.html', context)
 
@@ -323,14 +333,63 @@ def live_overview(request):
         broadcast=rsl_api.get_broadcast(),
         current_show=current,
         upcoming=upcoming,
+        recordings=archive.as_items(archive.live_streams()[:12]),
+        recordings_total=archive.live_streams().count(),
+        past_streams=_past_local_streams()[:12],
     )
     return render(request, 'mediathek/live_overview.html', context)
 
 
+def _past_local_streams():
+    """Beendete eigene Livestreams, deren Aufzeichnung noch verfügbar ist."""
+    now = timezone.now()
+    return (LiveStream.objects.filter(is_active=True, is_live=False, scheduled_start__lte=now)
+            .filter(Q(available_until__isnull=True) | Q(available_until__gte=now))
+            .select_related('category').order_by('-scheduled_start'))
+
+
+def live_recordings(request):
+    archive.sync()
+    page = Paginator(archive.live_streams(), 36).get_page(request.GET.get('seite'))
+    context = _mediathek_context(
+        page_title='Live-Streams',
+        items=archive.as_items(page.object_list),
+        page_obj=page,
+        past_streams=_past_local_streams() if page.number == 1 else [],
+    )
+    return render(request, 'mediathek/live_recordings.html', context)
+
+
+def live_recording_player(request, pk):
+    obj = get_object_or_404(archive.live_streams(), pk=pk)
+    item = archive.as_item(obj)
+    more = archive.as_items(archive.live_streams().exclude(pk=pk)[:10])
+    context = _mediathek_context(page_title=item['title'], item=item, more=more)
+    return render(request, 'mediathek/live_recording_player.html', context)
+
+
+def schedule(request):
+    """TV-Programm innerhalb der Mediathek."""
+    today = timezone.localdate()
+    days = [d for d in rsl_api.get_schedule_by_day() if d['date'] >= today]
+    selected = request.GET.get('tag', '')
+    current_day = next((d for d in days if d['date'].isoformat() == selected), days[0] if days else None)
+    available = {p['id'] for p in rsl_api.get_programs() if p['video_type'] != 'ai_news'}
+    if current_day:
+        now = timezone.now()
+        for sh in current_day['shows']:
+            sh['in_mediathek'] = sh['program_id'] in available
+            if sh['is_now'] and sh['end']:
+                total = (sh['end'] - sh['start']).total_seconds() or 1
+                sh['progress'] = int(min(100, max(0, (now - sh['start']).total_seconds() / total * 100)))
+    context = _mediathek_context(page_title='Programm', days=days, current_day=current_day, today=today)
+    return render(request, 'mediathek/schedule.html', context)
+
+
 def _live_player_source(stream, request):
     """Bestimmt, wie ein Livestream eingebettet wird: ('iframe'|'hls', url)."""
-    url = stream.stream_url or ''
-    if 'rsl-studio-live' in url:
+    url = rsl_api.fix_embed(stream.stream_url or '')
+    if url.startswith(rsl_api.PLAYER_URL) or 'rsl-studio-live' in url:
         return {'kind': 'iframe', 'src': url}
     yt = rsl_api.youtube_id(url)
     if yt:

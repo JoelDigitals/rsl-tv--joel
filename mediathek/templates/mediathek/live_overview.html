@@ -26,7 +26,7 @@
             </a>
 
             <div class="panel">
-                <div class="panel-head"><h2>Danach</h2><a href="/programm/" class="section-link" style="font-size:.92rem">Programm</a></div>
+                <div class="panel-head"><h2>Danach</h2><a href="{% url 'mediathek:schedule' %}" class="section-link" style="font-size:.92rem">Programm</a></div>
                 {% for s in upcoming %}
                 <div class="list-row"><span class="time">{{ s.start|time:"H:i" }}</span><span class="info"><span class="title">{{ s.short_title }}</span><span class="sub">{{ s.series_title|default:s.category }}</span></span></div>
                 {% empty %}
@@ -69,6 +69,28 @@
         {% endif %}
     </div>
 </section>
+
+{% if recordings or past_streams %}
+<section class="section">
+    <div class="wrap">
+        <div class="section-head">
+            <h2>Gespeicherte Live-Streams<small>Live-Streams zum Nachschauen</small></h2>
+            {% if recordings_total > recordings|length %}<a href="{% url 'mediathek:live_recordings' %}" class="section-link">Alle {{ recordings_total }} anzeigen <i class="bi bi-arrow-right"></i></a>{% endif %}
+        </div>
+        <div class="grid">
+            {% for i in recordings %}{% include "mediathek/partials/card_live.html" %}{% endfor %}
+            {% for ls in past_streams %}
+            <a href="{% url 'mediathek:live_player' ls.slug %}" class="media-card">
+                <div class="media-thumb"><img src="{{ ls.get_thumbnail }}" alt="" loading="lazy"><div class="play"><i class="bi bi-play-fill"></i></div>
+                    <div class="tag-row top"><span class="pill">Live-Event</span></div></div>
+                <div class="media-body"><span class="media-title">{{ ls.title }}</span>
+                    {% if ls.scheduled_start %}<div class="media-meta"><span>{{ ls.scheduled_start|date:"D, d.m.Y · H:i" }} Uhr</span></div>{% endif %}</div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
 
 {% if upcoming_streams %}
 <section class="section">

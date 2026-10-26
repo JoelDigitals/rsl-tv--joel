@@ -1,0 +1,14 @@
+{# Gespeicherter Live-Stream aus dem Archiv: i #}
+<a href="{% url 'mediathek:live_recording_player' i.pk %}" class="media-card">
+    <div class="media-thumb">
+        {% if i.thumbnail %}<img src="{{ i.thumbnail }}" alt="" loading="lazy">{% else %}<div class="placeholder"><i class="bi bi-broadcast"></i>{{ i.series_title|default:"Live" }}</div>{% endif %}
+        <div class="play"><i class="bi bi-play-fill"></i></div>
+        <div class="tag-row top">{% if i.is_running %}<span class="pill live">&#9679; Live</span>{% else %}<span class="pill">Live-Stream</span>{% endif %}</div>
+        {% if i.duration_display %}<div class="tag-row"><span class="pill">{{ i.duration_display }}</span></div>{% endif %}
+    </div>
+    <div class="media-body">
+        {% if i.series_title %}<span class="media-kicker">{{ i.series_title }}</span>{% endif %}
+        <span class="media-title">{{ i.title }}</span>
+        {% if i.aired_at %}<div class="media-meta"><span><i class="bi bi-calendar3 me-1"></i>{{ i.aired_at|date:"D, d.m.Y · H:i" }} Uhr</span></div>{% endif %}
+    </div>
+</a>

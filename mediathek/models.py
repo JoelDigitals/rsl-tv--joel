@@ -404,3 +404,56 @@ class AdBreakItem(models.Model):
     class Meta:
         ordering = ['order']
         unique_together = ['ad_break', 'advertisement']
+
+class ArchivedBroadcast(models.Model):
+    """Dauerhaft gespeicherte Ausstrahlung aus der RSL Broadcast-API.
+
+    Die API liefert ausgestrahlte Sendungen und Live-Streams nur für eine
+    begrenzte Zeit. Damit sie in der Mediathek bleiben, werden sie hier
+    gespeichert (siehe mediathek/archive.py).
+    """
+    KIND_SENDUNG = 'sendung'
+    KIND_LIVE = 'live'
+    KIND_CHOICES = [
+        (KIND_SENDUNG, 'Ausgestrahlte Sendung'),
+        (KIND_LIVE, 'Live-Stream'),
+    ]
+
+    api_id = models.CharField(max_length=120, unique=True, help_text="ID aus der Broadcast-API")
+    kind = models.CharField(max_length=20, choices=KIND_CHOICES, default=KIND_SENDUNG)
+    title = models.CharField(max_length=500)
+    series_title = models.CharField(max_length=255, blank=True)
+    description = models.TextField(blank=True)
+    thumbnail = models.URLField(max_length=1000, blank=True)
+    embed_url = models.URLField(max_length=1000, blank=True, help_text="Player-Link (eigener Player-Server)")
+    video_url = models.URLField(max_length=1000, blank=True, help_text="Original-Video, z. B. YouTube")
+    program_id = models.CharField(max_length=64, blank=True)
+    studio_id = models.CharField(max_length=64, blank=True)
+    aired_at = models.DateTimeField(null=True, blank=True, verbose_name="Ausgestrahlt am / Live seit")
+    ended_at = models.DateTimeField(null=True, blank=True, verbose_name="Ende")
+    duration_minutes = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True, verbose_name="In der Mediathek anzeigen")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-aired_at']
+        verbose_name = "Gespeicherte Ausstrahlung"
+        verbose_name_plural = "Gespeicherte Ausstrahlungen"
+
+    def __str__(self):
+        return f"{self.get_kind_display()}: {self.title}"
+
+    @property
+    def is_running(self):
+        return self.kind == self.KIND_LIVE and self.ended_at is None
+
+    @property
+    def duration_display(self):
+        minutes = self.duration_minutes
+        if not minutes and self.aired_at and self.ended_at:
+            minutes = int((self.ended_at - self.aired_at).total_seconds() // 60)
+        if not minutes:
+            return ""
+        h, m = divmod(minutes, 60)
+        return f"{h} Std. {m} Min." if h else f"{m} Min."

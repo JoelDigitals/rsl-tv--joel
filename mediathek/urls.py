@@ -15,7 +15,10 @@ urlpatterns = [
     path('serien/<slug:series_slug>/staffel-<int:season_number>/episode-<int:episode_number>/', views.episode_player, name='episode_player'),
     
     path('live/', views.live_overview, name='live_overview'),
+    path('live/streams/', views.live_recordings, name='live_recordings'),
+    path('live/streams/<int:pk>/', views.live_recording_player, name='live_recording_player'),
     path('live/<slug:slug>/', views.live_player, name='live_player'),
+    path('programm/', views.schedule, name='schedule'),
     
     path('playlists/', views.playlist_list, name='playlist_list'),
     path('playlists/<slug:slug>/', views.playlist_detail, name='playlist_detail'),

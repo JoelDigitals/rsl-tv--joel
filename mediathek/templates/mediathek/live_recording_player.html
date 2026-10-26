@@ -1,0 +1,45 @@
+{% extends "mediathek/base.html" %}
+
+{% block mediathek_content %}
+<section class="section">
+    <div class="wrap">
+        <nav class="breadcrumbs" aria-label="Brotkrumen">
+            <a href="{% url 'mediathek:home' %}">Mediathek</a><span>/</span><a href="{% url 'mediathek:live_recordings' %}">Live-Streams</a>
+        </nav>
+        <div class="layout-side">
+            <div>
+                <div class="player">
+                    {% if item.embed_url %}
+                    <iframe src="{{ item.embed_url }}" title="{{ item.title }}" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
+                    {% else %}
+                    <div class="player-empty"><i class="bi bi-broadcast"></i><p class="mb-0">Für diesen Live-Stream gibt es keinen Player.</p></div>
+                    {% endif %}
+                </div>
+                <h1 class="watch-title">{{ item.title }}</h1>
+                <div class="meta-line mb-3">
+                    {% if item.is_running %}<span class="live-badge">Live</span>{% else %}<span class="pill">Beendet</span>{% endif %}
+                    {% if item.series_title %}<span><i class="bi bi-camera-video"></i>{{ item.series_title }}</span>{% endif %}
+                    {% if item.aired_at %}<span><i class="bi bi-calendar3"></i>{{ item.aired_at|date:"l, d.m.Y" }}, {{ item.aired_at|time:"H:i" }}{% if item.ended_at %} – {{ item.ended_at|time:"H:i" }}{% endif %} Uhr</span>{% endif %}
+                    {% if item.duration_display %}<span><i class="bi bi-clock"></i>{{ item.duration_display }}</span>{% endif %}
+                </div>
+                {% if item.program.description %}<div class="prose"><p>{{ item.program.description|linebreaksbr }}</p></div>{% endif %}
+                {% if not item.is_running %}
+                <p style="color:var(--text-3)">Der Live-Stream ist beendet. Der Player zeigt das Studio
+                    „{{ item.series_title|cut:"Studio " }}“ – läuft dort gerade nichts, siehst du die Studio-Pause.</p>
+                {% endif %}
+            </div>
+            {% if more %}
+            <aside class="panel" aria-label="Weitere Live-Streams">
+                <div class="panel-head"><h2>Weitere Live-Streams</h2><a href="{% url 'mediathek:live_recordings' %}" class="section-link" style="font-size:.92rem">Alle</a></div>
+                {% for i in more %}
+                <a href="{% url 'mediathek:live_recording_player' i.pk %}" class="list-row">
+                    <span class="info"><span class="title">{{ i.title }}</span><span class="sub">{{ i.aired_at|date:"d.m.Y · H:i" }} Uhr{% if i.is_running %} · läuft{% endif %}</span></span>
+                    {% if i.is_running %}<span class="live-badge">Live</span>{% endif %}
+                </a>
+                {% endfor %}
+            </aside>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
