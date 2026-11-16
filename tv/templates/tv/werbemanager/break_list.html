@@ -1,0 +1,73 @@
+{% extends 'tv/werbemanager/_layout.html' %}
+{% block wm_title %}Werbepausen{% endblock %}
+
+{% block wm_content %}
+<div class="panel mb-4" style="max-width:860px">
+    <div class="panel-head"><h2><i class="bi bi-plus-circle me-2" style="color:var(--accent)"></i>Werbepause anlegen</h2></div>
+    <div class="panel-body">
+        <form method="post" action="{% url 'werbemanager_break_new' %}" class="wm-form">
+            {% csrf_token %}
+            <input type="hidden" name="back_program_id" value="{{ program_id }}">
+            <div>
+                <label class="form-label" for="program_id">Sendung</label>
+                <select id="program_id" name="program_id" class="form-select" required>
+                    <option value="">Bitte wählen …</option>
+                    {% for p in programs %}<option value="{{ p.id }}"{% if p.id == program_id %} selected{% endif %}>{{ p.title }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="row2">
+                <div>
+                    <label class="form-label" for="trigger">Nach … Minuten Sendezeit</label>
+                    <input id="trigger" name="trigger_at_minutes" type="number" min="0" max="1440" class="form-control" value="15" required>
+                </div>
+                <div>
+                    <label class="form-label" for="dur">Länge der Pause (Sekunden)</label>
+                    <input id="dur" name="duration_seconds" type="number" min="10" max="3600" class="form-control" value="120" required>
+                </div>
+            </div>
+            <div><button class="btn btn-rsl" type="submit"><i class="bi bi-plus-lg"></i>Werbepause anlegen</button></div>
+        </form>
+    </div>
+</div>
+
+<form method="get" class="d-flex gap-2 align-items-end flex-wrap mb-3">
+    <div style="min-width:280px;flex:1;max-width:560px">
+        <label class="form-label mb-1" for="f-program">Werbepausen anzeigen für</label>
+        <select id="f-program" name="program_id" class="form-select" onchange="this.form.submit()">
+            <option value="">Alle Sendungen</option>
+            {% for p in programs %}<option value="{{ p.id }}"{% if p.id == program_id %} selected{% endif %}>{{ p.title }}</option>{% endfor %}
+        </select>
+    </div>
+    <noscript><button class="btn btn-ghost">Anzeigen</button></noscript>
+</form>
+
+<div class="panel">
+    {% if breaks %}
+    <div class="wm-scroll">
+    <table class="wm-table">
+        <thead><tr><th>Sendung</th><th>Nach Minute</th><th>Länge (Sek.)</th><th>Art</th><th></th></tr></thead>
+        <tbody>
+        {% for b in breaks %}
+        <tr>
+            <td>{{ b.program_title }}{% if b.ad_title %}<div class="muted">{{ b.ad_title }}</div>{% endif %}</td>
+            <td><input form="bf-{{ forloop.counter }}" name="trigger_at_minutes" type="number" min="0" max="1440" class="form-control" style="max-width:110px" value="{{ b.trigger_at_minutes|default:0 }}" aria-label="Nach Minute"></td>
+            <td><input form="bf-{{ forloop.counter }}" name="duration_seconds" type="number" min="10" max="3600" class="form-control" style="max-width:120px" value="{{ b.duration_seconds|default:120 }}" aria-label="Länge in Sekunden"></td>
+            <td>{% if b.is_auto %}<span class="wm-badge">Automatisch</span>{% else %}<span class="wm-badge">Manuell</span>{% endif %}</td>
+            <td style="white-space:nowrap">
+                <form method="post" action="{% url 'werbemanager_break_save' b.id %}" id="bf-{{ forloop.counter }}" class="d-inline">{% csrf_token %}<input type="hidden" name="back_program_id" value="{{ program_id }}"></form>
+                <button form="bf-{{ forloop.counter }}" class="btn btn-ghost btn-sm" aria-label="Speichern"><i class="bi bi-check-lg"></i></button>
+                <form method="post" action="{% url 'werbemanager_break_delete' b.id %}" class="d-inline" onsubmit="return confirm('Werbepause löschen?')">
+                    {% csrf_token %}<input type="hidden" name="back_program_id" value="{{ program_id }}">
+                    <button class="btn btn-ghost btn-sm" aria-label="Löschen"><i class="bi bi-trash"></i></button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="panel-body"><p class="mb-0">Keine Werbepausen{% if program_id %} für diese Sendung{% endif %}.</p></div>
+    {% endif %}
+</div>
+{% endblock %}

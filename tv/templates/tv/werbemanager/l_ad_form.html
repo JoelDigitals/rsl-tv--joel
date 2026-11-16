@@ -1,0 +1,86 @@
+{% extends 'tv/werbemanager/_layout.html' %}
+{% block wm_title %}{% if ad_id %}L-Werbung bearbeiten{% else %}Neue L-Werbung{% endif %}{% endblock %}
+
+{% block wm_content %}
+<nav class="breadcrumbs" aria-label="Brotkrumen"><a href="{% url 'werbemanager_l_ads' %}">L-Werbung</a><span>/</span><span>{% if ad_id %}{{ ad.title|default:"L-Werbung" }}{% else %}Neu{% endif %}</span></nav>
+<div class="panel" style="max-width:860px">
+    <div class="panel-head"><h2>{% if ad_id %}L-Werbung bearbeiten{% else %}Neue L-Werbung{% endif %}</h2></div>
+    <div class="panel-body">
+        <p style="color:var(--text-3)">Bei der L-Werbung wird das Programm verkleinert; links und optional unten erscheint das Werbemotiv.</p>
+        <form method="post" enctype="multipart/form-data" class="wm-form">
+            {% csrf_token %}
+            <div>
+                <label class="form-label" for="title">Titel</label>
+                <input id="title" name="title" class="form-control" required maxlength="200" value="{{ ad.title|default:'' }}">
+            </div>
+
+            <div class="row2">
+                <div>
+                    <label class="form-label" for="media_file">Motiv links (480 × 1080)</label>
+                    {% if ad.media_url %}<div class="preview-l mb-2"><img src="{{ ad.media_url }}" alt="Aktuelles Motiv links"></div>{% endif %}
+                    <input id="media_file" type="file" name="media_file" accept="image/*,video/mp4" class="form-control">
+                    <input name="media_url" type="url" class="form-control mt-2" value="{{ ad.media_url|default:'' }}" placeholder="… oder URL" aria-label="Motiv links als URL">
+                </div>
+                <div>
+                    <label class="form-label" for="bottom_media_file">Motiv unten (1440 × 270, optional)</label>
+                    {% if ad.bottom_media_url %}<div class="preview-l mb-2"><img src="{{ ad.bottom_media_url }}" alt="Aktuelles Motiv unten"></div>{% endif %}
+                    <input id="bottom_media_file" type="file" name="bottom_media_file" accept="image/*,video/mp4" class="form-control">
+                    <input name="bottom_media_url" type="url" class="form-control mt-2" value="{{ ad.bottom_media_url|default:'' }}" placeholder="… oder URL" aria-label="Motiv unten als URL">
+                    {% if ad_id and ad.bottom_media_url %}<label class="check mt-2"><input type="checkbox" name="remove_bottom" value="1">Motiv unten entfernen</label>{% endif %}
+                </div>
+            </div>
+
+            <div class="row2">
+                <div>
+                    <label class="form-label" for="headline">Überschrift</label>
+                    <input id="headline" name="headline" class="form-control" maxlength="120" value="{{ ad.headline|default:'' }}">
+                </div>
+                <div>
+                    <label class="form-label" for="subline">Unterzeile</label>
+                    <input id="subline" name="subline" class="form-control" maxlength="200" value="{{ ad.subline|default:'' }}">
+                </div>
+            </div>
+
+            <div class="row2">
+                <div>
+                    <label class="form-label" for="duration_seconds">Dauer (10–60 Sek.)</label>
+                    <input id="duration_seconds" name="duration_seconds" type="number" min="10" max="60" class="form-control" value="{{ ad.duration_seconds|default:20 }}" required>
+                </div>
+                <div>
+                    <label class="form-label" for="weight">Gewichtung</label>
+                    <input id="weight" name="weight" type="number" min="0" class="form-control" value="{{ ad.weight|default:1 }}">
+                </div>
+                <div>
+                    <label class="form-label" for="background_color">Hintergrundfarbe</label>
+                    <input id="background_color" name="background_color" type="color" class="form-control form-control-color" value="{{ ad.background_color|default:'#0a1220' }}" style="width:100%;height:46px">
+                </div>
+            </div>
+
+            <div class="row2">
+                <div>
+                    <label class="form-label" for="starts_at">Läuft ab</label>
+                    <input id="starts_at" name="starts_at" type="datetime-local" class="form-control" value="{{ ad.starts_at_input|default:'' }}">
+                    <div class="help">Leer = sofort.</div>
+                </div>
+                <div>
+                    <label class="form-label" for="expires_at">Läuft bis</label>
+                    <input id="expires_at" name="expires_at" type="datetime-local" class="form-control" value="{{ ad.expires_at_input|default:'' }}">
+                    <div class="help">Leer = unbegrenzt.</div>
+                </div>
+            </div>
+
+            {% include 'tv/werbemanager/_regions.html' with selected=ad.target_regions %}
+
+            <div class="d-flex gap-4 flex-wrap">
+                <label class="check"><input type="checkbox" name="is_active" value="1"{% if ad.is_active is not False %} checked{% endif %}>Aktiv</label>
+                <label class="check"><input type="checkbox" name="is_premium" value="1"{% if ad.is_premium %} checked{% endif %}>Premium-Platzierung</label>
+            </div>
+
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-rsl" type="submit"><i class="bi bi-check-lg"></i>{% if ad_id %}Speichern{% else %}L-Werbung anlegen{% endif %}</button>
+                <a href="{% url 'werbemanager_l_ads' %}" class="btn btn-ghost">Abbrechen</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends 'tv/werbemanager/_layout.html' %}
+{% block wm_title %}Werbespots{% endblock %}
+
+{% block wm_content %}
+<div class="d-flex justify-content-between align-items-end gap-3 flex-wrap mb-3">
+    <form method="get" class="d-flex gap-2 flex-wrap align-items-end">
+        <div>
+            <label class="form-label mb-1" for="f-active">Status</label>
+            <select id="f-active" name="is_active" class="form-select" onchange="this.form.submit()">
+                <option value="">Alle</option>
+                <option value="true"{% if filters.is_active == 'true' %} selected{% endif %}>Aktiv</option>
+                <option value="false"{% if filters.is_active == 'false' %} selected{% endif %}>Inaktiv</option>
+            </select>
+        </div>
+        {% if spot_types or filters.spot_type %}
+        <div>
+            <label class="form-label mb-1" for="f-type">Typ</label>
+            <select id="f-type" name="spot_type" class="form-select" onchange="this.form.submit()">
+                <option value="">Alle</option>
+                {% for t in spot_types %}<option value="{{ t }}"{% if filters.spot_type == t %} selected{% endif %}>{{ t }}</option>{% endfor %}
+                {% if filters.spot_type and filters.spot_type not in spot_types %}<option value="{{ filters.spot_type }}" selected>{{ filters.spot_type }}</option>{% endif %}
+            </select>
+        </div>
+        {% endif %}
+        <noscript><button class="btn btn-ghost">Filtern</button></noscript>
+    </form>
+    <a href="{% url 'werbemanager_spot_new' %}" class="btn btn-rsl"><i class="bi bi-plus-lg"></i>Neuer Werbespot</a>
+</div>
+
+<div class="panel">
+    {% if spots %}
+    <div class="wm-scroll">
+    <table class="wm-table">
+        <thead><tr><th>Titel</th><th>Dauer</th><th>Zeitraum</th><th>Regionen</th><th>Ausgespielt</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        {% for s in spots %}
+        <tr>
+            <td>
+                <a href="{% url 'werbemanager_spot_edit' s.id %}" style="color:var(--text);font-weight:600">{{ s.title|default:"Ohne Titel" }}</a>
+                <div class="muted">{% if s.spot_type %}{{ s.spot_type }}{% endif %}{% if s.is_premium %} <span class="wm-badge premium">Premium</span>{% endif %}</div>
+            </td>
+            <td class="num">{% if s.duration_seconds %}{{ s.duration_seconds }} s{% else %}–{% endif %}</td>
+            <td class="muted">
+                {% if s.starts_at_dt %}ab {{ s.starts_at_dt|date:"d.m.Y" }}{% endif %}
+                {% if s.expires_at_dt %}<br>bis {{ s.expires_at_dt|date:"d.m.Y" }}{% endif %}
+                {% if not s.starts_at_dt and not s.expires_at_dt %}unbegrenzt{% endif %}
+            </td>
+            <td class="muted">{% if s.target_regions %}{{ s.target_regions|join:", " }}{% else %}bundesweit{% endif %}</td>
+            <td class="num">{{ s.play_count|default:0 }}{% if s.max_plays %} / {{ s.max_plays }}{% endif %}</td>
+            <td>{% if s.is_active is False %}<span class="wm-badge off">Inaktiv</span>{% else %}<span class="wm-badge on">Aktiv</span>{% endif %}</td>
+            <td style="white-space:nowrap">
+                <a href="{% url 'werbemanager_spot_edit' s.id %}" class="btn btn-ghost btn-sm" aria-label="Bearbeiten"><i class="bi bi-pencil"></i></a>
+                {% if s.is_active is not False %}
+                <form method="post" action="{% url 'werbemanager_spot_deactivate' s.id %}" class="d-inline" onsubmit="return confirm('Spot „{{ s.title|escapejs }}“ deaktivieren?')">
+                    {% csrf_token %}<button class="btn btn-ghost btn-sm" aria-label="Deaktivieren"><i class="bi bi-slash-circle"></i></button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="panel-body"><p class="mb-0">Keine Werbespots gefunden.</p></div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{# Regionsauswahl. Erwartet: regions [(code,label)], selected (Liste) #}
+<div>
+    <label class="form-label mb-1">Regionen</label>
+    {% if regions %}
+    <div class="region-box">
+        {% for code, label in regions %}
+        <label><input type="checkbox" name="target_regions" value="{{ code }}"{% if code in selected %} checked{% endif %}><span>{{ label }}{% if label != code %} <small style="color:var(--text-3)">({{ code }})</small>{% endif %}</span></label>
+        {% endfor %}
+    </div>
+    {% else %}
+    {# Bestehende Auswahl unverändert mitschicken, damit sie beim Speichern nicht verloren geht #}
+    {% for code in selected %}<input type="hidden" name="target_regions" value="{{ code }}">{% endfor %}
+    <p class="mb-0" style="color:var(--text-3)">Regionen konnten gerade nicht geladen werden.{% if selected %} Die bisherige Auswahl ({{ selected|join:", " }}) bleibt erhalten.{% endif %}</p>
+    {% endif %}
+    <div class="help">Nichts ausgewählt = bundesweit (DE, AT, CH).</div>
+</div>

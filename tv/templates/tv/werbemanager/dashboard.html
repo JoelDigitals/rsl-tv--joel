@@ -1,0 +1,46 @@
+{% extends 'tv/werbemanager/_layout.html' %}
+
+{% block wm_content %}
+{% if status is not None %}
+<div class="stat-tiles mb-4">
+    <div class="stat-tile">
+        <div class="label">Werbung gerade</div>
+        <div class="value">
+            {% if status.on_air %}<span class="live-badge" style="font-size:1rem">On Air</span>{% else %}Keine{% endif %}
+        </div>
+        {% if status.title %}<div class="mt-1" style="color:var(--text-2)">{{ status.title }}</div>{% endif %}
+    </div>
+    <div class="stat-tile"><div class="label">Aktive Werbespots</div><div class="value">{{ active_spots }}</div><div style="color:var(--text-3);font-size:.88rem">von {{ spots|length }}</div></div>
+    <div class="stat-tile"><div class="label">Aktive L-Werbungen</div><div class="value">{{ active_l_ads }}</div><div style="color:var(--text-3);font-size:.88rem">von {{ l_ads|length }}</div></div>
+</div>
+{% endif %}
+
+<div class="d-flex gap-2 flex-wrap mb-4">
+    <a href="{% url 'werbemanager_spot_new' %}" class="btn btn-rsl"><i class="bi bi-plus-lg"></i>Neuer Werbespot</a>
+    <a href="{% url 'werbemanager_l_ad_new' %}" class="btn btn-ghost"><i class="bi bi-plus-lg"></i>Neue L-Werbung</a>
+    <a href="{% url 'werbemanager_breaks' %}" class="btn btn-ghost"><i class="bi bi-pause-btn"></i>Werbepausen planen</a>
+</div>
+
+<div class="panel">
+    <div class="panel-head"><h2>Ausspielungen je Spot</h2><a href="{% url 'werbemanager_spots' %}" class="section-link" style="font-size:.92rem">Alle Spots</a></div>
+    {% if stats %}
+    <div class="wm-scroll">
+    <table class="wm-table">
+        <thead><tr><th>Spot</th><th>Ausspielungen</th><th>Heute</th><th>Zuletzt</th></tr></thead>
+        <tbody>
+        {% for s in stats %}
+        <tr>
+            <td>{{ s.title }}</td>
+            <td class="num">{{ s.plays }}</td>
+            <td class="num">{{ s.plays_today }}</td>
+            <td class="muted">{% if s.last_played_dt %}{{ s.last_played_dt|date:"d.m.Y, H:i" }} Uhr{% else %}–{% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="panel-body"><p class="mb-0">Noch keine Ausspielungen erfasst.</p></div>
+    {% endif %}
+</div>
+{% endblock %}

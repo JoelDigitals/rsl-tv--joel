@@ -1,0 +1,74 @@
+{% extends 'tv/werbemanager/_layout.html' %}
+{% block wm_title %}{% if spot_id %}Spot bearbeiten{% else %}Neuer Werbespot{% endif %}{% endblock %}
+
+{% block wm_content %}
+<nav class="breadcrumbs" aria-label="Brotkrumen"><a href="{% url 'werbemanager_spots' %}">Werbespots</a><span>/</span><span>{% if spot_id %}{{ spot.title|default:"Spot" }}{% else %}Neu{% endif %}</span></nav>
+<div class="panel" style="max-width:860px">
+    <div class="panel-head"><h2>{% if spot_id %}Werbespot bearbeiten{% else %}Neuer Werbespot{% endif %}</h2></div>
+    <div class="panel-body">
+        <form method="post" enctype="multipart/form-data" class="wm-form">
+            {% csrf_token %}
+            <div>
+                <label class="form-label" for="title">Titel</label>
+                <input id="title" name="title" class="form-control" required maxlength="200" value="{{ spot.title|default:'' }}" placeholder="z. B. Autohaus Müller – Herbstaktion">
+            </div>
+
+            <div>
+                <label class="form-label" for="video_file">Video</label>
+                {% if spot.video_url %}
+                <div class="preview-l mb-2"><video src="{{ spot.video_url }}" controls preload="metadata"></video></div>
+                {% endif %}
+                <input id="video_file" type="file" name="video_file" accept="video/mp4,video/*" class="form-control">
+                <div class="help">Am besten 1080p, H.264, MP4 mit Faststart. Die Datei wird direkt ins Studio hochgeladen.</div>
+                <label class="form-label mt-2" for="video_url">… oder Video-URL</label>
+                <input id="video_url" name="video_url" type="url" class="form-control" value="{{ spot.video_url|default:'' }}" placeholder="https://…/spot.mp4">
+            </div>
+
+            <div class="row2">
+                <div>
+                    <label class="form-label" for="duration_seconds">Länge (Sekunden)</label>
+                    <input id="duration_seconds" name="duration_seconds" type="number" min="1" max="600" class="form-control" value="{{ spot.duration_seconds|default:30 }}" required>
+                </div>
+                <div>
+                    <label class="form-label" for="weight">Gewichtung</label>
+                    <input id="weight" name="weight" type="number" min="0" class="form-control" value="{{ spot.weight|default_if_none:'' }}" placeholder="Standard">
+                    <div class="help">Höher = wird öfter ausgespielt.</div>
+                </div>
+                <div>
+                    <label class="form-label" for="max_plays">Max. Ausspielungen</label>
+                    <input id="max_plays" name="max_plays" type="number" min="0" class="form-control" value="{{ spot.max_plays|default_if_none:'' }}" placeholder="unbegrenzt">
+                </div>
+                <div>
+                    <label class="form-label" for="cooldown_minutes">Pause zwischen Ausspielungen (Min.)</label>
+                    <input id="cooldown_minutes" name="cooldown_minutes" type="number" min="0" class="form-control" value="{{ spot.cooldown_minutes|default_if_none:'' }}" placeholder="Standard">
+                </div>
+            </div>
+
+            <div class="row2">
+                <div>
+                    <label class="form-label" for="starts_at">Läuft ab</label>
+                    <input id="starts_at" name="starts_at" type="datetime-local" class="form-control" value="{{ spot.starts_at_input|default:'' }}">
+                    <div class="help">Leer = sofort.</div>
+                </div>
+                <div>
+                    <label class="form-label" for="expires_at">Läuft bis</label>
+                    <input id="expires_at" name="expires_at" type="datetime-local" class="form-control" value="{{ spot.expires_at_input|default:'' }}">
+                    <div class="help">Leer = unbegrenzt.</div>
+                </div>
+            </div>
+
+            {% include 'tv/werbemanager/_regions.html' with selected=spot.target_regions %}
+
+            <div class="d-flex gap-4 flex-wrap">
+                <label class="check"><input type="checkbox" name="is_active" value="1"{% if spot.is_active is not False %} checked{% endif %}>Aktiv</label>
+                <label class="check"><input type="checkbox" name="is_premium" value="1"{% if spot.is_premium %} checked{% endif %}>Premium-Platzierung</label>
+            </div>
+
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-rsl" type="submit"><i class="bi bi-check-lg"></i>{% if spot_id %}Speichern{% else %}Spot anlegen{% endif %}</button>
+                <a href="{% url 'werbemanager_spots' %}" class="btn btn-ghost">Abbrechen</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

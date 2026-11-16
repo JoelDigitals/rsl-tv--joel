@@ -4,6 +4,7 @@ RSL TV – URLs (vereinigt)
 from django.urls import path
 from . import views
 from . import upload_views  # NEU: Upload Views
+from . import werbemanager_views  # Werbemanager (Studio Ad-Manager-API)
 from .upload_center_view import upload_center  # NEU: Upload Center
 
 urlpatterns = [
@@ -39,6 +40,24 @@ urlpatterns = [
     path('werbung/buchen/', views.werbung_buchen, name='werbung_buchen'),
     path('werbung/buchen/<str:package>/', views.werbung_buchen, name='werbung_buchen_package'),
     path('werbung/erfolg/', views.werbung_success, name='werbung_success'),
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # WERBEMANAGER (Studio Ad-Manager-API, nur Staff)
+    # ══════════════════════════════════════════════════════════════════════════
+    path('werbemanager/', werbemanager_views.dashboard, name='werbemanager'),
+    path('werbemanager/spots/', werbemanager_views.spot_list, name='werbemanager_spots'),
+    path('werbemanager/spots/neu/', werbemanager_views.spot_edit, name='werbemanager_spot_new'),
+    path('werbemanager/spots/<str:spot_id>/', werbemanager_views.spot_edit, name='werbemanager_spot_edit'),
+    path('werbemanager/spots/<str:spot_id>/deaktivieren/', werbemanager_views.spot_deactivate, name='werbemanager_spot_deactivate'),
+    path('werbemanager/l-werbung/', werbemanager_views.l_ad_list, name='werbemanager_l_ads'),
+    path('werbemanager/l-werbung/takt/', werbemanager_views.l_ad_settings, name='werbemanager_l_ad_settings'),
+    path('werbemanager/l-werbung/neu/', werbemanager_views.l_ad_edit, name='werbemanager_l_ad_new'),
+    path('werbemanager/l-werbung/<str:ad_id>/', werbemanager_views.l_ad_edit, name='werbemanager_l_ad_edit'),
+    path('werbemanager/l-werbung/<str:ad_id>/deaktivieren/', werbemanager_views.l_ad_deactivate, name='werbemanager_l_ad_deactivate'),
+    path('werbemanager/werbepausen/', werbemanager_views.break_list, name='werbemanager_breaks'),
+    path('werbemanager/werbepausen/neu/', werbemanager_views.break_save, name='werbemanager_break_new'),
+    path('werbemanager/werbepausen/<str:break_id>/', werbemanager_views.break_save, name='werbemanager_break_save'),
+    path('werbemanager/werbepausen/<str:break_id>/loeschen/', werbemanager_views.break_delete, name='werbemanager_break_delete'),
     
     # ══════════════════════════════════════════════════════════════════════════
     # API ENDPUNKTE (JSON für FFmpeg & Frontend)
