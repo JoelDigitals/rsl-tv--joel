@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Meine Buchungen – Werbekonto – RSL{% endblock %}
+{% block content %}
+{% include 'tv/werbekonto/_header.html' with heading="Meine " heading_red="Werbung" subline=profile.company_name %}
+<div class="container py-4">
+  {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+  <div class="row g-3 mb-4">
+    <div class="col-4"><div class="rsl-card p-3"><div class="small text-muted text-uppercase">Buchungen</div><div class="fs-3 fw-bold">{{ counts.total }}</div></div></div>
+    <div class="col-4"><div class="rsl-card p-3"><div class="small text-muted text-uppercase">In Prüfung</div><div class="fs-3 fw-bold">{{ counts.pending }}</div></div></div>
+    <div class="col-4"><div class="rsl-card p-3"><div class="small text-muted text-uppercase">Freigegeben</div><div class="fs-3 fw-bold">{{ counts.approved }}</div></div></div>
+  </div>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h4 mb-0">Meine Buchungen</h2>
+    <a href="{% url 'werbekonto_neu' %}" class="btn btn-rsl"><i class="bi bi-plus-lg"></i> Neue Buchung</a>
+  </div>
+  {% for b in bookings %}
+  <div class="rsl-card p-4 mb-3" id="b-{{ b.id }}">
+    <div class="d-flex flex-wrap justify-content-between gap-2">
+      <div>
+        <h3 class="h5 mb-1">{{ b.ad_title }}</h3>
+        <div class="small text-muted">Zeitraum {{ b.start|date:"d.m.Y"|default:"–" }} – {{ b.end|date:"d.m.Y"|default:"–" }}</div>
+      </div>
+      <span class="badge bg-{{ b.status_color }} align-self-start">{{ b.status_label }}</span>
+    </div>
+    <div class="row g-2 small mt-2">
+      <div class="col-6 col-md-3"><span class="text-muted">Platzierung:</span> {{ b.desired_slot|default:"–" }}</div>
+      <div class="col-6 col-md-3"><span class="text-muted">Pro Tag:</span> {{ b.plays_per_day|default:"–" }}×</div>
+      <div class="col-6 col-md-3"><span class="text-muted">Zielgebiet:</span> {% if b.target_labels %}{{ b.target_labels|join:", " }}{% else %}Bundesweit{% if b.is_premium %} · Premium{% endif %}{% endif %}</div>
+      <div class="col-6 col-md-3"><span class="text-muted">Richtpreis:</span> {% if b.price_eur is not None %}{{ b.price_eur|floatformat:2 }} €{% else %}–{% endif %}</div>
+    </div>
+    {% if b.admin_note %}<div class="alert alert-secondary small mt-3 mb-0"><strong>Hinweis von RSL TV:</strong> {{ b.admin_note }}</div>{% endif %}
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      {% if b.spot_video_url %}<a class="btn btn-sm btn-outline-rsl" href="{{ b.spot_video_url }}" target="_blank" rel="noopener">Spot ansehen</a>{% endif %}
+      {% if b.status == 'pending' %}
+      <form method="post" action="{% url 'werbekonto_zurueckziehen' b.id %}" onsubmit="return confirm('Anfrage zurückziehen?')">{% csrf_token %}
+        <button class="btn btn-sm btn-outline-danger" type="submit">Zurückziehen</button></form>
+      {% endif %}
+      {% if b.status == 'approved' and b.spot_id %}
+      <form method="post" action="{% url 'werbekonto_pausieren' b.id %}">{% csrf_token %}
+        {% if b.spot_active is False %}<input type="hidden" name="paused" value="0"><button class="btn btn-sm btn-rsl" type="submit">Fortsetzen</button>
+        {% else %}<input type="hidden" name="paused" value="1"><button class="btn btn-sm btn-outline-rsl" type="submit">Pausieren</button>{% endif %}
+      </form>
+      {% endif %}
+      {% if b.spot_id %}<a class="btn btn-sm btn-outline-rsl" href="?statistik={{ b.id }}#b-{{ b.id }}">Statistik</a>{% endif %}
+    </div>
+    {% if stats and stats_for == b.id %}
+    <div class="mt-3 pt-3 border-top">
+      <div class="row g-2 text-center mb-3">
+        <div class="col-4"><div class="small text-muted">Ausstrahlungen</div><div class="fs-4 fw-bold">{{ stats.total }}</div></div>
+        <div class="col-4"><div class="small text-muted">Heute</div><div class="fs-4 fw-bold">{{ stats.today }}</div></div>
+        <div class="col-4"><div class="small text-muted">Status</div><div class="fs-4 fw-bold">{% if stats.is_active %}Aktiv{% else %}Pausiert{% endif %}</div></div>
+      </div>
+      {% for d in stats.by_day %}
+      <div class="d-flex align-items-center gap-2 small mb-1">
+        <span class="text-muted" style="width:5.5rem">{{ d.date|date:"D d.m." }}</span>
+        <span class="flex-grow-1" style="background:var(--line-strong);height:.5rem;border-radius:3px"><span style="display:block;height:.5rem;border-radius:3px;background:var(--brand);width:{{ d.pct }}%"></span></span>
+        <span style="width:2.5rem;text-align:right">{{ d.plays }}</span>
+      </div>
+      {% empty %}<p class="small text-muted mb-0">Noch keine Ausstrahlungen.</p>{% endfor %}
+      {% if stats.by_program %}<p class="small text-muted mt-2 mb-0">Meist in: {% for p in stats.by_program|slice:":5" %}{{ p.title }} ({{ p.plays }}){% if not forloop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+  {% empty %}
+  <div class="rsl-card p-5 text-center text-muted">Noch keine Buchungen. <a href="{% url 'werbekonto_neu' %}">Erste Buchung anlegen</a></div>
+  {% endfor %}
+</div>
+{% endblock %}

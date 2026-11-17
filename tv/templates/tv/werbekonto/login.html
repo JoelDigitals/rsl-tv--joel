@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Anmelden – Werbekonto – RSL{% endblock %}
+{% block content %}
+{% include 'tv/werbekonto/_header.html' with heading="Werbekonto " heading_red="anmelden" subline="Gleiches Konto wie im AD Manager des Studios" %}
+<div class="container py-5">
+  <div class="row justify-content-center"><div class="col-md-6 col-lg-5">
+    <div class="rsl-card p-4">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+        <div class="mb-3"><label class="form-label fw-bold" for="email">E-Mail</label>
+          <input id="email" type="email" name="email" class="form-control" autocomplete="email" value="{{ email }}" required></div>
+        <div class="mb-4"><label class="form-label fw-bold" for="password">Passwort</label>
+          <input id="password" type="password" name="password" class="form-control" autocomplete="current-password" required></div>
+        <button type="submit" class="btn btn-rsl w-100">Anmelden</button>
+      </form>
+      <p class="text-muted small mt-3 mb-0 text-center">Noch kein Konto? <a href="{% url 'werbekonto_registrieren' %}">Jetzt registrieren</a></p>
+    </div>
+  </div></div>
+</div>
+{% endblock %}

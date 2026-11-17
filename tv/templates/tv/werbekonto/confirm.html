@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}E-Mail bestätigen – RSL{% endblock %}
+{% block content %}
+<div class="container py-5 text-center"><div style="max-width:520px;margin:0 auto;">
+  <h1 class="section-title">Fast <span>geschafft</span></h1>
+  <p class="text-muted mt-3 mb-4">Wir haben eine Bestätigungs-E-Mail an <strong>{{ email }}</strong> geschickt. Nach dem Klick auf den Link können Sie sich anmelden.</p>
+  <a href="{% url 'werbekonto_login' %}" class="btn btn-rsl">Zur Anmeldung</a>
+</div></div>
+{% endblock %}

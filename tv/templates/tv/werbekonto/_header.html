@@ -1,0 +1,14 @@
+<div class="page-header">
+    <div class="container d-flex flex-wrap justify-content-between align-items-end gap-3">
+        <div>
+            <h1>{{ heading|default:"Werbe" }}<span style="color:var(--rsl-red)">{{ heading_red|default:"konto" }}</span></h1>
+            <p class="text-muted mt-2 mb-0">{{ subline|default:"Ihre eigenen Spots und Buchungen bei RSL TV" }}</p>
+        </div>
+        {% if konto %}
+        <div class="d-flex gap-2 align-items-center">
+            <span class="text-muted small">{{ konto.email }}</span>
+            <a href="{% url 'werbekonto_logout' %}" class="btn btn-sm btn-outline-rsl">Abmelden</a>
+        </div>
+        {% endif %}
+    </div>
+</div>

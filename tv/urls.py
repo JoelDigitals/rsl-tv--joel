@@ -5,6 +5,7 @@ from django.urls import path
 from . import views
 from . import upload_views  # NEU: Upload Views
 from . import werbemanager_views  # Werbemanager (Studio Ad-Manager-API)
+from . import werbekonto_views  # Werbekonto für Kunden (Studio-Werbekonten)
 from .upload_center_view import upload_center  # NEU: Upload Center
 
 urlpatterns = [
@@ -40,6 +41,15 @@ urlpatterns = [
     path('werbung/buchen/', views.werbung_buchen, name='werbung_buchen'),
     path('werbung/buchen/<str:package>/', views.werbung_buchen, name='werbung_buchen_package'),
     path('werbung/erfolg/', views.werbung_success, name='werbung_success'),
+    # Werbekonto für Kunden: gleiches Konto wie im Studio-AD-Manager, nur eigene Buchungen (RLS im Studio)
+    path('werbung/konto/', werbekonto_views.dashboard, name='werbekonto'),
+    path('werbung/konto/login/', werbekonto_views.login_view, name='werbekonto_login'),
+    path('werbung/konto/registrieren/', werbekonto_views.register_view, name='werbekonto_registrieren'),
+    path('werbung/konto/abmelden/', werbekonto_views.logout_view, name='werbekonto_logout'),
+    path('werbung/konto/aktivieren/', werbekonto_views.activate_view, name='werbekonto_aktivieren'),
+    path('werbung/konto/neu/', werbekonto_views.new_booking, name='werbekonto_neu'),
+    path('werbung/konto/<str:booking_id>/pausieren/', werbekonto_views.pause, name='werbekonto_pausieren'),
+    path('werbung/konto/<str:booking_id>/zurueckziehen/', werbekonto_views.withdraw, name='werbekonto_zurueckziehen'),
 
     # ══════════════════════════════════════════════════════════════════════════
     # WERBEMANAGER (Studio Ad-Manager-API, nur Staff)

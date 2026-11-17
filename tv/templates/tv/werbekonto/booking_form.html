@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Neue Buchung – Werbekonto – RSL{% endblock %}
+{% block content %}
+{% include 'tv/werbekonto/_header.html' with heading="Neue " heading_red="Buchung" subline="Preis und Reichweite berechnet das Studio verbindlich bei der Prüfung" %}
+<div class="container py-4"><div class="row justify-content-center"><div class="col-lg-9">
+  <form method="post" enctype="multipart/form-data" class="rsl-card p-4 p-lg-5">
+    {% csrf_token %}
+    <h2 class="h5 mb-3">1. Spot</h2>
+    <div class="mb-3"><label class="form-label fw-bold" for="ad_title">Titel des Spots *</label>
+      <input id="ad_title" name="ad_title" class="form-control" minlength="2" maxlength="120" value="{{ form.ad_title }}" required></div>
+    <div class="mb-2"><label class="form-label fw-bold" for="spot_file">Spot-Datei hochladen</label>
+      <input id="spot_file" name="spot_file" type="file" accept="video/mp4" class="form-control">
+      <div class="form-text">MP4 mit H.264, „Web optimiert“/Faststart, höchstens 1920×1080, 5–120 Sekunden, max. 300 MB.</div></div>
+    <div class="mb-3"><label class="form-label fw-bold" for="spot_video_url">… oder Link zum Spot</label>
+      <input id="spot_video_url" name="spot_video_url" type="url" class="form-control" placeholder="https://…" value="{{ form.spot_video_url }}"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-md-4"><label class="form-label fw-bold" for="spot_duration_seconds">Länge (s) *</label>
+        <input id="spot_duration_seconds" name="spot_duration_seconds" type="number" min="5" max="120" class="form-control" value="{{ form.spot_duration_seconds }}" required>
+        <div class="form-text">Bei Upload aus der Datei übernommen.</div></div>
+      <div class="col-md-8"><label class="form-label fw-bold" for="ad_description">Beschreibung / Wünsche</label>
+        <textarea id="ad_description" name="ad_description" class="form-control" rows="2" maxlength="2000">{{ form.ad_description }}</textarea></div>
+    </div>
+
+    <h2 class="h5 mt-4 mb-3">2. Zeitraum &amp; Ausstrahlung</h2>
+    <div class="row g-3 mb-3">
+      <div class="col-md-3"><label class="form-label fw-bold" for="start_date">Start *</label>
+        <input id="start_date" name="start_date" type="date" min="{{ min_date }}" class="form-control" value="{{ form.start_date }}" required></div>
+      <div class="col-md-3"><label class="form-label fw-bold" for="end_date">Ende *</label>
+        <input id="end_date" name="end_date" type="date" min="{{ min_date }}" class="form-control" value="{{ form.end_date }}" required></div>
+      <div class="col-md-2"><label class="form-label fw-bold" for="plays_per_day">Pro Tag</label>
+        <input id="plays_per_day" name="plays_per_day" type="number" min="1" max="48" class="form-control" value="{{ form.plays_per_day }}"></div>
+      <div class="col-md-4"><label class="form-label fw-bold" for="desired_slot">Platzierung</label>
+        <select id="desired_slot" name="desired_slot" class="form-select">{% for s in slots %}<option value="{{ s }}" {% if s == form.desired_slot %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+      <div class="col-md-3"><label class="form-label fw-bold" for="budget_eur">Budget (€)</label>
+        <input id="budget_eur" name="budget_eur" inputmode="decimal" class="form-control" placeholder="optional" value="{{ form.budget_eur }}"></div>
+    </div>
+
+    <h2 class="h5 mt-4 mb-2">3. Zielgebiet</h2>
+    <p class="small text-muted">Nichts gewählt = bundesweit (DE · AT · CH). Einzelne Städte lassen sich im AD Manager des Studios wählen.</p>
+    <div class="d-flex flex-wrap gap-2 mb-2">
+      {% for code, label in regions %}
+      <label class="form-check-label small border rounded px-2 py-1">
+        <input class="form-check-input me-1" type="checkbox" name="target_regions" value="{{ code }}" {% if code in targets %}checked{% endif %}>{{ label }}</label>
+      {% endfor %}
+    </div>
+    <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="is_premium" id="is_premium" value="1">
+      <label class="form-check-label small" for="is_premium"><strong>Premium-Platzierung</strong> (nur bundesweit) – bevorzugt im Twitch- und YouTube-Livestream</label></div>
+
+    <h2 class="h5 mt-4 mb-3">4. Kontakt</h2>
+    <div class="row g-3 mb-3">
+      <div class="col-md-6"><label class="form-label fw-bold" for="company_name">Firma *</label>
+        <input id="company_name" name="company_name" class="form-control" minlength="2" maxlength="120" value="{{ form.company_name }}" required></div>
+      <div class="col-md-6"><label class="form-label fw-bold" for="contact_name">Ansprechpartner *</label>
+        <input id="contact_name" name="contact_name" class="form-control" minlength="2" maxlength="120" value="{{ form.contact_name }}" required></div>
+      <div class="col-md-6"><label class="form-label fw-bold" for="contact_email">E-Mail *</label>
+        <input id="contact_email" name="contact_email" type="email" class="form-control" value="{{ form.contact_email }}" required></div>
+      <div class="col-md-6"><label class="form-label fw-bold" for="contact_phone">Telefon</label>
+        <input id="contact_phone" name="contact_phone" class="form-control" maxlength="40" value="{{ form.contact_phone }}"></div>
+    </div>
+    <div class="form-check mb-4"><input class="form-check-input" type="checkbox" name="consent" id="consent" value="1" required>
+      <label class="form-check-label small text-muted" for="consent">Ich bin einverstanden, dass RSL TV meine Angaben zur Bearbeitung dieser Buchung speichert und mich dazu kontaktiert. *</label></div>
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-rsl">Buchung einreichen</button>
+      <a href="{% url 'werbekonto' %}" class="btn btn-outline-rsl">Abbrechen</a>
+    </div>
+  </form>
+</div></div></div>
+{% endblock %}

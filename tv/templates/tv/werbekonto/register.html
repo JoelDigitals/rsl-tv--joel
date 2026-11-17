@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Registrieren – Werbekonto – RSL{% endblock %}
+{% block content %}
+{% include 'tv/werbekonto/_header.html' with heading="Werbekonto " heading_red="anlegen" subline="Eigene Spots hochladen, Buchungen verwalten und Ausstrahlungen verfolgen" %}
+<div class="container py-5">
+  <div class="row justify-content-center"><div class="col-lg-7">
+    <div class="rsl-card p-4 p-lg-5">
+      <form method="post">
+        {% csrf_token %}
+        <div class="mb-3"><label class="form-label fw-bold" for="company_name">Firma *</label>
+          <input id="company_name" name="company_name" class="form-control" maxlength="200" autocomplete="organization" value="{{ form.company_name }}" required></div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-6"><label class="form-label fw-bold" for="contact_name">Ansprechpartner</label>
+            <input id="contact_name" name="contact_name" class="form-control" maxlength="200" autocomplete="name" value="{{ form.contact_name }}"></div>
+          <div class="col-md-6"><label class="form-label fw-bold" for="phone">Telefon</label>
+            <input id="phone" name="phone" type="tel" class="form-control" maxlength="60" autocomplete="tel" value="{{ form.phone }}"></div>
+        </div>
+        <div class="mb-3"><label class="form-label fw-bold" for="email">E-Mail *</label>
+          <input id="email" name="email" type="email" class="form-control" autocomplete="email" value="{{ form.email }}" required></div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-6"><label class="form-label fw-bold" for="password">Passwort * <span class="text-muted fw-normal">(mind. 8 Zeichen)</span></label>
+            <input id="password" name="password" type="password" class="form-control" minlength="8" autocomplete="new-password" required></div>
+          <div class="col-md-6"><label class="form-label fw-bold" for="password2">Passwort wiederholen *</label>
+            <input id="password2" name="password2" type="password" class="form-control" minlength="8" autocomplete="new-password" required></div>
+        </div>
+        <div class="form-check mb-4">
+          <input class="form-check-input" type="checkbox" name="terms" id="terms" value="1" required>
+          <label class="form-check-label small text-muted" for="terms">Mir ist bekannt, dass Spots und Buchungen erst nach Prüfung durch RSL TV ausgestrahlt werden und ich die Rechte an hochgeladenen Inhalten besitze.</label>
+        </div>
+        <button type="submit" class="btn btn-rsl w-100">Konto erstellen</button>
+      </form>
+      <p class="text-muted small mt-3 mb-0 text-center">Schon registriert? <a href="{% url 'werbekonto_login' %}">Anmelden</a></p>
+    </div>
+  </div></div>
+</div>
+{% endblock %}
