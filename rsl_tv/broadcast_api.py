@@ -175,6 +175,8 @@ def _normalize_program(p):
         "video_url": p.get("video_url") or "",
         "video_type": p.get("video_type") or "",
         "youtube_id": yt,
+        # Eigener Mediathek-Player (Spulen, Vollbild, Werbepausen alle 30 Minuten)
+        "player_url": f"{PLAYER_URL}/mediathek?sendung={p.get('id')}&embed=1" if p.get("id") and p.get("video_url") else "",
         "duration_minutes": minutes,
         "duration_display": f"{minutes} Min." if minutes else "",
         "category": p.get("category") or "",

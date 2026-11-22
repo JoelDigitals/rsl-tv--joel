@@ -11,7 +11,10 @@
         <div class="layout-side">
             <div>
                 <div class="player">
-                    {% if program.youtube_id %}
+                    {% if program.player_url %}
+                    <iframe src="{{ program.player_url }}" title="{{ program.title }}"
+                            allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
+                    {% elif program.youtube_id %}
                     <iframe src="https://www.youtube-nocookie.com/embed/{{ program.youtube_id }}?rel=0&modestbranding=1" title="{{ program.title }}"
                             allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
                     {% elif program.video_url|is_direct_video %}
