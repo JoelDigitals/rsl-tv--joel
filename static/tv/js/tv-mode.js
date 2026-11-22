@@ -8,18 +8,21 @@
  */
 (function () {
   "use strict";
-  var KEY_STORE = "rslTv", RETURN_STORE = "rslTvReturn", DEPTH_STORE = "rslTvDepth";
+  var KEY_STORE = "rslTv", RETURN_STORE = "rslTvReturn", STACK_STORE = "rslTvStack", BACK_STORE = "rslTvBackNav";
   var params = new URLSearchParams(location.search);
   var store = window.sessionStorage;
 
   try {
+    // Eigene Liste der besuchten Seiten: history.back() würde zuerst im eingebetteten Player-Frame zurückgehen.
     if (params.get("tv") === "1") {
       store.setItem(KEY_STORE, "1");
-      store.setItem(DEPTH_STORE, "0");
+      store.setItem(STACK_STORE, JSON.stringify([location.href]));
+      store.removeItem(BACK_STORE);
       if (params.get("return")) store.setItem(RETURN_STORE, params.get("return"));
     } else if (store.getItem(KEY_STORE) === "1") {
-      var nav = performance.getEntriesByType && performance.getEntriesByType("navigation")[0];
-      if (!nav || nav.type === "navigate") store.setItem(DEPTH_STORE, String(Number(store.getItem(DEPTH_STORE) || 0) + 1));
+      var stack = JSON.parse(store.getItem(STACK_STORE) || "[]");
+      if (store.getItem(BACK_STORE) === "1") store.removeItem(BACK_STORE);
+      else if (stack[stack.length - 1] !== location.href) { stack.push(location.href); store.setItem(STACK_STORE, JSON.stringify(stack.slice(-50))); }
     }
     if (store.getItem(KEY_STORE) !== "1") return;
   } catch (e) {
@@ -55,7 +58,6 @@
   }
   var playing = false;
 
-  function depth() { try { return Number(store.getItem(DEPTH_STORE) || 0); } catch (e) { return 0; } }
   // Während ein Seitenwechsel läuft, keine weiteren Tasten (sonst zählt „Zurück“ doppelt).
   var leaving = false, leaveTimer = null;
   function setLeaving() {
@@ -70,14 +72,14 @@
     location.href = returnUrl;
   }
   function goBack() {
-    var d = depth();
-    if (d > 0) {
-      setLeaving();
-      try { store.setItem(DEPTH_STORE, String(d - 1)); } catch (e) { /* egal */ }
-      history.back();
-    } else {
-      goLive();
-    }
+    var stack;
+    try { stack = JSON.parse(store.getItem(STACK_STORE) || "[]"); } catch (e) { stack = []; }
+    stack.pop(); // aktuelle Seite
+    var previous = stack[stack.length - 1];
+    if (!previous) { goLive(); return; }
+    setLeaving();
+    try { store.setItem(STACK_STORE, JSON.stringify(stack)); store.setItem(BACK_STORE, "1"); } catch (e) { /* egal */ }
+    location.replace(previous);
   }
 
   // ── Räumliche Navigation ──
@@ -140,7 +142,11 @@
     var f = playerFrame();
     if (!f) return false;
     // Ton ein und Fernbedienungs-Modus im RSL-Player
-    if (/\/mediathek\?/.test(f.src) && !/[?&]tv=1/.test(f.src)) f.src = f.src + "&tv=1&ton=1";
+    if (/\/mediathek\?/.test(f.src) && !/[?&]tv=1/.test(f.src)) {
+      var next = f.src + "&tv=1&ton=1";
+      // replace(): kein zusätzlicher Verlaufseintrag im Frame
+      try { f.contentWindow.location.replace(next); } catch (e) { f.src = next; }
+    }
     document.documentElement.classList.add("tv-playing");
     playing = true;
     return true;
