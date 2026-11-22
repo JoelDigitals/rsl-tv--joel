@@ -56,13 +56,18 @@
   var playing = false;
 
   function depth() { try { return Number(store.getItem(DEPTH_STORE) || 0); } catch (e) { return 0; } }
+  // Während ein Seitenwechsel läuft, keine weiteren Tasten (sonst zählt „Zurück“ doppelt).
+  var leaving = false;
+  window.addEventListener("pageshow", function () { leaving = false; });
   function goLive() {
+    leaving = true;
     try { store.removeItem(KEY_STORE); } catch (e) { /* egal */ }
     location.href = returnUrl;
   }
   function goBack() {
     var d = depth();
     if (d > 0) {
+      leaving = true;
       try { store.setItem(DEPTH_STORE, String(d - 1)); } catch (e) { /* egal */ }
       history.back();
     } else {
@@ -145,6 +150,7 @@
   }
 
   function handle(key) {
+    if (leaving) return true;
     if (key === "red") { goLive(); return true; }
     if (key === "back") { goBack(); return true; }
     if (playing) {
@@ -156,6 +162,7 @@
       // „Live-TV“-Links führen zurück zum Live-Programm der App
       var href = current.getAttribute("href") || "";
       if (href === "/" || href === "/live/" ) { goLive(); return true; }
+      leaving = Boolean(current.getAttribute("href"));
       current.click();
       return true;
     }
