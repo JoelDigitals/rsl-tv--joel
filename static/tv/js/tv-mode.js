@@ -171,6 +171,14 @@
     if (handle(key)) { e.preventDefault(); e.stopPropagation(); }
   }, true);
 
+  // Hat der Player-Frame den Fokus, schickt er Zurück/Rot per Nachricht hierher.
+  window.addEventListener("message", function (e) {
+    var f = playerFrame();
+    if (!f || !e.data || e.data.type !== "rsl-tv-parent-key") return;
+    try { if (new URL(f.src).origin !== e.origin) return; } catch (err) { return; }
+    if (e.data.key === "back" || e.data.key === "red") handle(e.data.key);
+  });
+
   // Schnittstelle für den Android-/Fire-TV-Wrapper (Zurück- und Sondertasten)
   window.rslTvBack = function () { goBack(); return true; };
   window.rslTvKey = function (name) {
